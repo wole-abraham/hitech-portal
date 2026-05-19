@@ -375,7 +375,6 @@ export default function SubmitPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [allSections, setAllSections] = useState<Section[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [supervisors, setSupervisors] = useState<{ id: number; name: string; party: string }[]>([])
   const [equipmentList, setEquipmentList] = useState<{ id: number; fleet_number: string; machine_type: string; machine_belonging: string }[]>([])
 
   const [startCoords, setStartCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
@@ -436,8 +435,6 @@ export default function SubmitPage() {
       .then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
     fetch('/api/employees?status=Active&excludeAdmins=true').then(r => r.json())
       .then(d => { if (Array.isArray(d)) setEmployees(d) })
-    q('hitech_report_sitesupervisor', 'select=id,name,party&order=order')
-      .then(d => { if (Array.isArray(d)) setSupervisors(d) })
     fetch('/api/equipment').then(r => r.json())
       .then(d => { if (Array.isArray(d)) setEquipmentList(d) })
 
@@ -833,7 +830,7 @@ export default function SubmitPage() {
         <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240} showRole />
         <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
           partyOptions={['Hitech employees', 'Sub-contactor']}
-          nameList={supervisors}
+          nameList={employees.filter(e => e.role === 'Supervisor').map(e => ({ id: e.id, name: e.name, party: 'Hitech employees' }))}
         />
 
         {/* 6. Machines */}
