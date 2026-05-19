@@ -27,7 +27,7 @@ const bebasNeue = Bebas_Neue({
 export const metadata: Metadata = {
   title: "Hitech Portal",
   description: "Daily Activity & Asset Management — Hitech Construction Ltd",
-  icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
+  icons: { apple: '/logo.jpg' },
 };
 
 export default function RootLayout({
