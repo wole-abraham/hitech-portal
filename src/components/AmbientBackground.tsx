@@ -13,11 +13,10 @@ const PTS    = 64
 function drawTopo(ctx: CanvasRenderingContext2D, t: number, w: number, h: number) {
   ctx.clearRect(0, 0, w, h)
 
-  // Dark base
-  ctx.fillStyle = '#3a3a3a'
+  ctx.fillStyle = '#f8f7f5'
   ctx.fillRect(0, 0, w, h)
 
-  ctx.lineWidth = 1.4
+  ctx.lineWidth = 1.2
 
   for (const p of PEAKS) {
     const px = p.cx * w
@@ -29,9 +28,9 @@ function drawTopo(ctx: CanvasRenderingContext2D, t: number, w: number, h: number
       const pulse  = Math.sin(t * 0.36 + lv * 0.28 + p.cx * Math.PI) * 7
       const r = baseR + pulse
 
-      // Inner lines bright white, outer ones fade gently
-      const alpha = Math.max(0, 0.28 - lv * 0.016)
-      ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(4)})`
+      // Inner lines darker, outer ones fade gently
+      const alpha = Math.max(0, 0.14 - lv * 0.008)
+      ctx.strokeStyle = `rgba(0,0,0,${alpha.toFixed(4)})`
 
       ctx.beginPath()
       for (let i = 0; i <= PTS; i++) {

@@ -3,13 +3,13 @@
 import { useState, useRef, useEffect, useId } from 'react'
 
 const S = {
-  input:        '#404040',
-  border:       'rgba(255,255,255,0.14)',
-  borderOpen:   'rgba(255,255,255,0.28)',
-  accent:       '#f0f0f0',
-  text:         '#f0f0f0',
-  muted:        '#bbbbbb',
-  card:         '#444444',
+  input:        '#eceae5',
+  border:       'rgba(0,0,0,0.14)',
+  borderOpen:   'rgba(0,0,0,0.28)',
+  accent:       '#f59e0b',
+  text:         '#1a1610',
+  muted:        '#5a5248',
+  card:         '#ffffff',
 }
 
 export interface SelectOption {
@@ -110,7 +110,7 @@ export default function Select({ options, value, onChange, placeholder = 'Select
           width: '100%', padding: '13px 14px',
           background: S.input,
           border: `1px solid ${open ? S.borderOpen : S.border}`,
-          boxShadow: open ? '0 0 0 3px rgba(255,255,255,0.08)' : 'none',
+          boxShadow: open ? '0 0 0 3px rgba(245,158,11,0.15)' : 'none',
           borderRadius: 14, color: selected ? S.text : S.muted,
           fontSize: '0.95rem', fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -143,9 +143,9 @@ export default function Select({ options, value, onChange, placeholder = 'Select
             left: dropPos.left, width: dropPos.width,
             zIndex: 9999,
             background: S.card,
-            border: `1px solid rgba(255,255,255,0.10)`,
+            border: `1px solid rgba(0,0,0,0.10)`,
             borderRadius: 14,
-            boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
             overflow: 'hidden',
             maxHeight: 280,
             animation: 'selectDrop 0.18s ease',
@@ -160,7 +160,7 @@ export default function Select({ options, value, onChange, placeholder = 'Select
                 placeholder="Search…"
                 style={{
                   width: '100%', padding: '9px 12px',
-                  background: '#484848', border: '1px solid rgba(255,255,255,0.10)',
+                  background: '#f0ede8', border: '1px solid rgba(0,0,0,0.10)',
                   borderRadius: 10, color: S.text, fontSize: '0.88rem',
                   fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                 }}
@@ -181,7 +181,7 @@ export default function Select({ options, value, onChange, placeholder = 'Select
                     onMouseDown={e => { e.preventDefault(); select(opt.value) }}
                     style={{
                       width: '100%', padding: '10px 12px',
-                      background: isSelected ? 'rgba(255,255,255,0.08)' : 'transparent',
+                      background: isSelected ? 'rgba(245,158,11,0.10)' : 'transparent',
                       border: 'none', borderRadius: 10,
                       color: S.text,
                       fontSize: '0.92rem', fontFamily: 'inherit',
@@ -190,7 +190,7 @@ export default function Select({ options, value, onChange, placeholder = 'Select
                       transition: 'background 0.12s',
                       fontWeight: isSelected ? 600 : 400,
                     }}
-                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
                     onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
                   >
                     {opt.label}

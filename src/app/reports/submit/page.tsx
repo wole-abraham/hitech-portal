@@ -8,27 +8,29 @@ import AmbientBackground from '@/components/AmbientBackground'
 import { startMediaUpload } from '@/lib/mediaQueue'
 import ChainageMap from '@/components/ChainageMap'
 
-/* ── Design tokens (Hitech — red & yellow hazard palette) ──────────── */
+/* ── Design tokens (Hitech — light warm theme) ──────────────────── */
 const C = {
-  bg:           '#080604',
-  white:        '#181410',
+  bg:           '#f8f7f5',
+  white:        '#f0ede8',
   orange:       '#f59e0b',
   orangeLight:  'rgba(245,158,11,0.10)',
-  orangeBorder: 'rgba(245,158,11,0.25)',
-  text:         '#f2ede3',
-  muted:        '#b8b0a6',
-  border:       'rgba(242,237,227,0.12)',
-  inputBg:      '#1d1a16',
-  error:        '#f87171',
-  errorBg:      'rgba(248,113,113,0.08)',
-  success:      '#34d399',
-  shadow:       '0 4px 20px rgba(0,0,0,0.6)',
-  shadowMd:     '0 12px 40px rgba(0,0,0,0.7)',
+  orangeBorder: 'rgba(245,158,11,0.30)',
+  text:         '#1a1610',
+  muted:        '#6b6055',
+  border:       'rgba(0,0,0,0.09)',
+  inputBg:      '#edeae5',
+  error:        '#dc2626',
+  errorBg:      'rgba(220,38,38,0.08)',
+  success:      '#16a34a',
+  shadow:       '0 2px 12px rgba(0,0,0,0.07)',
+  shadowMd:     '0 12px 40px rgba(0,0,0,0.13)',
 }
+
+const CARD_COLORS: [string, string] = ['#ffffff', '#fdf8ef']
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '12px 14px',
-  background: C.inputBg, border: `1px solid rgba(242,237,227,0.18)`,
+  background: C.inputBg, border: `1px solid rgba(0,0,0,0.14)`,
   borderRadius: 11, color: C.text, fontSize: '0.92rem',
   fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -44,7 +46,7 @@ function handleAcquired(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaEleme
 }
 
 /* ── Animated card wrapper ─────────────────────────────────── */
-function Card({ children, icon, title, delay = 0, className }: { children: React.ReactNode; icon: string; title: string; delay?: number; className?: string }) {
+function Card({ children, icon, title, delay = 0, className, cardBg }: { children: React.ReactNode; icon: string; title: string; delay?: number; className?: string; cardBg?: string }) {
   const [vis, setVis] = useState(false)
   const [done, setDone] = useState(false)
   useEffect(() => {
@@ -57,12 +59,15 @@ function Card({ children, icon, title, delay = 0, className }: { children: React
     }, effectiveDelay)
     return () => clearTimeout(t)
   }, [delay])
+  const bg = cardBg ?? '#ffffff'
+  const isAlt = bg === CARD_COLORS[1]
   return (
     <div
       className={className}
       style={{
-        background: 'linear-gradient(160deg, rgba(24,20,16,0.52) 0%, rgba(17,15,12,0.42) 100%)',
-        border: `1px solid rgba(237,232,222,0.10)`, borderRadius: 16,
+        background: bg,
+        border: `1px solid ${isAlt ? 'rgba(245,158,11,0.18)' : 'rgba(0,0,0,0.09)'}`,
+        borderRadius: 16,
         boxShadow: C.shadow,
         opacity: vis ? 1 : 0,
         ...(done ? {} : { transform: vis ? 'translateY(0)' : 'translateY(18px)' }),
@@ -96,9 +101,9 @@ function YesNo({ value, onChange }: { value: string; onChange: (v: string) => vo
       {['Yes', 'No'].map(v => (
         <button key={v} type="button" onClick={() => onChange(v)} style={{
           padding: '12px', borderRadius: 12, fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer',
-          border: value === v ? `1px solid rgba(255,255,255,0.32)` : `1px solid rgba(255,255,255,0.12)`,
-          background: value === v ? 'rgba(255,255,255,0.08)' : C.inputBg,
-          color: value === v ? '#fff' : C.muted,
+          border: value === v ? `1px solid rgba(0,0,0,0.30)` : `1px solid rgba(0,0,0,0.10)`,
+          background: value === v ? 'rgba(0,0,0,0.07)' : C.inputBg,
+          color: value === v ? C.text : C.muted,
           transition: 'all 0.18s',
         }}>{v}</button>
       ))}
@@ -177,7 +182,7 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
           onClick={openDrop}
           style={{
             width: '100%', padding: '13px 14px',
-            background: C.inputBg, border: `1px solid ${open ? 'rgba(255,255,255,0.32)' : C.border}`,
+            background: C.inputBg, border: `1px solid ${open ? 'rgba(0,0,0,0.28)' : C.border}`,
             borderRadius: 14, color: value ? C.text : C.muted,
             fontSize: '0.95rem', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -203,10 +208,10 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
           position: 'fixed',
           top: dropPos.top, left: dropPos.left, width: dropPos.width,
           zIndex: 9999,
-          background: '#17171b',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.10)',
           borderRadius: 14,
-          boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
           overflow: 'hidden',
           animation: 'chainageDrop 0.2s ease',
         }}>
@@ -221,7 +226,7 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
               placeholder="Type chainage…"
               style={{
                 width: '100%', padding: '9px 12px',
-                background: '#111114', border: '1px solid rgba(255,255,255,0.12)',
+                background: '#f0ede8', border: '1px solid rgba(0,0,0,0.10)',
                 borderRadius: 10, color: C.text, fontSize: '0.88rem',
                 fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
               }}
@@ -243,8 +248,8 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
                 onMouseDown={e => { e.preventDefault(); pick(c) }}
                 style={{
                   width: '100%', padding: '11px 16px',
-                  background: value === c.chainage ? 'rgba(255,255,255,0.06)' : 'transparent',
-                  border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  background: value === c.chainage ? 'rgba(245,158,11,0.10)' : 'transparent',
+                  border: 'none', borderBottom: '1px solid rgba(0,0,0,0.05)',
                   color: C.text,
                   fontSize: '0.88rem', fontFamily: 'inherit',
                   textAlign: 'left', cursor: 'pointer',
@@ -252,7 +257,7 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
                   transition: 'background 0.15s',
                   fontWeight: value === c.chainage ? 700 : 400,
                 }}
-                onMouseEnter={e => { if (value !== c.chainage) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                onMouseEnter={e => { if (value !== c.chainage) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
                 onMouseLeave={e => { if (value !== c.chainage) e.currentTarget.style.background = 'transparent' }}
               >
                 <strong style={{ color: 'inherit' }}>{c.chainage}</strong>
@@ -266,20 +271,21 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
   )
 }
 
-function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, partyOptions, nameList, showRole }: {
+function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, partyOptions, nameList, showRole, cardBg }: {
   label: string; icon: string; rows: PersonRow[]
   setRows: React.Dispatch<React.SetStateAction<PersonRow[]>>
   employees: Employee[]; delay?: number
   partyOptions?: string[]
   nameList?: { id: number; name: string; party: string }[]
   showRole?: boolean | ((party: string) => boolean)
+  cardBg?: string
 }) {
   const update = (i: number, k: keyof PersonRow, v: string) => {
     setRows(r => { const n = [...r]; n[i] = { ...n[i], [k]: v }; return n })
   }
   const parties = partyOptions ?? ['Employee', 'Sub-contractor']
   return (
-    <Card className="card-full" icon={icon} title={`${label} — min 1`} delay={delay}>
+    <Card className="card-full" icon={icon} title={`${label} — min 1`} delay={delay} cardBg={cardBg}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {rows.map((row, i) => {
           const takenNames = new Set(rows.filter((_, j) => j !== i).map(r => r.name).filter(n => n && n !== '__other__'))
@@ -288,7 +294,7 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
             : employees
           ).filter(e => !takenNames.has(e.name))
           return (
-            <div key={i} style={{ background: '#0a0a0b', border: `1px solid rgba(255,255,255,0.08)`, borderRadius: 14, padding: 14 }}>
+            <div key={i} style={{ background: '#f2efe9', border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 14, padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label.slice(0, -1)} {i + 1}</span>
                 {rows.length > 1 && (
@@ -544,7 +550,7 @@ export default function SubmitPage() {
   }
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', color: C.text }}>
       <AmbientBackground />
       <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator {
@@ -562,7 +568,7 @@ export default function SubmitPage() {
 
       {/* Header */}
       <header style={{
-        background: 'rgba(8,6,4,0.92)', backdropFilter: 'blur(20px)',
+        background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         position: 'sticky', top: 0, zIndex: 100,
       }}>
@@ -621,7 +627,7 @@ export default function SubmitPage() {
             padding: '0 0 80px',
           }} onClick={() => setReuseOpen(false)}>
             <div style={{
-              background: '#15120e', border: `1px solid ${C.orangeBorder}`,
+              background: '#ffffff', border: `1px solid ${C.orangeBorder}`,
               borderRadius: 20, padding: '18px 16px',
               width: '100%', maxWidth: 560, maxHeight: '68vh',
               display: 'flex', flexDirection: 'column', gap: 12,
@@ -642,7 +648,7 @@ export default function SubmitPage() {
                 ) : reuseReports.map((r: any) => (
                   <button type="button" key={r.id} onClick={() => applyReuse(r)} style={{
                     width: '100%', padding: '12px 14px', textAlign: 'left',
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)',
+                    background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.08)',
                     borderRadius: 12, cursor: 'pointer', color: C.text,
                     display: 'flex', flexDirection: 'column', gap: 3,
                     transition: 'background 0.15s',
@@ -672,25 +678,25 @@ export default function SubmitPage() {
             padding: '20px',
           }} onClick={() => setError('')}>
             <div style={{
-              background: 'linear-gradient(160deg,#1e1410,#170e0e)',
-              border: '1px solid rgba(248,113,113,0.35)',
+              background: '#fff5f5',
+              border: '1px solid rgba(220,38,38,0.25)',
               borderRadius: 20, padding: '28px 24px',
               maxWidth: 400, width: '100%',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(248,113,113,0.1)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.15)',
               textAlign: 'center',
             }} onClick={e => e.stopPropagation()}>
               <div style={{ fontSize: '2.2rem', marginBottom: 14 }}>⚠️</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: '#f87171', marginBottom: 10 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: '#dc2626', marginBottom: 10 }}>
                 Submission Failed
               </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#c4a8a8', lineHeight: 1.6, marginBottom: 22 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#7a3a3a', lineHeight: 1.6, marginBottom: 22 }}>
                 {error}
               </div>
               <button onClick={() => setError('')} style={{
                 width: '100%', padding: '12px',
-                background: 'rgba(248,113,113,0.15)',
-                border: '1px solid rgba(248,113,113,0.35)',
-                borderRadius: 10, color: '#f87171',
+                background: 'rgba(220,38,38,0.10)',
+                border: '1px solid rgba(220,38,38,0.30)',
+                borderRadius: 10, color: '#dc2626',
                 fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.88rem',
                 cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
                 transition: 'background 0.15s',
@@ -702,7 +708,7 @@ export default function SubmitPage() {
         )}
 
         {/* 1. Activity Info */}
-        <Card className="card-full" icon="📋" title="Activity Information" delay={60}>
+        <Card className="card-full" icon="📋" title="Activity Information" delay={60} cardBg={CARD_COLORS[0]}>
           <Row2>
             <div>
               <Label required>Date</Label>
@@ -747,7 +753,7 @@ export default function SubmitPage() {
         </Card>
 
         {/* 2. Activity Type */}
-        <Card icon="🏗️" title="Activity Type" delay={120}>
+        <Card icon="🏗️" title="Activity Type" delay={120} cardBg={CARD_COLORS[1]}>
           <div>
             <Label required>Category</Label>
             <Select
@@ -804,7 +810,7 @@ export default function SubmitPage() {
         </Card>
 
         {/* 3. Chainage */}
-        <Card icon="📍" title="Chainage" delay={180}>
+        <Card icon="📍" title="Chainage" delay={180} cardBg={CARD_COLORS[0]}>
           <ChainageInput
             label="Start Chainage" required
             project={form.project_name} section={form.section_name}
@@ -836,6 +842,7 @@ export default function SubmitPage() {
             { id: -3, name: 'Multi road', party: 'Sub-contractor' },
           ]}
           showRole={party => party === 'Employee'}
+          cardBg={CARD_COLORS[1]}
         />
         <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
           partyOptions={['Hitech employees', 'Sub-contractor']}
@@ -845,13 +852,14 @@ export default function SubmitPage() {
             { id: -2, name: 'SPG', party: 'Sub-contractor' },
             { id: -3, name: 'Multi road', party: 'Sub-contractor' },
           ]}
+          cardBg={CARD_COLORS[0]}
         />
 
         {/* 6. Machines */}
-        <Card className="card-full" icon="🚜" title="Machinery — min 1" delay={320}>
+        <Card className="card-full" icon="🚜" title="Machinery — min 1" delay={320} cardBg={CARD_COLORS[1]}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {machineRows.map((row, i) => (
-              <div key={i} style={{ background: '#0a0a0b', border: `1px solid rgba(255,255,255,0.08)`, borderRadius: 14, padding: 14 }}>
+              <div key={i} style={{ background: '#f2efe9', border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 14, padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Machine {i + 1}</span>
                   {machineRows.length > 1 && (
@@ -904,13 +912,13 @@ export default function SubmitPage() {
         </Card>
 
         {/* 9. Photos & Video */}
-        <Card className="card-full" icon="📷" title="Photos & Video — min 1 required" delay={460}>
+        <Card className="card-full" icon="📷" title="Photos & Video — min 1 required" delay={460} cardBg={CARD_COLORS[0]}>
           <div>
             <Label>Site Photos (up to 5)</Label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {photos.map((photo, i) => (
                 <label key={i} style={{
-                  aspectRatio: '1', background: photo ? 'rgba(59,130,246,0.08)' : C.inputBg,
+                  aspectRatio: '1', background: photo ? 'rgba(59,130,246,0.06)' : C.inputBg,
                   border: `2px ${photo ? 'solid' : 'dashed'} ${photo ? '#3b82f6' : 'rgba(255,255,255,0.16)'}`,
                   borderRadius: 12, display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -957,9 +965,9 @@ export default function SubmitPage() {
       {/* Bottom bar */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'rgba(8,6,4,0.92)', backdropFilter: 'blur(20px)',
+        background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${C.border}`,
+        borderTop: `1px solid rgba(0,0,0,0.08)`,
         padding: '14px 18px',
         paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
         zIndex: 100,
@@ -968,7 +976,7 @@ export default function SubmitPage() {
         {submitting && (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9997,
-            background: 'rgba(8,6,4,0.88)', backdropFilter: 'blur(8px)',
+            background: 'rgba(248,247,245,0.92)', backdropFilter: 'blur(8px)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 20,
           }}>

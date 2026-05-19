@@ -4,32 +4,30 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NavShell from '@/components/NavShell'
 
-// ── Design tokens — black & white monochrome theme ───────────
-// NOTE: Values must remain as hex strings (not CSS vars) because
-// several callers use these in string templates like `${T.amber}30`.
+// ── Design tokens — light warm theme ────────────────────────────
 export const T = {
-  bg:           '#3a3a3a',
-  card:         '#444444',
-  cardGrad:     'linear-gradient(160deg, #4e4e4e 0%, #444444 100%)',
-  input:        '#404040',
-  border:       'rgba(255,255,255,0.08)',
-  borderInput:  'rgba(255,255,255,0.14)',
-  borderStrong: 'rgba(255,255,255,0.24)',
+  bg:           '#f8f7f5',
+  card:         '#ffffff',
+  cardGrad:     'linear-gradient(160deg, #ffffff 0%, #f8f6f2 100%)',
+  input:        '#eceae5',
+  border:       'rgba(0,0,0,0.08)',
+  borderInput:  'rgba(0,0,0,0.15)',
+  borderStrong: 'rgba(0,0,0,0.28)',
   amber:        '#f59e0b',
   amberDim:     'rgba(245,158,11,0.10)',
-  yellow:       '#fbbf24',
-  yellowDim:    'rgba(251,191,36,0.10)',
-  text:         '#f0f0f0',
-  muted:        '#d0d0d0',
-  sub:          '#bbbbbb',
-  error:        '#f87171',
-  success:      '#34d399',
+  yellow:       '#d97706',
+  yellowDim:    'rgba(217,119,6,0.10)',
+  text:         '#1a1610',
+  muted:        '#5a5248',
+  sub:          '#8c8480',
+  error:        '#dc2626',
+  success:      '#16a34a',
 }
 
 export function CosmicBackground() { return null }
 
 // ── Skeleton primitives ────────────────────────────────────────
-const SHIMMER = `linear-gradient(90deg, #4e4e4e 25%, rgba(255,255,255,0.05) 50%, #4e4e4e 75%)`
+const SHIMMER = `linear-gradient(90deg, #ede9e2 25%, rgba(255,255,255,0.7) 50%, #ede9e2 75%)`
 
 export function Skeleton({ width, height, radius, style }: {
   width?: number | string
@@ -120,8 +118,8 @@ export function SearchBar({ value, onChange, placeholder }: {
           transition: 'border-color 0.2s, box-shadow 0.2s',
         }}
         onFocus={e => {
-          e.target.style.borderColor = '#111111'
-          e.target.style.boxShadow = `0 0 0 3px rgba(0,0,0,0.1)`
+          e.target.style.borderColor = T.amber
+          e.target.style.boxShadow = `0 0 0 3px rgba(245,158,11,0.15)`
         }}
         onBlur={e => {
           e.target.style.borderColor = T.borderInput
@@ -148,7 +146,7 @@ export function Badge({ label, color }: { label: string; color: string }) {
 export function EmptyState({ icon, message }: { icon: string; message: string }) {
   return (
     <div style={{ textAlign: 'center', padding: '60px 20px', color: T.muted }}>
-      <div style={{ fontSize: '2.2rem', marginBottom: 12, opacity: 0.3 }}>{icon}</div>
+      <div style={{ fontSize: '2.2rem', marginBottom: 12, opacity: 0.4 }}>{icon}</div>
       <p style={{ margin: 0, fontSize: '0.82rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
         {message}
       </p>
@@ -175,24 +173,24 @@ export function Modal({ open, onClose, title, children }: {
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
       <div style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.75)',
+        background: 'rgba(0,0,0,0.4)',
         animation: 'fadeIn 0.18s ease forwards',
       }} onClick={onClose} />
       <div style={{
         position: 'relative', zIndex: 1,
-        background: 'linear-gradient(180deg, #4e4e4e 0%, #444444 100%)',
+        background: '#ffffff',
         border: `1px solid ${T.borderInput}`,
         borderRadius: 20,
         width: '100%', maxWidth: 560,
         maxHeight: '90vh', overflowY: 'auto',
         animation: 'tileIn 0.22s cubic-bezier(0.22,0.61,0.36,1)',
         padding: '20px 20px 28px',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.8)',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.15)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <span style={{ fontWeight: 700, fontSize: '1rem', color: T.text, fontFamily: 'var(--font-display)' }}>{title}</span>
           <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`,
+            background: 'rgba(0,0,0,0.05)', border: `1px solid ${T.border}`,
             borderRadius: 8, color: T.muted, width: 30, height: 30,
             cursor: 'pointer', fontSize: '0.88rem',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -208,8 +206,8 @@ export function Modal({ open, onClose, title, children }: {
 // ── Shared input style ─────────────────────────────────────────
 export const inp: React.CSSProperties = {
   width: '100%', padding: '12px 14px',
-  background: '#404040', border: `1px solid rgba(255,255,255,0.14)`,
-  borderRadius: 11, color: '#f0f0f0', fontSize: '0.92rem',
+  background: '#eceae5', border: `1px solid rgba(0,0,0,0.15)`,
+  borderRadius: 11, color: '#1a1610', fontSize: '0.92rem',
   fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   transition: 'border-color 0.2s, box-shadow 0.2s',
 }
@@ -222,7 +220,7 @@ export function FieldLabel({ children, required }: { children: React.ReactNode; 
       letterSpacing: '0.10em', color: T.muted, marginBottom: 7, display: 'block',
       fontFamily: 'var(--font-mono)',
     }}>
-      {children}{required && <span style={{ color: '#111111', marginLeft: 3 }}>*</span>}
+      {children}{required && <span style={{ color: T.amber, marginLeft: 3 }}>*</span>}
     </label>
   )
 }
@@ -237,15 +235,15 @@ export function SaveBtn({ loading, label = 'Save' }: { loading?: boolean; label?
       onMouseLeave={() => setHov(false)}
       style={{
         width: '100%', padding: '14px',
-        background: loading ? 'rgba(255,255,255,0.08)' : '#f0f0f0',
-        color: loading ? T.muted : '#3a3a3a',
+        background: loading ? 'rgba(0,0,0,0.08)' : '#f59e0b',
+        color: loading ? T.muted : '#1a1008',
         border: 'none', borderRadius: 11, fontWeight: 800, fontSize: '0.88rem',
         cursor: loading ? 'not-allowed' : 'pointer', marginTop: 8,
         boxShadow: loading
           ? 'none'
           : hov
-            ? `0 6px 32px rgba(0,0,0,0.28)`
-            : `0 4px 20px rgba(0,0,0,0.16)`,
+            ? `0 6px 32px rgba(245,158,11,0.35)`
+            : `0 4px 20px rgba(245,158,11,0.20)`,
         transform: hov && !loading ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all 0.2s',
         letterSpacing: '0.06em', textTransform: 'uppercase',
