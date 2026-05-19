@@ -20,13 +20,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
-
-  // Collect admin user_ids so we can exclude them from the employee list
-  const { data: admins } = await supabase
-    .from('auth_user')
-    .select('id')
-    .eq('is_staff', true)
-  const adminIds = (admins ?? []).map((a: { id: number }) => a.id)
+  const excludeAdmins = searchParams.get('excludeAdmins') === 'true'
 
   let q = supabase
     .from('surveycollection_employee')
@@ -34,7 +28,15 @@ export async function GET(req: NextRequest) {
     .order('name')
 
   if (status) q = (q as any).eq('status', status)
-  if (adminIds.length > 0) q = (q as any).not('user_id', 'in', `(${adminIds.join(',')})`)
+
+  if (excludeAdmins) {
+    const { data: admins } = await supabase
+      .from('auth_user')
+      .select('id')
+      .eq('is_staff', true)
+    const adminIds = (admins ?? []).map((a: { id: number }) => a.id)
+    if (adminIds.length > 0) q = (q as any).not('user_id', 'in', `(${adminIds.join(',')})`)
+  }
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

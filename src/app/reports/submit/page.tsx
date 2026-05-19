@@ -436,7 +436,7 @@ export default function SubmitPage() {
       .then(d => { if (Array.isArray(d)) setTeamCars(d) })
     q('hitech_report_subcontractorname', 'select=name&order=order')
       .then(d => { if (Array.isArray(d)) setSubcontractors((d as { name: string }[]).map(s => s.name)) })
-    fetch('/api/employees?status=Active').then(r => r.json())
+    fetch('/api/employees?status=Active&excludeAdmins=true').then(r => r.json())
       .then(d => { if (Array.isArray(d)) setEmployees(d) })
     q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging,project_name,section_name&order=fleet_number')
       .then(d => { if (Array.isArray(d)) setMachines(d) })
