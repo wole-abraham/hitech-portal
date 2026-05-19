@@ -829,8 +829,13 @@ export default function SubmitPage() {
         {/* 4–5. Personnel */}
         <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240} showRole />
         <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
-          partyOptions={['Hitech employees', 'Sub-contactor']}
-          nameList={employees.filter(e => e.role === 'Supervisor').map(e => ({ id: e.id, name: e.name, party: 'Hitech employees' }))}
+          partyOptions={['Hitech employees', 'Sub-contractor']}
+          nameList={[
+            ...employees.filter(e => e.role === 'Supervisor').map(e => ({ id: e.id, name: e.name, party: 'Hitech employees' })),
+            { id: -1, name: 'Zenith', party: 'Sub-contractor' },
+            { id: -2, name: 'SPG', party: 'Sub-contractor' },
+            { id: -3, name: 'Multi road', party: 'Sub-contractor' },
+          ]}
         />
 
         {/* 6. Machines */}

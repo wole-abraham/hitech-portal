@@ -562,7 +562,7 @@ export default function ConfigPage() {
         { key: 'name',  label: 'Name',  required: true },
         { key: 'party', label: 'Party', type: 'select', getOptions: () => [
           { value: 'Hitech employees', label: 'Hitech employees' },
-          { value: 'Sub-contactor',    label: 'Sub-contactor' },
+          { value: 'Sub-contractor',    label: 'Sub-contractor' },
         ]},
         { key: 'order', label: 'Order', type: 'number' },
       ],
@@ -573,7 +573,7 @@ export default function ConfigPage() {
         { key: 'name',  label: 'Name',  required: true },
         { key: 'party', label: 'Party', type: 'select', getOptions: () => [
           { value: 'Hitech employees', label: 'Hitech employees' },
-          { value: 'Sub-contactor',    label: 'Sub-contactor' },
+          { value: 'Sub-contractor',    label: 'Sub-contractor' },
         ]},
         { key: 'order', label: 'Order', type: 'number' },
       ],
