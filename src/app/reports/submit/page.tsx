@@ -582,13 +582,10 @@ export default function SubmitPage() {
           padding: 3px 4px;
           border-radius: 4px;
           background-color: #ffffff;
-          color: #ffffff;
           cursor: pointer;
-          filter: invert(0);
-          transition: background-color 0.15s;
+          transition: filter 0.15s;
         }
         input[type="date"]::-webkit-calendar-picker-indicator:hover {
-          background-color: #000000;
           filter: invert(1);
         }
       `}</style>
