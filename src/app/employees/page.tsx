@@ -82,16 +82,19 @@ export default function EmployeesPage() {
     e.preventDefault()
     setSaving(true)
 
-    let profile_picture: string | undefined = editing?.profile_picture ?? undefined
+    let profile_picture: string | null = editing?.profile_picture ?? null
 
     if (photoFile) {
       const fd = new FormData()
       fd.append('file', photoFile)
-      const uploadRes = await fetch('/api/reports/upload', { method: 'POST', body: fd })
-      if (uploadRes.ok) {
-        const uploadData = await uploadRes.json()
-        profile_picture = uploadData.url
+      const uploadRes = await fetch('/api/employees/upload-photo', { method: 'POST', body: fd })
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok) {
+        setSaving(false)
+        toast.error('Photo upload failed', { description: uploadData.error || 'Could not upload image.' })
+        return
       }
+      profile_picture = uploadData.url
     }
 
     const payload: Record<string, unknown> = {
