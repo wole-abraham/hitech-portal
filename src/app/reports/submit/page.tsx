@@ -272,12 +272,12 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
   employees: Employee[]; delay?: number
   partyOptions?: string[]
   nameList?: { id: number; name: string; party: string }[]
-  showRole?: boolean
+  showRole?: boolean | ((party: string) => boolean)
 }) {
   const update = (i: number, k: keyof PersonRow, v: string) => {
     setRows(r => { const n = [...r]; n[i] = { ...n[i], [k]: v }; return n })
   }
-  const parties = partyOptions ?? ['Employee', 'Contractor', 'Subcontractor']
+  const parties = partyOptions ?? ['Employee', 'Sub-contractor']
   return (
     <Card className="card-full" icon={icon} title={`${label} — min 1`} delay={delay}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -322,7 +322,7 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
                     />
                   </div>
                 </Row2>
-                {showRole && (
+                {(typeof showRole === 'function' ? showRole(row.party) : showRole) && (
                   <div>
                     <Label>Role</Label>
                     <Select
@@ -338,7 +338,7 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
                     <input style={inp} value={row.missing_name} onChange={e => update(i, 'missing_name', e.target.value)} onBlur={handleAcquired} />
                   </div>
                 )}
-                {row.party === 'Subcontractor' && (
+                {row.party === 'Sub-contractor' && (
                   <div><Label>Subcontractor Name</Label>
                     <input style={inp} value={row.subcontractor_name} onChange={e => update(i, 'subcontractor_name', e.target.value)} />
                   </div>
@@ -827,7 +827,16 @@ export default function SubmitPage() {
         </Card>
 
         {/* 4–5. Personnel */}
-        <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240} showRole />
+        <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240}
+          partyOptions={['Employee', 'Sub-contractor']}
+          nameList={[
+            ...employees.map(e => ({ id: e.id, name: e.name, party: 'Employee' })),
+            { id: -1, name: 'Zenith', party: 'Sub-contractor' },
+            { id: -2, name: 'SPG', party: 'Sub-contractor' },
+            { id: -3, name: 'Multi road', party: 'Sub-contractor' },
+          ]}
+          showRole={party => party === 'Employee'}
+        />
         <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
           partyOptions={['Hitech employees', 'Sub-contractor']}
           nameList={[
