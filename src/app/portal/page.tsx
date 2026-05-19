@@ -22,7 +22,7 @@ const WORKER_TILES: TileProps[] = [
 ]
 
 function TileIcon({ name, hov }: { name: IconName; hov: boolean }) {
-  const c = hov ? '#f0f0f0' : '#bbbbbb'
+  const c = hov ? '#1a1610' : '#5a5248'
   const s = {
     width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none',
     stroke: c, strokeWidth: 1.65,
@@ -32,8 +32,8 @@ function TileIcon({ name, hov }: { name: IconName; hov: boolean }) {
   return (
     <div style={{
       width: 44, height: 44, borderRadius: 11, flexShrink: 0,
-      background: hov ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${hov ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)'}`,
+      background: hov ? 'rgba(245,158,11,0.10)' : 'rgba(0,0,0,0.04)',
+      border: `1px solid ${hov ? 'rgba(245,158,11,0.30)' : 'rgba(0,0,0,0.08)'}`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'background 0.28s ease, border-color 0.28s ease',
       marginBottom: 14,
@@ -150,19 +150,19 @@ function PortalTile({ num, icon, tag, title, desc, href }: TileProps) {
       style={{
         display: 'flex', flexDirection: 'column',
         textDecoration: 'none', position: 'relative', overflow: 'hidden',
-        background: hov ? '#4e4e4e' : '#444444',
-        border: `1px solid ${hov ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.08)'}`,
+        background: hov ? '#fdf8ef' : '#ffffff',
+        border: `1px solid ${hov ? 'rgba(245,158,11,0.40)' : 'rgba(0,0,0,0.09)'}`,
         borderRadius: 14, padding: '18px 16px 16px',
         boxShadow: hov
-          ? '0 24px 56px rgba(0,0,0,0.14), 0 4px 16px rgba(255,255,255,0.08)'
-          : '0 2px 8px rgba(255,255,255,0.04)',
+          ? '0 12px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(245,158,11,0.08)'
+          : '0 2px 8px rgba(0,0,0,0.06)',
         height: '100%', willChange: 'transform',
       }}
     >
       {/* Left accent line */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: '2px',
-        background: '#f0f0f0',
+        background: '#f59e0b',
         borderRadius: '14px 0 0 14px',
         transform: hov ? 'scaleY(1)' : 'scaleY(0)',
         transformOrigin: 'bottom',
@@ -181,15 +181,15 @@ function PortalTile({ num, icon, tag, title, desc, href }: TileProps) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
-          color: hov ? '#f0f0f0' : '#bbbbbb',
+          color: hov ? '#1a1610' : '#8c8480',
           letterSpacing: '0.06em', transition: 'color 0.2s',
           minWidth: '2ch',
         }}>{counter}</span>
         <span style={{
           fontFamily: 'var(--font-mono)', fontSize: '0.58rem', fontWeight: 500,
           textTransform: 'uppercase', letterSpacing: '0.13em',
-          color: '#bbbbbb', padding: '3px 7px',
-          border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4,
+          color: '#6b6055', padding: '3px 7px',
+          border: '1px solid rgba(0,0,0,0.09)', borderRadius: 4,
         }}>{tag}</span>
       </div>
 
@@ -197,11 +197,11 @@ function PortalTile({ num, icon, tag, title, desc, href }: TileProps) {
 
       <div style={{
         fontFamily: 'var(--font-display)', fontWeight: 700,
-        fontSize: '0.95rem', color: '#f0f0f0',
+        fontSize: '0.95rem', color: '#1a1610',
         marginBottom: 6, letterSpacing: '-0.01em',
       }}>{title}</div>
 
-      <div style={{ fontSize: '0.76rem', color: '#d0d0d0', lineHeight: 1.55, flex: 1 }}>
+      <div style={{ fontSize: '0.76rem', color: '#5a5248', lineHeight: 1.55, flex: 1 }}>
         {desc}
       </div>
 
@@ -212,7 +212,7 @@ function PortalTile({ num, icon, tag, title, desc, href }: TileProps) {
         transition: 'opacity 0.25s, transform 0.3s',
       }}>
         <svg width={13} height={13} viewBox="0 0 24 24" fill="none"
-          stroke="#f0f0f0" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+          stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
           <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
       </div>
@@ -227,7 +227,7 @@ function PortalTile({ num, icon, tag, title, desc, href }: TileProps) {
             width: 24, height: 24,
             marginLeft: -12, marginTop: -12,
             borderRadius: '50%',
-            background: 'rgba(255,255,255,0.15)',
+            background: 'rgba(245,158,11,0.20)',
             animation: 'rippleOut 0.65s ease-out forwards',
             pointerEvents: 'none',
           }}
@@ -282,15 +282,15 @@ export default function PortalPage() {
         bottom: 0, left: '-15%', right: '-15%',
         height: '52vh',
         backgroundImage: [
-          'repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,0.04) 47px, rgba(255,255,255,0.04) 48px)',
-          'repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.04) 47px, rgba(255,255,255,0.04) 48px)',
+          'repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(0,0,0,0.04) 47px, rgba(0,0,0,0.04) 48px)',
+          'repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(0,0,0,0.04) 47px, rgba(0,0,0,0.04) 48px)',
         ].join(', '),
         transform: 'perspective(600px) rotateX(68deg)',
         transformOrigin: 'bottom center',
         pointerEvents: 'none',
         zIndex: 0,
-        maskImage: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 100%)',
         animation: 'gridPulse 8s ease-in-out infinite',
       }} />
 
@@ -312,17 +312,17 @@ export default function PortalPage() {
           }}>
             <img src="/logo.jpg" alt="Hitech" style={{
               width: 42, height: 42, borderRadius: 10,
-              boxShadow: '0 4px 16px rgba(255,255,255,0.12)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
               flexShrink: 0,
             }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
               letterSpacing: '0.09em', fontWeight: 700,
-              color: '#f0f0f0',
+              color: '#1a1610',
               padding: '6px 13px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(0,0,0,0.04)',
+              border: '1px solid rgba(0,0,0,0.10)',
               borderRadius: 6, textTransform: 'uppercase',
             }}>
               {role === 'admin' ? '⚡ Admin' : '👷 Field Worker'}
@@ -330,7 +330,7 @@ export default function PortalPage() {
             <button onClick={handleLogout} disabled={loggingOut} style={{
               height: 32, padding: '0 16px', borderRadius: 8,
               background: loggingOut ? 'rgba(220,38,38,0.04)' : 'rgba(220,38,38,0.08)',
-              color: loggingOut ? '#bbbbbb' : '#dc2626',
+              color: loggingOut ? '#8c8480' : '#dc2626',
               border: '1px solid rgba(220,38,38,0.25)',
               font: '700 11px/1 var(--font-mono)',
               cursor: loggingOut ? 'default' : 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -362,7 +362,7 @@ export default function PortalPage() {
               {wordmark.map((char, i) => (
                 <span key={i} style={{
                   display: 'inline-block',
-                  color: '#f0f0f0',
+                  color: '#1a1610',
                   opacity: 0,
                   animation: vis
                     ? `charIn 0.52s cubic-bezier(0.16, 1, 0.3, 1) ${0.05 + i * 0.07}s forwards`
@@ -374,7 +374,7 @@ export default function PortalPage() {
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.67rem',
               letterSpacing: '0.17em', textTransform: 'uppercase',
-              color: '#bbbbbb', marginTop: 9,
+              color: '#6b6055', marginTop: 9,
               opacity: vis ? 1 : 0,
               transition: 'opacity 0.6s ease 0.55s',
             }}>
@@ -383,7 +383,7 @@ export default function PortalPage() {
 
             <div style={{
               height: '1.5px',
-              background: 'linear-gradient(90deg, #f0f0f0 0%, rgba(255,255,255,0.15) 55%, transparent 100%)',
+              background: 'linear-gradient(90deg, #f59e0b 0%, rgba(245,158,11,0.20) 55%, transparent 100%)',
               marginTop: 16, marginBottom: 14,
               width: vis ? '100%' : '0%',
               transition: 'width 1.1s cubic-bezier(0.4, 0, 0.2, 1) 0.48s',
@@ -391,11 +391,11 @@ export default function PortalPage() {
 
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-              color: '#bbbbbb', letterSpacing: '0.04em',
+              color: '#6b6055', letterSpacing: '0.04em',
               opacity: vis ? 1 : 0,
               transition: 'opacity 0.5s ease 1s',
             }}>
-              Welcome back — <span style={{ color: '#f0f0f0', fontWeight: 500 }}>{user}</span>
+              Welcome back — <span style={{ color: '#1a1610', fontWeight: 600 }}>{user}</span>
             </div>
           </div>
 
@@ -419,10 +419,10 @@ export default function PortalPage() {
             opacity: vis ? 1 : 0,
             transition: 'opacity 0.5s ease 1.1s',
           }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#bbbbbb', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#8c8480', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
               Hitech Construction Ltd
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#bbbbbb', letterSpacing: '0.06em' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#8c8480', letterSpacing: '0.06em' }}>
               v2026.05
             </span>
           </div>
