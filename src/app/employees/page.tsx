@@ -11,8 +11,11 @@ import { Separator } from '@/components/ui/separator'
 interface Employee {
   id: number; name: string; role: string; phone_number: string
   project_name: string; section_name: string; status: string; email: string; notes: string
-  user_id: number | null
+  user_id: number | null; profile_picture: string | null
 }
+
+interface Project { id: number; name: string }
+interface Section { id: number; name: string; project_name?: string }
 
 const ROLES = ['Engineer','Supervisor','Operator','Technician','Labourer','Driver','Surveyor','Site Manager','Other']
 const STATUSES = ['Active','Inactive','On Leave']
@@ -22,6 +25,8 @@ const BLANK = { name: '', role: '', phone_number: '', project_name: '', section_
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [allSections, setAllSections] = useState<Section[]>([])
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [loading, setLoading] = useState(true)
@@ -31,6 +36,10 @@ export default function EmployeesPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [form, setForm] = useState(BLANK)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+
+  const filteredSections = allSections.filter(s => s.project_name === form.project_name)
 
   async function load() {
     setLoading(true)
@@ -45,11 +54,15 @@ export default function EmployeesPage() {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       if (d.user?.role === 'admin') setIsAdmin(true)
     })
+    fetch('/api/projects').then(r => r.json()).then(d => { if (Array.isArray(d)) setProjects(d) })
+    fetch('/api/sections').then(r => r.json()).then(d => { if (Array.isArray(d)) setAllSections(d) })
   }, [])
 
   function openAdd() {
     setEditing(null)
     setForm(BLANK)
+    setPhotoFile(null)
+    setPhotoPreview(null)
     setSheetOpen(true)
   }
 
@@ -60,16 +73,32 @@ export default function EmployeesPage() {
       project_name: emp.project_name || '', section_name: emp.section_name || '',
       status: emp.status || 'Active', email: emp.email || '', notes: emp.notes || '',
     })
+    setPhotoFile(null)
+    setPhotoPreview(emp.profile_picture || null)
     setSheetOpen(true)
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+
+    let profile_picture: string | undefined = editing?.profile_picture ?? undefined
+
+    if (photoFile) {
+      const fd = new FormData()
+      fd.append('file', photoFile)
+      const uploadRes = await fetch('/api/reports/upload', { method: 'POST', body: fd })
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json()
+        profile_picture = uploadData.url
+      }
+    }
+
     const payload: Record<string, unknown> = {
       name: form.name, role: form.role, phone_number: form.phone_number,
       project_name: form.project_name, section_name: form.section_name,
       status: form.status, email: form.email, notes: form.notes,
+      profile_picture,
     }
 
     const res = editing
@@ -108,6 +137,13 @@ export default function EmployeesPage() {
   })
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null
+    setPhotoFile(file)
+    if (file) setPhotoPreview(URL.createObjectURL(file))
+    else setPhotoPreview(editing?.profile_picture || null)
+  }
 
   return (
     <PageShell title="Employees" subtitle={`${employees.length} total`}>
@@ -154,8 +190,10 @@ export default function EmployeesPage() {
               opacity: 0, animation: `tileIn 0.35s ease ${i * 0.04}s forwards`,
               boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>
-                👷
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, overflow: 'hidden' }}>
+                {emp.profile_picture
+                  ? <img src={emp.profile_picture} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : '👷'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -191,6 +229,36 @@ export default function EmployeesPage() {
           </SheetHeader>
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Photo */}
+            <div>
+              <FieldLabel>Photo</FieldLabel>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: T.input, border: `1px solid ${T.border}`,
+                borderRadius: 12, padding: '12px 14px', cursor: 'pointer',
+                transition: 'border-color 0.2s',
+              }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
+                <div style={{
+                  width: 52, height: 52, borderRadius: 10, flexShrink: 0,
+                  background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`,
+                  overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.4rem',
+                }}>
+                  {photoPreview
+                    ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : '👷'}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: photoFile ? T.amber : T.muted }}>
+                    {photoFile ? photoFile.name : 'Tap to upload photo'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: T.sub, marginTop: 2 }}>JPG, PNG — optional</div>
+                </div>
+              </label>
+            </div>
+
             <div>
               <FieldLabel required>Full Name</FieldLabel>
               <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} required
@@ -221,11 +289,27 @@ export default function EmployeesPage() {
                 onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
                 onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
             </div>
-            <div>
-              <FieldLabel>Project</FieldLabel>
-              <input style={inp} value={form.project_name} onChange={e => set('project_name', e.target.value)} placeholder="Project name"
-                onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <FieldLabel>Project</FieldLabel>
+                <Select
+                  value={form.project_name}
+                  onChange={v => { set('project_name', v); set('section_name', '') }}
+                  placeholder="Select project"
+                  searchable
+                  options={projects.map(p => ({ value: p.name, label: p.name }))}
+                />
+              </div>
+              <div>
+                <FieldLabel>Section</FieldLabel>
+                <Select
+                  value={form.section_name}
+                  onChange={v => set('section_name', v)}
+                  placeholder="Select section"
+                  disabled={!form.project_name}
+                  options={filteredSections.map(s => ({ value: s.name, label: s.name }))}
+                />
+              </div>
             </div>
             <div>
               <FieldLabel>Notes</FieldLabel>

@@ -35,7 +35,7 @@ const inp: React.CSSProperties = {
 }
 
 const emptyPerson = (): PersonRow => ({ name: '', role: '', party: 'Employee', subcontractor_name: '', missing_name: '' })
-const emptyMachine = (): MachineRow => ({ ownership: 'Hitech', machine_name: '', plate_number: '', driver_name: '', missing_name: '' })
+const emptyMachine = (): MachineRow => ({ equipment_id: null, fleet_number: '', machine_name: '', machine_belonging: '', driver_name: '' })
 
 function handleAcquired(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
   if (!e.target.value) return
@@ -266,12 +266,13 @@ function ChainageInput({ label, required, project, section, value, onChange, onC
   )
 }
 
-function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, partyOptions, nameList }: {
+function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, partyOptions, nameList, showRole }: {
   label: string; icon: string; rows: PersonRow[]
   setRows: React.Dispatch<React.SetStateAction<PersonRow[]>>
   employees: Employee[]; delay?: number
   partyOptions?: string[]
   nameList?: { id: number; name: string; party: string }[]
+  showRole?: boolean
 }) {
   const update = (i: number, k: keyof PersonRow, v: string) => {
     setRows(r => { const n = [...r]; n[i] = { ...n[i], [k]: v }; return n })
@@ -321,6 +322,17 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
                     />
                   </div>
                 </Row2>
+                {showRole && (
+                  <div>
+                    <Label>Role</Label>
+                    <Select
+                      value={row.role || ''}
+                      onChange={v => update(i, 'role', v)}
+                      placeholder="Select role"
+                      options={['Engineer','Supervisor','Operator','Technician','Labourer','Driver','Surveyor','Site Manager','Other'].map(r => ({ value: r, label: r }))}
+                    />
+                  </div>
+                )}
                 {row.name === '__other__' && (
                   <div><Label>Enter Name</Label>
                     <input style={inp} value={row.missing_name} onChange={e => update(i, 'missing_name', e.target.value)} onBlur={handleAcquired} />
@@ -354,10 +366,6 @@ export default function SubmitPage() {
     activity_category: '', activity_type: '', activity_subtype: '', side: '',
     start_chainage: '', start_chainage_lat: '', start_chainage_long: '',
     end_chainage: '', end_chainage_lat: '', end_chainage_long: '',
-    comment_activity: '',
-    not_conforming: 'No', not_conforming_issue: '', not_conforming_correction: '',
-    car_used: 'No', team_car: '',
-    party_for_activity: '', subcontractor_name_activity: '',
     activity_status: 'Ongoing',
   })
 
@@ -367,19 +375,14 @@ export default function SubmitPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [allSections, setAllSections] = useState<Section[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [machines, setMachines] = useState<Machine[]>([])
-  const [teamCars, setTeamCars] = useState<{ name: string; plate_number: string }[]>([])
-  const [subcontractors, setSubcontractors] = useState<string[]>([])
   const [supervisors, setSupervisors] = useState<{ id: number; name: string; party: string }[]>([])
-  const [engineers, setEngineers] = useState<{ id: number; name: string; party: string }[]>([])
-  const [machineryTypes, setMachineryTypes] = useState<{ id: number; name: string }[]>([])
+  const [equipmentList, setEquipmentList] = useState<{ id: number; fleet_number: string; machine_type: string; machine_belonging: string }[]>([])
 
   const [startCoords, setStartCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
   const [endCoords, setEndCoords]     = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
 
   const [employeeRows, setEmployeeRows] = useState<PersonRow[]>([emptyPerson()])
   const [supervisorRows, setSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
-  const [engineerRows, setEngineerRows] = useState<PersonRow[]>([emptyPerson()])
   const [machineRows, setMachineRows] = useState<MachineRow[]>([emptyMachine()])
 
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
@@ -408,7 +411,6 @@ export default function SubmitPage() {
     !!form.end_chainage,
     employeeRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
     supervisorRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
-    engineerRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
     machineRows.some(r => !!r.machine_name),
     photos.some(Boolean) || !!video,
   ]
@@ -425,27 +427,19 @@ export default function SubmitPage() {
 
     // Each fetch is independent — a failure in one won't block the others
 
-    // hitech_report_* and surveycollection_employee/planningtable: anon key works (permissive RLS)
+    // hitech_report_* and surveycollection_employee: anon key works (permissive RLS)
     q('hitech_report_activitycategory', 'select=id,name&order=order')
       .then(d => { if (Array.isArray(d)) setCategories(d) })
     q('hitech_report_activitytype', 'select=id,name,category_id')
       .then(d => { if (Array.isArray(d)) setAllTypes(d) })
     q('hitech_report_activitysubtype', 'select=id,name,activity_type_id')
       .then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
-    q('hitech_report_teamcar', 'select=name,plate_number&order=order')
-      .then(d => { if (Array.isArray(d)) setTeamCars(d) })
-    q('hitech_report_subcontractorname', 'select=name&order=order')
-      .then(d => { if (Array.isArray(d)) setSubcontractors((d as { name: string }[]).map(s => s.name)) })
     fetch('/api/employees?status=Active&excludeAdmins=true').then(r => r.json())
       .then(d => { if (Array.isArray(d)) setEmployees(d) })
-    q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging,project_name,section_name&order=fleet_number')
-      .then(d => { if (Array.isArray(d)) setMachines(d) })
     q('hitech_report_sitesupervisor', 'select=id,name,party&order=order')
       .then(d => { if (Array.isArray(d)) setSupervisors(d) })
-    q('hitech_report_siteengineer', 'select=id,name,party&order=order')
-      .then(d => { if (Array.isArray(d)) setEngineers(d) })
-    q('hitech_report_machinerytype', 'select=id,name&order=order')
-      .then(d => { if (Array.isArray(d)) setMachineryTypes(d) })
+    fetch('/api/equipment').then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setEquipmentList(d) })
 
     // surveycollection_project / section: RLS blocks anon — use service-role API routes instead
     // (these routes are accessible to all authenticated roles, not admin-only)
@@ -482,14 +476,6 @@ export default function SubmitPage() {
       side: report.side || '',
       start_chainage: report.start_chainage || '',
       end_chainage: report.end_chainage || '',
-      comment_activity: report.comment_activity || '',
-      not_conforming: report.not_conforming || 'No',
-      not_conforming_issue: report.not_conforming_issue || '',
-      not_conforming_correction: report.not_conforming_correction || '',
-      car_used: report.car_used || 'No',
-      team_car: report.team_car || '',
-      party_for_activity: report.party_for_activity || '',
-      subcontractor_name_activity: report.subcontractor_name_activity || '',
       activity_status: 'Ongoing',
     }))
     if (Array.isArray(report.employees) && report.employees.length > 0) {
@@ -510,22 +496,13 @@ export default function SubmitPage() {
         missing_name: s.supervisor_missing_name || '',
       })))
     }
-    if (Array.isArray(report.engineers) && report.engineers.length > 0) {
-      setEngineerRows(report.engineers.map((e: any) => ({
-        name: e.engineer_name || (e.engineer_missing_name ? '__other__' : ''),
-        role: '',
-        party: e.party || 'Employee',
-        subcontractor_name: e.subcontractor_name || '',
-        missing_name: e.engineer_missing_name || '',
-      })))
-    }
     if (Array.isArray(report.machines) && report.machines.length > 0) {
       setMachineRows(report.machines.map((m: any) => ({
-        ownership: m.ownership || 'Hitech',
+        equipment_id: null,
+        fleet_number: m.fleet_number || m.plate_number || '',
         machine_name: m.machine_name || '',
-        plate_number: m.plate_number || '',
+        machine_belonging: m.ownership || '',
         driver_name: m.driver_name || '',
-        missing_name: '',
       })))
     }
   }
@@ -537,7 +514,6 @@ export default function SubmitPage() {
     if (!form.end_chainage) return setError('Please provide an ending chainage.')
     if (employeeRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one employee.')
     if (supervisorRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one supervisor.')
-    if (engineerRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one engineer.')
     if (machineRows.every(r => !r.machine_name)) return setError('Please add at least one machine.')
     if (!form.project_name) return setError('Please select a project.')
     if (!form.activity_category) return setError('Please select an activity category.')
@@ -553,11 +529,8 @@ export default function SubmitPage() {
         start_chainage_long: startCoords.lng,
         end_chainage_lat:    endCoords.lat,
         end_chainage_long:   endCoords.lng,
-        team_car: form.team_car === '__other__' ? '' : form.team_car,
-        subcontractor_name_activity: form.subcontractor_name_activity === '__other__' ? '' : form.subcontractor_name_activity,
         employees: employeeRows,
         supervisors: supervisorRows,
-        engineers: engineerRows,
         machines: machineRows,
       }),
     })
@@ -856,93 +829,15 @@ export default function SubmitPage() {
           />
         </Card>
 
-        {/* 4. Notes & Conformance */}
-        <Card className="card-full" icon="📝" title="Notes & Conformance" delay={240}>
-          <div>
-            <Label>Comment</Label>
-            <textarea style={{ ...inp, minHeight: 85, resize: 'vertical' }} value={form.comment_activity} onChange={e => set('comment_activity', e.target.value)} onBlur={handleAcquired} />
-          </div>
-          <div>
-            <Label>Not Conforming?</Label>
-            <YesNo value={form.not_conforming} onChange={v => set('not_conforming', v)} />
-          </div>
-          {form.not_conforming === 'Yes' && (
-            <>
-              <div><Label>Issue</Label><textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.not_conforming_issue} onChange={e => set('not_conforming_issue', e.target.value)} /></div>
-              <div><Label>Correction</Label><textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.not_conforming_correction} onChange={e => set('not_conforming_correction', e.target.value)} /></div>
-            </>
-          )}
-          {/* Party for this activity */}
-          <Row2>
-            <div>
-              <Label>Party for Activity</Label>
-              <Select
-                value={form.party_for_activity}
-                onChange={v => { set('party_for_activity', v); if (v !== 'Subcontractor') set('subcontractor_name_activity', '') }}
-                placeholder="Select"
-                options={['Employee','Contractor','Subcontractor'].map(p => ({ value: p, label: p }))}
-              />
-            </div>
-            <div>
-              <Label>Subcontractor</Label>
-              <Select
-                value={form.subcontractor_name_activity}
-                onChange={v => set('subcontractor_name_activity', v)}
-                placeholder="Select"
-                disabled={form.party_for_activity !== 'Subcontractor'}
-                searchable
-                options={[
-                  ...subcontractors.map(s => ({ value: s, label: s })),
-                  { value: '__other__', label: 'Other / Not in list' },
-                ]}
-              />
-            </div>
-          </Row2>
-          {form.subcontractor_name_activity === '__other__' && (
-            <div>
-              <Label>Enter Subcontractor Name</Label>
-              <input style={inp} placeholder="Type subcontractor name…" onBlur={handleAcquired}
-                onChange={e => set('subcontractor_name_activity', e.target.value || '__other__')} />
-            </div>
-          )}
-          <div>
-            <Label>Car Used?</Label>
-            <YesNo value={form.car_used} onChange={v => set('car_used', v)} />
-          </div>
-          {form.car_used === 'Yes' && (
-            <div>
-              <Label>Team Car</Label>
-              <Select
-                value={form.team_car}
-                onChange={v => set('team_car', v)}
-                placeholder="Select car"
-                searchable
-                options={[
-                  ...teamCars.map(c => ({ value: c.name, label: c.plate_number ? `${c.name} (${c.plate_number})` : c.name })),
-                  { value: '__other__', label: 'Not in list' },
-                ]}
-              />
-              {form.team_car === '__other__' && (
-                <input style={{ ...inp, marginTop: 8 }} placeholder="Enter car name…"
-                  onChange={e => set('team_car', e.target.value)} onBlur={handleAcquired} />
-              )}
-            </div>
-          )}
-        </Card>
-
-        {/* 5–7. Personnel */}
-        <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={300} />
-        <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={340}
+        {/* 4–5. Personnel */}
+        <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240} showRole />
+        <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
           partyOptions={['Hitech employees', 'Sub-contactor']}
           nameList={supervisors}
         />
-        <RepeatPersonGroup label="Engineers" icon="📐" rows={engineerRows} setRows={setEngineerRows} employees={employees} delay={380}
-          partyOptions={['Hitech employees', 'Sub-contactor']}
-          nameList={engineers}
-        />
 
-        {/* 8. Machines */}
-        <Card className="card-full" icon="🚜" title="Machinery — min 1" delay={420}>
+        {/* 6. Machines */}
+        <Card className="card-full" icon="🚜" title="Machinery — min 1" delay={320}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {machineRows.map((row, i) => (
               <div key={i} style={{ background: '#0a0a0b', border: `1px solid rgba(255,255,255,0.08)`, borderRadius: 14, padding: 14 }}>
@@ -956,38 +851,19 @@ export default function SubmitPage() {
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <Row2>
-                    <div>
-                      <Label>Ownership</Label>
-                      <Select
-                        value={row.ownership}
-                        onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], ownership: v, machine_name: '', plate_number: '' }; return n })}
-                        options={['Hitech','Renting','Subcontractor'].map(o => ({ value: o, label: o }))}
-                      />
-                    </div>
-                    <div>
-                      <Label>Machine Type</Label>
-                      <Select
-                        value={row.machine_name}
-                        onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_name: v }; return n })}
-                        placeholder="Select type"
-                        searchable
-                        options={[
-                          ...machineryTypes.map(m => ({ value: m.name, label: m.name })),
-                          { value: '__other__', label: 'Not in list' },
-                        ]}
-                      />
-                    </div>
-                  </Row2>
-                  {row.machine_name === '__other__' && (
-                    <div>
-                      <Label required>Machine Description</Label>
-                      <input style={inp} value={row.plate_number}
-                        placeholder="e.g. Excavator CAT 320"
-                        onChange={e => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_name: '__other__', plate_number: e.target.value }; return n })}
-                        onBlur={handleAcquired} />
-                    </div>
-                  )}
+                  <div>
+                    <Label required>Select Machine</Label>
+                    <Select
+                      value={row.fleet_number}
+                      onChange={v => {
+                        const eq = equipmentList.find(e => e.fleet_number === v)
+                        setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], equipment_id: eq?.id ?? null, fleet_number: v, machine_name: eq?.machine_type ?? '', machine_belonging: eq?.machine_belonging ?? '' }; return n })
+                      }}
+                      placeholder="Select from equipment list"
+                      searchable
+                      options={equipmentList.map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}${e.machine_belonging ? ` (${e.machine_belonging})` : ''}` }))}
+                    />
+                  </div>
                   <div>
                     <Label>Driver Name</Label>
                     <input style={inp} value={row.driver_name} onChange={e => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], driver_name: e.target.value }; return n })} onBlur={handleAcquired} placeholder="Driver name" />

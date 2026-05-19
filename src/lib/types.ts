@@ -32,9 +32,9 @@ export interface PersonRow {
 }
 
 export interface MachineRow {
-  ownership: string
+  equipment_id: number | null
+  fleet_number: string
   machine_name: string
-  plate_number: string
+  machine_belonging: string
   driver_name: string
-  missing_name: string
 }

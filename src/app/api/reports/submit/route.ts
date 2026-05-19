@@ -130,12 +130,11 @@ export async function POST(req: NextRequest) {
       body.machines.map((m: any) => ({
         report_id: reportId,
         fleet_number: m.fleet_number || '',
-        ownership: m.ownership || '',
+        ownership: m.machine_belonging || '',
         machine_name: m.machine_name || '',
-        // sanitize sentinel: never write '__other__' to the database
-        plate_number: m.plate_number === '__other__' ? '' : (m.plate_number || ''),
+        plate_number: m.fleet_number || '',
         driver_name: m.driver_name || '',
-        driver_missing_name: m.missing_name || '',
+        driver_missing_name: '',
       }))
     )
     if (error) failures.push('machines: ' + error.message)

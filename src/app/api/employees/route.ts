@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from('surveycollection_employee')
-    .select('id, name, role, status')
+    .select('id, name, role, status, phone_number, project_name, section_name, email, notes, user_id, profile_picture')
     .order('name')
 
   if (status) q = (q as any).eq('status', status)
@@ -49,11 +49,11 @@ export async function POST(req: NextRequest) {
   if (user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
   const body = await req.json()
-  const { name, role, phone_number, project_name, section_name, status, email, notes } = body
+  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture } = body
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
-    .insert({ name, role, phone_number, project_name, section_name, status, email, notes })
+    .insert({ name, role, phone_number, project_name, section_name, status, email, notes, profile_picture: profile_picture || null })
     .select()
     .single()
 
