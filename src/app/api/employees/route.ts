@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
-    .insert({ name, role, phone_number, project_name, section_name, status, email, notes, profile_picture: profile_picture || null })
+    .insert({ name, role: role || '', phone_number, project_name, section_name, status: status || 'Active', email, notes, profile_picture: profile_picture || null, date_added: new Date().toISOString().split('T')[0] })
     .select()
     .single()
 

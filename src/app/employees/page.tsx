@@ -114,7 +114,8 @@ export default function EmployeesPage() {
       load()
       toast.success(editing ? `${form.name} updated` : `${form.name} added`, { description: editing ? 'Employee record saved.' : 'New employee added to roster.' })
     } else {
-      toast.error('Save failed', { description: 'Please try again.' })
+      const errData = await res.json().catch(() => ({}))
+      toast.error('Save failed', { description: errData.error || `Status ${res.status}` })
     }
   }
 
