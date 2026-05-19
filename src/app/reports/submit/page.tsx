@@ -851,19 +851,33 @@ export default function SubmitPage() {
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div>
-                    <Label required>Select Machine</Label>
-                    <Select
-                      value={row.fleet_number}
-                      onChange={v => {
-                        const eq = equipmentList.find(e => e.fleet_number === v)
-                        setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], equipment_id: eq?.id ?? null, fleet_number: v, machine_name: eq?.machine_type ?? '', machine_belonging: eq?.machine_belonging ?? '' }; return n })
-                      }}
-                      placeholder="Select from equipment list"
-                      searchable
-                      options={equipmentList.map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}${e.machine_belonging ? ` (${e.machine_belonging})` : ''}` }))}
-                    />
-                  </div>
+                  <Row2>
+                    <div>
+                      <Label required>Owner</Label>
+                      <Select
+                        value={row.machine_belonging}
+                        onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_belonging: v, fleet_number: '', machine_name: '', equipment_id: null }; return n })}
+                        placeholder="Select owner"
+                        options={[...new Set(equipmentList.map(e => e.machine_belonging).filter(Boolean))].map(o => ({ value: o, label: o }))}
+                      />
+                    </div>
+                    <div>
+                      <Label required>Machine</Label>
+                      <Select
+                        value={row.fleet_number}
+                        onChange={v => {
+                          const eq = equipmentList.find(e => e.fleet_number === v)
+                          setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], equipment_id: eq?.id ?? null, fleet_number: v, machine_name: eq?.machine_type ?? '' }; return n })
+                        }}
+                        placeholder={row.machine_belonging ? 'Select machine' : 'Pick owner first'}
+                        disabled={!row.machine_belonging}
+                        searchable
+                        options={equipmentList
+                          .filter(e => e.machine_belonging === row.machine_belonging)
+                          .map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}` }))}
+                      />
+                    </div>
+                  </Row2>
                   <div>
                     <Label>Driver Name</Label>
                     <input style={inp} value={row.driver_name} onChange={e => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], driver_name: e.target.value }; return n })} onBlur={handleAcquired} placeholder="Driver name" />
