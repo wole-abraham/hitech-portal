@@ -163,9 +163,20 @@ export default function NavShell({ title, subtitle, children, action }: NavShell
             justifyContent: collapsed ? 'center' : 'flex-start',
             textDecoration: 'none', flexShrink: 0,
           }}>
+            <img
+              src="/logo.jpg"
+              alt="Hitech"
+              style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, objectFit: 'cover' }}
+              onError={e => {
+                const t = e.currentTarget
+                t.style.display = 'none'
+                const fb = t.nextElementSibling as HTMLElement | null
+                if (fb) fb.style.display = 'flex'
+              }}
+            />
             <div style={{
               width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              background: T.amber, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#b45309', display: 'none', alignItems: 'center', justifyContent: 'center',
               fontWeight: 800, fontSize: 14, color: '#fff', fontFamily: 'var(--font-display)',
             }}>H</div>
             {!collapsed && (
