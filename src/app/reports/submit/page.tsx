@@ -805,7 +805,7 @@ export default function SubmitPage() {
                 value={form.side}
                 onChange={v => set('side', v)}
                 placeholder="Select"
-                options={['Left','Right','Both','N/A'].map(s => ({ value: s, label: s }))}
+                options={['Left','Right','Median'].map(s => ({ value: s, label: s }))}
               />
             </div>
             <div>
