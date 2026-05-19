@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
       .select('id')
       .eq('is_staff', true)
     const adminIds = (admins ?? []).map((a: { id: number }) => a.id)
-    if (adminIds.length > 0) q = (q as any).not('user_id', 'in', `(${adminIds.join(',')})`)
+    if (adminIds.length > 0) {
+      // NULL user_id rows are excluded by NOT IN — explicitly keep them
+      q = (q as any).or(`user_id.is.null,user_id.not.in.(${adminIds.join(',')})`)
+    }
   }
 
   const { data, error } = await q
