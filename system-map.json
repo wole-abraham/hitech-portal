@@ -1,0 +1,256 @@
+{
+  "project": {
+    "name": "hitech-portal",
+    "version": "2026.05",
+    "purpose": "Daily activity reporting and asset management for Hitech Construction Ltd",
+    "stack": {
+      "framework": "Next.js 16.2.6 (App Router)",
+      "runtime": "React 19 + TypeScript",
+      "styling": "Tailwind CSS v4 (custom warm-amber design system)",
+      "database": "Supabase (PostgreSQL)",
+      "auth": "iron-session (HTTP-only cookies, Django-compatible password hashing)",
+      "3d_graphics": "Three.js + React Three Fiber (CityLoader, AmbientBackground)"
+    }
+  },
+
+  "roles": {
+    "admin": {
+      "access": ["portal", "employees", "equipment", "reports", "users"],
+      "can": ["create/delete employees", "manage machines", "view all reports", "list users"]
+    },
+    "worker": {
+      "access": ["portal", "reports/submit", "worker/machines"],
+      "can": ["submit activity reports", "confirm/return assigned machines", "update machine health"]
+    }
+  },
+
+  "auth_flow": {
+    "session": {
+      "library": "iron-session@8",
+      "cookie": "hitech-session",
+      "ttl": "7 days",
+      "stored_fields": ["id", "username", "email", "is_staff", "is_superuser", "role"]
+    },
+    "password_format": "Django pbkdf2_sha256 (compatible with existing Django user table)",
+    "signup": "Creates row in auth_user + auto-creates surveycollection_employee profile",
+    "login": "Verifies pbkdf2_sha256 hash from auth_user, sets iron-session cookie",
+    "route_protection": {
+      "file": "src/proxy.ts",
+      "public_paths": ["/login", "/signup"],
+      "always_allowed": ["/api/auth/*", "/_next/*", "/favicon*", "images/fonts"],
+      "redirect_on_no_session": "/login"
+    }
+  },
+
+  "database": {
+    "provider": "Supabase (PostgreSQL)",
+    "clients": {
+      "browser": "NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY (direct REST from client pages)",
+      "server": "SUPABASE_SERVICE_ROLE_KEY (API routes, bypasses RLS)"
+    },
+    "tables": {
+      "auth_user": {
+        "purpose": "User accounts (Django schema)",
+        "key_columns": ["id", "username", "email", "password", "is_staff", "is_superuser", "is_active"]
+      },
+      "surveycollection_employee": {
+        "purpose": "Employee profiles linked to user accounts",
+        "key_columns": ["id", "name", "email", "role", "status", "user_id", "project_name", "section_name", "phone_number", "notes"]
+      },
+      "surveycollection_planningtable": {
+        "purpose": "Equipment/machine registry",
+        "key_columns": ["fleet_number", "machine_type", "machine_belonging", "deployment_status", "health_status", "project_name", "section_name", "assigned_to", "operator_comment"],
+        "deployment_statuses": ["deployed_to_site", "received_on_site", "in_transit_back"]
+      },
+      "surveycollection_project": {
+        "purpose": "Project records",
+        "key_columns": ["id", "name"]
+      },
+      "surveycollection_section": {
+        "purpose": "Sections within projects",
+        "key_columns": ["id", "name", "project_id"]
+      },
+      "surveycollection_machinestatusreport": {
+        "purpose": "Machine movement history log",
+        "key_columns": ["date_time", "fleet_number", "deployment_state", "machine_status", "breakdown_issue", "assigned_to", "reporter_name"]
+      },
+      "hitech_report_hitechreport": {
+        "purpose": "Activity report header",
+        "key_columns": ["submitted_by_id", "date_of_activity", "project_name", "section_name", "activity_category", "start_chainage", "end_chainage"]
+      },
+      "hitech_report_hitechemployee": {
+        "purpose": "Personnel listed in a report"
+      },
+      "hitech_report_hitechsupervisor": {
+        "purpose": "Supervisors listed in a report"
+      },
+      "hitech_report_hitechengineer": {
+        "purpose": "Engineers listed in a report"
+      },
+      "hitech_report_hitechmachine": {
+        "purpose": "Machines used in a report"
+      },
+      "hitech_report_hitechphoto": {
+        "purpose": "Photos/videos attached to a report"
+      }
+    }
+  },
+
+  "api_routes": {
+    "auth": {
+      "POST /api/auth/login": "Verify password hash, create session",
+      "POST /api/auth/signup": "Create user + employee profile",
+      "GET /api/auth/me": "Return current session user",
+      "POST /api/auth/logout": "Destroy session"
+    },
+    "data": {
+      "GET /api/projects": "List all projects (Supabase)",
+      "GET /api/sections": "List sections with resolved project names",
+      "GET /api/users": "List active users (admin only)"
+    },
+    "employees": {
+      "DELETE /api/employees/[id]": "Delete employee + related FK rows (admin only)"
+    },
+    "machines": {
+      "GET /api/worker/machines": "Machines assigned to current worker (3-step lookup: user_id → email → auto-create employee)",
+      "POST /api/worker/machines/update": "Worker confirms receipt or returns machine, writes history row"
+    },
+    "reports": {
+      "POST /api/reports/submit": "Submit activity report (overlap-checks chainage, inserts to 6 tables)",
+      "GET /api/reports/chainage": "Query used chainages for a section",
+      "GET|POST /api/reports/upload": "Photo/video file uploads"
+    }
+  },
+
+  "pages": {
+    "/login": "Boot-sequence animation, password unlock UI, role-based redirect after login",
+    "/signup": "Account creation with 9 job roles (Engineer, Supervisor, Operator, etc.)",
+    "/portal": "Role-split dashboard — admin tiles vs worker tiles",
+    "/employees": "CRUD table for employee profiles (admin)",
+    "/equipment": "Machine registry with deployment/health status management (admin)",
+    "/reports/submit": "Multi-section activity report form with chainage validation + photo upload",
+    "/reports": "View submitted reports",
+    "/reports/success": "Submission confirmation",
+    "/worker/machines": "Worker's assigned machines with confirm/return/update-health actions"
+  },
+
+  "components": {
+    "PageShell": "Standard page chrome — sticky header, back button, exported design tokens",
+    "Select": "Custom searchable dropdown with viewport-aware positioning",
+    "AmbientBackground": "Canvas particle flow-field background (520 particles, vortex + sine noise)",
+    "CityLoader": "Three.js procedural city with scan-sweep animation (used as loading screen)"
+  },
+
+  "design_system": {
+    "theme": "Warm amber / industrial construction",
+    "fonts": {
+      "display": "Syne",
+      "body": "Outfit",
+      "mono": "Geist Mono"
+    },
+    "colors": {
+      "background": "#080604",
+      "card": "#110f0c / #181410",
+      "accent": "#f59e0b (amber)",
+      "text": "#ede8de",
+      "success": "#34d399",
+      "error": "#f87171"
+    },
+    "animations": ["charIn", "fadeIn", "tileSpring", "bootLineIn", "rippleOut", "amberPulse", "selectDrop", "shake"]
+  },
+
+  "env_variables": {
+    "NEXT_PUBLIC_SUPABASE_URL": "Supabase project URL (exposed to browser)",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "Supabase anon key (exposed to browser)",
+    "SUPABASE_SERVICE_ROLE_KEY": "Server-only privileged key (bypasses RLS)",
+    "SESSION_SECRET": "32+ byte secret for iron-session encryption",
+    "NODE_ENV": "production | development (controls secure cookie flag)"
+  },
+
+  "known_limitations": {
+    "rls_not_enforced_client_side": "Client pages query Supabase directly with anon key — RLS policies must be correct or data leaks",
+    "no_email_verification": "Signup creates account immediately, no email confirmation step",
+    "django_password_schema": "Password hashing tied to Django's pbkdf2_sha256 — migration needed if moving to native Supabase Auth",
+    "chainage_overlap_check": "Done in API, not DB constraint — concurrent submissions could theoretically race",
+    "no_refresh_token": "iron-session cookies expire after 7 days with no silent renewal"
+  },
+
+  "future_integrations": {
+    "high_impact_low_effort": {
+      "supabase_realtime": {
+        "what": "Live updates when machines are assigned/returned or reports submitted",
+        "how": "Subscribe to surveycollection_planningtable + hitech_report_hitechreport channels",
+        "benefit": "Admin sees fleet movement live without refreshing"
+      },
+      "supabase_rls": {
+        "what": "Row-level security policies so workers can only see their own data client-side",
+        "how": "Enable RLS on employee + machine tables, add user_id policies",
+        "benefit": "Closes the current data-leak surface on anon-key queries"
+      },
+      "supabase_storage": {
+        "what": "Replace current upload endpoint with Supabase Storage buckets",
+        "how": "Use @supabase/supabase-js storage API, store URLs in hitech_report_hitechphoto",
+        "benefit": "CDN delivery, access control, no custom upload server needed"
+      },
+      "pwa_offline": {
+        "what": "Service worker + IndexedDB so workers can submit reports with no signal",
+        "how": "Next.js PWA plugin, queue submissions locally, sync when online",
+        "benefit": "Construction sites often have dead zones — major usability win"
+      }
+    },
+    "medium_effort_high_value": {
+      "supabase_auth_migration": {
+        "what": "Replace iron-session + Django password hashing with native Supabase Auth",
+        "how": "Migrate users, use @supabase/ssr for server-side session, drop iron-session",
+        "benefit": "Magic links, OTP, social logins, built-in token refresh — zero custom auth code"
+      },
+      "push_notifications": {
+        "what": "Push alerts when a machine is deployed to a worker, or report is reviewed",
+        "how": "Web Push API + Supabase Edge Functions as webhook trigger",
+        "benefit": "Workers know immediately when they have a new machine assignment"
+      },
+      "gps_chainage_validation": {
+        "what": "Validate reported chainage against GPS coordinates from device",
+        "how": "Browser Geolocation API on report form, compare against known route geometry",
+        "benefit": "Prevents false chainage reporting"
+      },
+      "report_pdf_export": {
+        "what": "Generate printable PDF daily activity reports",
+        "how": "Supabase Edge Function using Puppeteer or @react-pdf/renderer",
+        "benefit": "Client-deliverable sign-off reports without manual formatting"
+      },
+      "analytics_dashboard": {
+        "what": "KPI charts — daily progress by section, machine utilisation, crew hours",
+        "how": "Recharts or Chart.js reading from existing report tables",
+        "benefit": "Project managers see progress trends at a glance"
+      }
+    },
+    "larger_initiatives": {
+      "mobile_app": {
+        "what": "React Native or Expo app sharing the same API layer",
+        "how": "Point to same /api/* endpoints, reuse types from src/lib/types.ts",
+        "benefit": "Native camera access for photos, GPS, offline-first"
+      },
+      "gis_map_view": {
+        "what": "Interactive road map showing chainage progress overlaid on a route",
+        "how": "Mapbox GL JS or Leaflet with chainage segments stored as GeoJSON in Supabase",
+        "benefit": "Visual progress reporting for client presentations"
+      },
+      "ai_report_assistant": {
+        "what": "Claude fills in report fields from a voice memo or short text description",
+        "how": "Vercel AI SDK + claude-sonnet-4-6, structured output matching report schema",
+        "benefit": "Workers speak their day's work, AI drafts the report"
+      },
+      "equipment_maintenance_module": {
+        "what": "Scheduled maintenance tracking, breakdown ticketing, parts inventory",
+        "how": "New Supabase tables: maintenance_schedule, breakdown_tickets, parts_inventory",
+        "benefit": "Proactive fleet health management beyond current health_status field"
+      },
+      "supabase_edge_functions": {
+        "what": "Move heavy API logic (report submit, chainage checks) to Supabase Edge Functions",
+        "how": "Deno-based functions triggered by DB inserts or HTTP calls",
+        "benefit": "Removes compute from Next.js server, enables DB-native overlap detection"
+      }
+    }
+  }
+}

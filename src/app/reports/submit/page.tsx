@@ -1,0 +1,1103 @@
+﻿'use client'
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import type { Category, ActivityType, ActivitySubType, Project, Section, Employee, Machine, ChainageResult, PersonRow, MachineRow } from '@/lib/types'
+import Select from '@/components/Select'
+import AmbientBackground from '@/components/AmbientBackground'
+import { startMediaUpload } from '@/lib/mediaQueue'
+import ChainageMap from '@/components/ChainageMap'
+
+/* ── Design tokens (Hitech — red & yellow hazard palette) ──────────── */
+const C = {
+  bg:           '#080604',
+  white:        '#181410',
+  orange:       '#f59e0b',
+  orangeLight:  'rgba(245,158,11,0.10)',
+  orangeBorder: 'rgba(245,158,11,0.25)',
+  text:         '#f2ede3',
+  muted:        '#b8b0a6',
+  border:       'rgba(242,237,227,0.12)',
+  inputBg:      '#1d1a16',
+  error:        '#f87171',
+  errorBg:      'rgba(248,113,113,0.08)',
+  success:      '#34d399',
+  shadow:       '0 4px 20px rgba(0,0,0,0.6)',
+  shadowMd:     '0 12px 40px rgba(0,0,0,0.7)',
+}
+
+const inp: React.CSSProperties = {
+  width: '100%', padding: '12px 14px',
+  background: C.inputBg, border: `1px solid rgba(242,237,227,0.18)`,
+  borderRadius: 11, color: C.text, fontSize: '0.92rem',
+  fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
+}
+
+const emptyPerson = (): PersonRow => ({ name: '', role: '', party: 'Employee', subcontractor_name: '', missing_name: '' })
+const emptyMachine = (): MachineRow => ({ ownership: 'Hitech', machine_name: '', plate_number: '', driver_name: '', missing_name: '' })
+
+function handleAcquired(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  if (!e.target.value) return
+  e.target.classList.add('field-acquired')
+  setTimeout(() => e.target.classList.remove('field-acquired'), 750)
+}
+
+/* ── Animated card wrapper ─────────────────────────────────── */
+function Card({ children, icon, title, delay = 0, className }: { children: React.ReactNode; icon: string; title: string; delay?: number; className?: string }) {
+  const [vis, setVis] = useState(false)
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
+    const isBack = navType === 'back_forward'
+    const effectiveDelay = isBack ? 0 : delay
+    const t = setTimeout(() => {
+      setVis(true)
+      setTimeout(() => setDone(true), isBack ? 0 : 500)
+    }, effectiveDelay)
+    return () => clearTimeout(t)
+  }, [delay])
+  return (
+    <div
+      className={className}
+      style={{
+        background: 'linear-gradient(160deg, rgba(24,20,16,0.52) 0%, rgba(17,15,12,0.42) 100%)',
+        border: `1px solid rgba(237,232,222,0.10)`, borderRadius: 16,
+        boxShadow: C.shadow,
+        opacity: vis ? 1 : 0,
+        ...(done ? {} : { transform: vis ? 'translateY(0)' : 'translateY(18px)' }),
+        transition: 'opacity 0.45s ease, transform 0.45s ease',
+      }}
+    >
+      <div style={{ padding: '13px 16px 11px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, background: C.white, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', border: `1px solid ${C.border}` }}>{icon}</div>
+        <span style={{ fontWeight: 700, fontSize: '0.92rem', color: C.text, fontFamily: 'var(--font-display)' }}>{title}</span>
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return <label style={{ fontSize: '0.63rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', color: C.muted, marginBottom: 6, display: 'block', fontFamily: 'var(--font-mono)' }}>
+    {children}{required && <span style={{ color: C.orange, marginLeft: 3 }}>*</span>}
+  </label>
+}
+
+function Row2({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{children}</div>
+}
+
+function YesNo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {['Yes', 'No'].map(v => (
+        <button key={v} type="button" onClick={() => onChange(v)} style={{
+          padding: '12px', borderRadius: 12, fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer',
+          border: value === v ? `1px solid rgba(255,255,255,0.32)` : `1px solid rgba(255,255,255,0.12)`,
+          background: value === v ? 'rgba(255,255,255,0.08)' : C.inputBg,
+          color: value === v ? '#fff' : C.muted,
+          transition: 'all 0.18s',
+        }}>{v}</button>
+      ))}
+    </div>
+  )
+}
+
+function ChainageInput({ label, required, project, section, value, onChange, onCoords }: {
+  label: string; required?: boolean; project: string; section: string;
+  value: string; onChange: (val: string) => void
+  onCoords?: (lat: number | null, lng: number | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<ChainageResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node
+      if (triggerRef.current && !triggerRef.current.contains(target)) {
+        // check if click is inside the fixed dropdown (by id)
+        const drop = document.getElementById('chainage-drop-' + label)
+        if (drop && drop.contains(target)) return
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open, label])
+
+  useEffect(() => {
+    if (open && searchRef.current) setTimeout(() => searchRef.current?.focus(), 40)
+  }, [open])
+
+  async function fetchResults(q: string) {
+    if (!project) return
+    setLoading(true)
+    const params = new URLSearchParams({ project, section, q })
+    const res = await fetch(`/api/reports/chainage?${params}`)
+    const data = await res.json()
+    if (data._debug) console.warn('[ChainageInput]', data._debug, '| project sent:', project)
+    console.log('[ChainageInput] results:', data.results?.length ?? 0, 'total:', data.total, 'for project:', project)
+    setResults(data.results || [])
+    setLoading(false)
+  }
+
+  function openDrop() {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) setDropPos({ top: rect.bottom + 6, left: rect.left, width: rect.width })
+    setQuery('')
+    setOpen(o => {
+      if (!o) fetchResults('')
+      return !o
+    })
+  }
+
+  function pick(c: ChainageResult) {
+    onChange(c.chainage)
+    onCoords?.(c.latitude ?? null, c.longitude ?? null)
+    setOpen(false)
+  }
+
+  return (
+    <div>
+      <Label required={required}>{label}</Label>
+
+      {/* Trigger — mirrors Select button style */}
+      <div ref={triggerRef}>
+        <button
+          type="button"
+          onClick={openDrop}
+          style={{
+            width: '100%', padding: '13px 14px',
+            background: C.inputBg, border: `1px solid ${open ? 'rgba(255,255,255,0.32)' : C.border}`,
+            borderRadius: 14, color: value ? C.text : C.muted,
+            fontSize: '0.95rem', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: 'pointer', outline: 'none', textAlign: 'left',
+            boxShadow: open ? '0 0 0 3px rgba(59,130,246,0.25)' : 'none',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+          }}
+        >
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {value || 'e.g. 1+250'}
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke={open ? '#3b82f6' : C.muted} strokeWidth="2.5"
+            style={{ flexShrink: 0, marginLeft: 8, transition: 'transform 0.25s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Dropdown — position:fixed escapes every stacking context */}
+      {open && (
+        <div id={`chainage-drop-${label}`} style={{
+          position: 'fixed',
+          top: dropPos.top, left: dropPos.left, width: dropPos.width,
+          zIndex: 9999,
+          background: '#17171b',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 14,
+          boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+          overflow: 'hidden',
+          animation: 'chainageDrop 0.2s ease',
+        }}>
+          <style>{`@keyframes chainageDrop { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
+
+          {/* Search box */}
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={e => { setQuery(e.target.value); fetchResults(e.target.value) }}
+              placeholder="Type chainage…"
+              style={{
+                width: '100%', padding: '9px 12px',
+                background: '#111114', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 10, color: C.text, fontSize: '0.88rem',
+                fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Results */}
+          <div style={{ overflowY: 'auto', maxHeight: 240 }}>
+            {loading ? (
+              <div style={{ padding: '14px 16px', color: C.muted, fontSize: '0.85rem', textAlign: 'center' }}>Loading…</div>
+            ) : results.length === 0 ? (
+              <div style={{ padding: '14px 16px', color: C.muted, fontSize: '0.85rem', textAlign: 'center' }}>
+                {project ? `No chainages found for "${project}"` : 'Select a project first'}
+              </div>
+            ) : results.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); pick(c) }}
+                style={{
+                  width: '100%', padding: '11px 16px',
+                  background: value === c.chainage ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  border: 'none', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  color: C.text,
+                  fontSize: '0.88rem', fontFamily: 'inherit',
+                  textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  transition: 'background 0.15s',
+                  fontWeight: value === c.chainage ? 700 : 400,
+                }}
+                onMouseEnter={e => { if (value !== c.chainage) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                onMouseLeave={e => { if (value !== c.chainage) e.currentTarget.style.background = 'transparent' }}
+              >
+                <strong style={{ color: 'inherit' }}>{c.chainage}</strong>
+                <span style={{ color: C.muted, fontSize: '0.78rem', marginLeft: 8 }}>{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, partyOptions, nameList }: {
+  label: string; icon: string; rows: PersonRow[]
+  setRows: React.Dispatch<React.SetStateAction<PersonRow[]>>
+  employees: Employee[]; delay?: number
+  partyOptions?: string[]
+  nameList?: { id: number; name: string; party: string }[]
+}) {
+  const update = (i: number, k: keyof PersonRow, v: string) => {
+    setRows(r => { const n = [...r]; n[i] = { ...n[i], [k]: v }; return n })
+  }
+  const parties = partyOptions ?? ['Employee', 'Contractor', 'Subcontractor']
+  return (
+    <Card className="card-full" icon={icon} title={`${label} — min 1`} delay={delay}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {rows.map((row, i) => {
+          const takenNames = new Set(rows.filter((_, j) => j !== i).map(r => r.name).filter(n => n && n !== '__other__'))
+          const nameOptions = (nameList
+            ? (row.party ? nameList.filter(n => n.party === row.party) : nameList)
+            : employees
+          ).filter(e => !takenNames.has(e.name))
+          return (
+            <div key={i} style={{ background: '#0a0a0b', border: `1px solid rgba(255,255,255,0.08)`, borderRadius: 14, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label.slice(0, -1)} {i + 1}</span>
+                {rows.length > 1 && (
+                  <button type="button" onClick={() => setRows(r => r.filter((_, j) => j !== i))}
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: C.error, padding: '3px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                    Remove
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Row2>
+                  <div>
+                    <Label>Party</Label>
+                    <Select
+                      value={row.party}
+                      onChange={v => update(i, 'party', v)}
+                      options={parties.map(p => ({ value: p, label: p }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Name</Label>
+                    <Select
+                      value={row.name}
+                      onChange={v => update(i, 'name', v)}
+                      placeholder="Select"
+                      searchable
+                      options={[
+                        ...nameOptions.map(e => ({ value: e.name, label: e.name })),
+                        { value: '__other__', label: 'Not in list' },
+                      ]}
+                    />
+                  </div>
+                </Row2>
+                {row.name === '__other__' && (
+                  <div><Label>Enter Name</Label>
+                    <input style={inp} value={row.missing_name} onChange={e => update(i, 'missing_name', e.target.value)} onBlur={handleAcquired} />
+                  </div>
+                )}
+                {row.party === 'Subcontractor' && (
+                  <div><Label>Subcontractor Name</Label>
+                    <input style={inp} value={row.subcontractor_name} onChange={e => update(i, 'subcontractor_name', e.target.value)} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <button type="button" onClick={() => setRows(r => [...r, emptyPerson()])}
+        style={{ width: '100%', padding: '11px', background: 'rgba(59,130,246,0.06)', border: `1px dashed rgba(59,130,246,0.3)`, borderRadius: 12, color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
+        + Add {label.slice(0, -1)}
+      </button>
+    </Card>
+  )
+}
+
+/* ── Main page ─────────────────────────────────────────────── */
+export default function SubmitPage() {
+  const router = useRouter()
+
+  const [form, setForm] = useState({
+    date_of_activity: new Date().toISOString().split('T')[0],
+    reporter_name: '', weather: '', project_name: '', section_name: '',
+    activity_category: '', activity_type: '', activity_subtype: '', side: '',
+    start_chainage: '', start_chainage_lat: '', start_chainage_long: '',
+    end_chainage: '', end_chainage_lat: '', end_chainage_long: '',
+    comment_activity: '',
+    not_conforming: 'No', not_conforming_issue: '', not_conforming_correction: '',
+    car_used: 'No', team_car: '',
+    party_for_activity: '', subcontractor_name_activity: '',
+    activity_status: 'Ongoing',
+  })
+
+  const [categories, setCategories] = useState<Category[]>([])
+  const [allTypes, setAllTypes] = useState<ActivityType[]>([])
+  const [allSubtypes, setAllSubtypes] = useState<ActivitySubType[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [allSections, setAllSections] = useState<Section[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [machines, setMachines] = useState<Machine[]>([])
+  const [teamCars, setTeamCars] = useState<{ name: string; plate_number: string }[]>([])
+  const [subcontractors, setSubcontractors] = useState<string[]>([])
+  const [supervisors, setSupervisors] = useState<{ id: number; name: string; party: string }[]>([])
+  const [engineers, setEngineers] = useState<{ id: number; name: string; party: string }[]>([])
+  const [machineryTypes, setMachineryTypes] = useState<{ id: number; name: string }[]>([])
+
+  const [startCoords, setStartCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
+  const [endCoords, setEndCoords]     = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null })
+
+  const [employeeRows, setEmployeeRows] = useState<PersonRow[]>([emptyPerson()])
+  const [supervisorRows, setSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
+  const [engineerRows, setEngineerRows] = useState<PersonRow[]>([emptyPerson()])
+  const [machineRows, setMachineRows] = useState<MachineRow[]>([emptyMachine()])
+
+  const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
+  const [video, setVideo] = useState<File | null>(null)
+
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitStage, setSubmitStage] = useState('')
+
+  const [reuseOpen, setReuseOpen] = useState(false)
+  const [reuseReports, setReuseReports] = useState<any[]>([])
+  const [reuseLoading, setReuseLoading] = useState(false)
+
+  const filteredTypes = allTypes.filter(t => categories.find(c => c.name === form.activity_category)?.id === t.category_id)
+  const filteredSubtypes = allSubtypes.filter(s => allTypes.find(t => t.name === form.activity_type)?.id === s.activity_type_id)
+  const filteredSections = allSections.filter(s => s.project_name === form.project_name)
+
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  // XP bar — counts filled required checkpoints (0–10)
+  const xpChecks = [
+    !!form.reporter_name,
+    !!form.project_name,
+    !!form.activity_category,
+    !!form.start_chainage,
+    !!form.end_chainage,
+    employeeRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
+    supervisorRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
+    engineerRows.some(r => (r.name && r.name !== '__other__') || !!r.missing_name),
+    machineRows.some(r => !!r.machine_name),
+    photos.some(Boolean) || !!video,
+  ]
+  const xpPercent = Math.round(xpChecks.filter(Boolean).length / xpChecks.length * 100)
+
+
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const h = { apikey: key, Authorization: `Bearer ${key}` }
+    const safe = (p: Promise<unknown>) => p.catch(() => [])
+    const q = (table: string, params = '') =>
+      safe(fetch(`${url}/rest/v1/${table}?${params}`, { headers: h }).then(r => r.json()))
+
+    // Each fetch is independent — a failure in one won't block the others
+
+    // hitech_report_* and surveycollection_employee/planningtable: anon key works (permissive RLS)
+    q('hitech_report_activitycategory', 'select=id,name&order=order')
+      .then(d => { if (Array.isArray(d)) setCategories(d) })
+    q('hitech_report_activitytype', 'select=id,name,category_id')
+      .then(d => { if (Array.isArray(d)) setAllTypes(d) })
+    q('hitech_report_activitysubtype', 'select=id,name,activity_type_id')
+      .then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
+    q('hitech_report_teamcar', 'select=name,plate_number&order=order')
+      .then(d => { if (Array.isArray(d)) setTeamCars(d) })
+    q('hitech_report_subcontractorname', 'select=name&order=order')
+      .then(d => { if (Array.isArray(d)) setSubcontractors((d as { name: string }[]).map(s => s.name)) })
+    fetch('/api/employees?status=Active').then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setEmployees(d) })
+    q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging,project_name,section_name&order=fleet_number')
+      .then(d => { if (Array.isArray(d)) setMachines(d) })
+    q('hitech_report_sitesupervisor', 'select=id,name,party&order=order')
+      .then(d => { if (Array.isArray(d)) setSupervisors(d) })
+    q('hitech_report_siteengineer', 'select=id,name,party&order=order')
+      .then(d => { if (Array.isArray(d)) setEngineers(d) })
+    q('hitech_report_machinerytype', 'select=id,name&order=order')
+      .then(d => { if (Array.isArray(d)) setMachineryTypes(d) })
+
+    // surveycollection_project / section: RLS blocks anon — use service-role API routes instead
+    // (these routes are accessible to all authenticated roles, not admin-only)
+    fetch('/api/projects').then(r => r.json()).then(d => { if (Array.isArray(d)) setProjects(d) }).catch(() => {})
+    fetch('/api/sections').then(r => r.json()).then(d => { if (Array.isArray(d)) setAllSections(d) }).catch(() => {})
+
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+    if (d.user) set('reporter_name', d.user.username || `${d.user.first_name} ${d.user.last_name}`.trim() || d.user.email || '')
+  }).catch(() => {})
+  }, [])
+
+  async function openReuse() {
+    setReuseOpen(true)
+    setReuseLoading(true)
+    try {
+      const res = await fetch('/api/reports/reuse')
+      const data = await res.json()
+      setReuseReports(Array.isArray(data.reports) ? data.reports : [])
+    } catch { setReuseReports([]) }
+    setReuseLoading(false)
+  }
+
+  function applyReuse(report: any) {
+    setReuseOpen(false)
+    setForm(f => ({
+      ...f,
+      date_of_activity: new Date().toISOString().split('T')[0],
+      weather: report.weather || '',
+      project_name: report.project_name || '',
+      section_name: report.section_name || '',
+      activity_category: report.activity_category || '',
+      activity_type: report.activity_type || '',
+      activity_subtype: report.activity_subtype || '',
+      side: report.side || '',
+      start_chainage: report.start_chainage || '',
+      end_chainage: report.end_chainage || '',
+      comment_activity: report.comment_activity || '',
+      not_conforming: report.not_conforming || 'No',
+      not_conforming_issue: report.not_conforming_issue || '',
+      not_conforming_correction: report.not_conforming_correction || '',
+      car_used: report.car_used || 'No',
+      team_car: report.team_car || '',
+      party_for_activity: report.party_for_activity || '',
+      subcontractor_name_activity: report.subcontractor_name_activity || '',
+      activity_status: 'Ongoing',
+    }))
+    if (Array.isArray(report.employees) && report.employees.length > 0) {
+      setEmployeeRows(report.employees.map((e: any) => ({
+        name: e.employee_name || (e.employee_missing_name ? '__other__' : ''),
+        role: e.employee_role || '',
+        party: 'Employee',
+        subcontractor_name: '',
+        missing_name: e.employee_missing_name || '',
+      })))
+    }
+    if (Array.isArray(report.supervisors) && report.supervisors.length > 0) {
+      setSupervisorRows(report.supervisors.map((s: any) => ({
+        name: s.supervisor_name || (s.supervisor_missing_name ? '__other__' : ''),
+        role: '',
+        party: s.party || 'Employee',
+        subcontractor_name: s.subcontractor_name || '',
+        missing_name: s.supervisor_missing_name || '',
+      })))
+    }
+    if (Array.isArray(report.engineers) && report.engineers.length > 0) {
+      setEngineerRows(report.engineers.map((e: any) => ({
+        name: e.engineer_name || (e.engineer_missing_name ? '__other__' : ''),
+        role: '',
+        party: e.party || 'Employee',
+        subcontractor_name: e.subcontractor_name || '',
+        missing_name: e.engineer_missing_name || '',
+      })))
+    }
+    if (Array.isArray(report.machines) && report.machines.length > 0) {
+      setMachineRows(report.machines.map((m: any) => ({
+        ownership: m.ownership || 'Hitech',
+        machine_name: m.machine_name || '',
+        plate_number: m.plate_number || '',
+        driver_name: m.driver_name || '',
+        missing_name: '',
+      })))
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!form.start_chainage) return setError('Please provide a starting chainage.')
+    if (!form.end_chainage) return setError('Please provide an ending chainage.')
+    if (employeeRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one employee.')
+    if (supervisorRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one supervisor.')
+    if (engineerRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one engineer.')
+    if (machineRows.every(r => !r.machine_name)) return setError('Please add at least one machine.')
+    if (!form.project_name) return setError('Please select a project.')
+    if (!form.activity_category) return setError('Please select an activity category.')
+    setSubmitting(true)
+    setSubmitStage('Saving report…')
+
+    const res = await fetch('/api/reports/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...form,
+        start_chainage_lat:  startCoords.lat,
+        start_chainage_long: startCoords.lng,
+        end_chainage_lat:    endCoords.lat,
+        end_chainage_long:   endCoords.lng,
+        team_car: form.team_car === '__other__' ? '' : form.team_car,
+        subcontractor_name_activity: form.subcontractor_name_activity === '__other__' ? '' : form.subcontractor_name_activity,
+        employees: employeeRows,
+        supervisors: supervisorRows,
+        engineers: engineerRows,
+        machines: machineRows,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setSubmitting(false); return setError(data.error || 'Submission failed.') }
+
+    // Fire media uploads in background — don't block navigation
+    const photoFiles = photos.filter(Boolean) as File[]
+    if (photoFiles.length > 0 || video) {
+      startMediaUpload(data.id, photoFiles, video)
+    }
+
+    router.push('/reports/success')
+  }
+
+  return (
+    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <AmbientBackground />
+
+      {/* Header */}
+      <header style={{
+        background: 'rgba(8,6,4,0.92)', backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        position: 'sticky', top: 0, zIndex: 100,
+      }}>
+        {/* XP progress bar */}
+        <div style={{
+          height: 3,
+          background: `linear-gradient(90deg, #f59e0b ${xpPercent}%, rgba(245,158,11,0.1) ${xpPercent}%)`,
+          transition: 'background 0.6s ease',
+        }} />
+        <div style={{
+          borderBottom: `1px solid ${C.border}`,
+          padding: '10px 16px 12px', display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+        <a href="/portal" style={{
+          height: 34, padding: '0 14px', borderRadius: 8,
+          background: C.orange, color: '#fff',
+          font: '700 11px/1 var(--font-display)',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          textDecoration: 'none', flexShrink: 0,
+          letterSpacing: '0.09em', textTransform: 'uppercase',
+          boxShadow: `0 2px 12px ${C.orangeBorder}`,
+        }}>
+          <svg width={11} height={11} viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Portal
+        </a>
+        <button type="button" onClick={openReuse} style={{
+          height: 34, padding: '0 14px', borderRadius: 8,
+          background: C.inputBg, color: C.muted,
+          font: '700 11px/1 var(--font-display)',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          border: `1px solid ${C.border}`,
+          cursor: 'pointer', flexShrink: 0,
+          letterSpacing: '0.09em', textTransform: 'uppercase',
+        }}>
+          ↺ Reuse
+        </button>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>Activity Report</div>
+          <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>Hitech Construction</div>
+        </div>
+        </div>
+      </header>
+
+      <form id="activity-form" onSubmit={handleSubmit} style={{ flex: 1, padding: '20px 16px 120px', maxWidth: 1100, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2 }}>
+        <div className="submit-cards">
+
+        {/* Reuse Previous Report modal */}
+        {reuseOpen && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            padding: '0 0 80px',
+          }} onClick={() => setReuseOpen(false)}>
+            <div style={{
+              background: '#15120e', border: `1px solid ${C.orangeBorder}`,
+              borderRadius: 20, padding: '18px 16px',
+              width: '100%', maxWidth: 560, maxHeight: '68vh',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: C.text, fontFamily: 'var(--font-display)' }}>Reuse Previous Report</div>
+                  <div style={{ fontSize: '0.68rem', color: C.muted, marginTop: 2, fontFamily: 'var(--font-mono)' }}>Select a report to pre-fill this form</div>
+                </div>
+                <button type="button" onClick={() => setReuseOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '1.1rem', padding: 4 }}>✕</button>
+              </div>
+              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {reuseLoading ? (
+                  <div style={{ color: C.muted, fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>Loading reports…</div>
+                ) : reuseReports.length === 0 ? (
+                  <div style={{ color: C.muted, fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>No previous reports found.</div>
+                ) : reuseReports.map((r: any) => (
+                  <button type="button" key={r.id} onClick={() => applyReuse(r)} style={{
+                    width: '100%', padding: '12px 14px', textAlign: 'left',
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)',
+                    borderRadius: 12, cursor: 'pointer', color: C.text,
+                    display: 'flex', flexDirection: 'column', gap: 3,
+                    transition: 'background 0.15s',
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.87rem', color: C.text }}>
+                      {r.project_name || '—'}{r.section_name ? ` / ${r.section_name}` : ''}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: C.orange }}>
+                      {r.activity_category}{r.activity_type ? ` › ${r.activity_type}` : ''}
+                    </div>
+                    <div style={{ fontSize: '0.71rem', color: C.muted, fontFamily: 'var(--font-mono)' }}>
+                      {r.date_of_activity} · {r.reporter_name} · {r.start_chainage} → {r.end_chainage}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error modal */}
+        {error && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }} onClick={() => setError('')}>
+            <div style={{
+              background: 'linear-gradient(160deg,#1e1410,#170e0e)',
+              border: '1px solid rgba(248,113,113,0.35)',
+              borderRadius: 20, padding: '28px 24px',
+              maxWidth: 400, width: '100%',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(248,113,113,0.1)',
+              textAlign: 'center',
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: '2.2rem', marginBottom: 14 }}>⚠️</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: '#f87171', marginBottom: 10 }}>
+                Submission Failed
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#c4a8a8', lineHeight: 1.6, marginBottom: 22 }}>
+                {error}
+              </div>
+              <button onClick={() => setError('')} style={{
+                width: '100%', padding: '12px',
+                background: 'rgba(248,113,113,0.15)',
+                border: '1px solid rgba(248,113,113,0.35)',
+                borderRadius: 10, color: '#f87171',
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.88rem',
+                cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
+                transition: 'background 0.15s',
+              }}>
+                Fix &amp; Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 1. Activity Info */}
+        <Card className="card-full" icon="📋" title="Activity Information" delay={60}>
+          <Row2>
+            <div>
+              <Label required>Date</Label>
+              <input type="date" style={inp} value={form.date_of_activity} onChange={e => set('date_of_activity', e.target.value)} required />
+            </div>
+            <div>
+              <Label>Weather</Label>
+              <Select
+                value={form.weather}
+                onChange={v => set('weather', v)}
+                placeholder="Select"
+                options={['Sunny','Cloudy','Rainy','Windy','Overcast','Foggy'].map(w => ({ value: w, label: w }))}
+              />
+            </div>
+          </Row2>
+          <div>
+            <Label required>Reporter Name</Label>
+            <input style={inp} value={form.reporter_name} onChange={e => set('reporter_name', e.target.value)} onBlur={handleAcquired} required />
+          </div>
+          <Row2>
+            <div>
+              <Label required>Project</Label>
+              <Select
+                value={form.project_name}
+                onChange={v => { set('project_name', v); set('section_name', '') }}
+                placeholder="Select project"
+                searchable
+                options={projects.map(p => ({ value: p.name, label: p.name }))}
+              />
+            </div>
+            <div>
+              <Label>Section</Label>
+              <Select
+                value={form.section_name}
+                onChange={v => set('section_name', v)}
+                placeholder="Select section"
+                disabled={!form.project_name}
+                options={filteredSections.map(s => ({ value: s.name, label: s.name }))}
+              />
+            </div>
+          </Row2>
+        </Card>
+
+        {/* 2. Activity Type */}
+        <Card icon="🏗️" title="Activity Type" delay={120}>
+          <div>
+            <Label required>Category</Label>
+            <Select
+              value={form.activity_category}
+              onChange={v => { set('activity_category', v); set('activity_type', ''); set('activity_subtype', '') }}
+              placeholder="Select category"
+              searchable
+              options={categories.map(c => ({ value: c.name, label: c.name }))}
+            />
+          </div>
+          <Row2>
+            <div>
+              <Label>Type</Label>
+              <Select
+                value={form.activity_type}
+                onChange={v => { set('activity_type', v); set('activity_subtype', '') }}
+                placeholder="Select type"
+                disabled={!form.activity_category}
+                searchable
+                options={filteredTypes.map(t => ({ value: t.name, label: t.name }))}
+              />
+            </div>
+            <div>
+              <Label>Sub-type</Label>
+              <Select
+                value={form.activity_subtype}
+                onChange={v => set('activity_subtype', v)}
+                placeholder="Sub-type"
+                disabled={!form.activity_type}
+                options={filteredSubtypes.map(s => ({ value: s.name, label: s.name }))}
+              />
+            </div>
+          </Row2>
+          <Row2>
+            <div>
+              <Label>Side</Label>
+              <Select
+                value={form.side}
+                onChange={v => set('side', v)}
+                placeholder="Select"
+                options={['Left','Right','Both','N/A'].map(s => ({ value: s, label: s }))}
+              />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select
+                value={form.activity_status}
+                onChange={v => set('activity_status', v)}
+                placeholder="Status"
+                options={['Ongoing','Completed','Suspended','Planned'].map(s => ({ value: s, label: s }))}
+              />
+            </div>
+          </Row2>
+        </Card>
+
+        {/* 3. Chainage */}
+        <Card icon="📍" title="Chainage" delay={180}>
+          <ChainageInput
+            label="Start Chainage" required
+            project={form.project_name} section={form.section_name}
+            value={form.start_chainage}
+            onChange={v => set('start_chainage', v)}
+            onCoords={(lat, lng) => setStartCoords({ lat, lng })}
+          />
+          <div style={{ marginTop: 12 }} />
+          <ChainageInput
+            label="End Chainage" required
+            project={form.project_name} section={form.section_name}
+            value={form.end_chainage}
+            onChange={v => set('end_chainage', v)}
+            onCoords={(lat, lng) => setEndCoords({ lat, lng })}
+          />
+          <ChainageMap
+            startLat={startCoords.lat} startLng={startCoords.lng}
+            endLat={endCoords.lat}     endLng={endCoords.lng}
+          />
+        </Card>
+
+        {/* 4. Notes & Conformance */}
+        <Card className="card-full" icon="📝" title="Notes & Conformance" delay={240}>
+          <div>
+            <Label>Comment</Label>
+            <textarea style={{ ...inp, minHeight: 85, resize: 'vertical' }} value={form.comment_activity} onChange={e => set('comment_activity', e.target.value)} onBlur={handleAcquired} />
+          </div>
+          <div>
+            <Label>Not Conforming?</Label>
+            <YesNo value={form.not_conforming} onChange={v => set('not_conforming', v)} />
+          </div>
+          {form.not_conforming === 'Yes' && (
+            <>
+              <div><Label>Issue</Label><textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.not_conforming_issue} onChange={e => set('not_conforming_issue', e.target.value)} /></div>
+              <div><Label>Correction</Label><textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.not_conforming_correction} onChange={e => set('not_conforming_correction', e.target.value)} /></div>
+            </>
+          )}
+          {/* Party for this activity */}
+          <Row2>
+            <div>
+              <Label>Party for Activity</Label>
+              <Select
+                value={form.party_for_activity}
+                onChange={v => { set('party_for_activity', v); if (v !== 'Subcontractor') set('subcontractor_name_activity', '') }}
+                placeholder="Select"
+                options={['Employee','Contractor','Subcontractor'].map(p => ({ value: p, label: p }))}
+              />
+            </div>
+            <div>
+              <Label>Subcontractor</Label>
+              <Select
+                value={form.subcontractor_name_activity}
+                onChange={v => set('subcontractor_name_activity', v)}
+                placeholder="Select"
+                disabled={form.party_for_activity !== 'Subcontractor'}
+                searchable
+                options={[
+                  ...subcontractors.map(s => ({ value: s, label: s })),
+                  { value: '__other__', label: 'Other / Not in list' },
+                ]}
+              />
+            </div>
+          </Row2>
+          {form.subcontractor_name_activity === '__other__' && (
+            <div>
+              <Label>Enter Subcontractor Name</Label>
+              <input style={inp} placeholder="Type subcontractor name…" onBlur={handleAcquired}
+                onChange={e => set('subcontractor_name_activity', e.target.value || '__other__')} />
+            </div>
+          )}
+          <div>
+            <Label>Car Used?</Label>
+            <YesNo value={form.car_used} onChange={v => set('car_used', v)} />
+          </div>
+          {form.car_used === 'Yes' && (
+            <div>
+              <Label>Team Car</Label>
+              <Select
+                value={form.team_car}
+                onChange={v => set('team_car', v)}
+                placeholder="Select car"
+                searchable
+                options={[
+                  ...teamCars.map(c => ({ value: c.name, label: c.plate_number ? `${c.name} (${c.plate_number})` : c.name })),
+                  { value: '__other__', label: 'Not in list' },
+                ]}
+              />
+              {form.team_car === '__other__' && (
+                <input style={{ ...inp, marginTop: 8 }} placeholder="Enter car name…"
+                  onChange={e => set('team_car', e.target.value)} onBlur={handleAcquired} />
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* 5–7. Personnel */}
+        <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={300} />
+        <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={340}
+          partyOptions={['Hitech employees', 'Sub-contactor']}
+          nameList={supervisors}
+        />
+        <RepeatPersonGroup label="Engineers" icon="📐" rows={engineerRows} setRows={setEngineerRows} employees={employees} delay={380}
+          partyOptions={['Hitech employees', 'Sub-contactor']}
+          nameList={engineers}
+        />
+
+        {/* 8. Machines */}
+        <Card className="card-full" icon="🚜" title="Machinery — min 1" delay={420}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {machineRows.map((row, i) => (
+              <div key={i} style={{ background: '#0a0a0b', border: `1px solid rgba(255,255,255,0.08)`, borderRadius: 14, padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Machine {i + 1}</span>
+                  {machineRows.length > 1 && (
+                    <button type="button" onClick={() => setMachineRows(r => r.filter((_, j) => j !== i))}
+                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: C.error, padding: '3px 10px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Row2>
+                    <div>
+                      <Label>Ownership</Label>
+                      <Select
+                        value={row.ownership}
+                        onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], ownership: v, machine_name: '', plate_number: '' }; return n })}
+                        options={['Hitech','Renting','Subcontractor'].map(o => ({ value: o, label: o }))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Machine Type</Label>
+                      <Select
+                        value={row.machine_name}
+                        onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_name: v }; return n })}
+                        placeholder="Select type"
+                        searchable
+                        options={[
+                          ...machineryTypes.map(m => ({ value: m.name, label: m.name })),
+                          { value: '__other__', label: 'Not in list' },
+                        ]}
+                      />
+                    </div>
+                  </Row2>
+                  {row.machine_name === '__other__' && (
+                    <div>
+                      <Label required>Machine Description</Label>
+                      <input style={inp} value={row.plate_number}
+                        placeholder="e.g. Excavator CAT 320"
+                        onChange={e => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_name: '__other__', plate_number: e.target.value }; return n })}
+                        onBlur={handleAcquired} />
+                    </div>
+                  )}
+                  <div>
+                    <Label>Driver Name</Label>
+                    <input style={inp} value={row.driver_name} onChange={e => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], driver_name: e.target.value }; return n })} onBlur={handleAcquired} placeholder="Driver name" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => setMachineRows(r => [...r, emptyMachine()])}
+            style={{ width: '100%', padding: '11px', background: 'rgba(59,130,246,0.06)', border: `1px dashed rgba(59,130,246,0.3)`, borderRadius: 12, color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
+            + Add Machine
+          </button>
+        </Card>
+
+        {/* 9. Photos & Video */}
+        <Card className="card-full" icon="📷" title="Photos & Video — min 1 required" delay={460}>
+          <div>
+            <Label>Site Photos (up to 5)</Label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {photos.map((photo, i) => (
+                <label key={i} style={{
+                  aspectRatio: '1', background: photo ? 'rgba(59,130,246,0.08)' : C.inputBg,
+                  border: `2px ${photo ? 'solid' : 'dashed'} ${photo ? '#3b82f6' : 'rgba(255,255,255,0.16)'}`,
+                  borderRadius: 12, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 4,
+                  cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden',
+                }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+                    const file = e.target.files?.[0] || null
+                    setPhotos(p => { const n = [...p]; n[i] = file; return n })
+                  }} />
+                  {photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={URL.createObjectURL(photo)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '1.3rem', opacity: 0.4 }}>📷</span>
+                      <span style={{ fontSize: '0.68rem', color: C.muted, fontWeight: 600 }}>Photo {i + 1}</span>
+                    </>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>Video (optional)</Label>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: video ? 'rgba(59,130,246,0.08)' : C.inputBg,
+              border: `2px dashed ${video ? '#3b82f6' : 'rgba(255,255,255,0.16)'}`,
+              borderRadius: 12, padding: '16px', cursor: 'pointer', transition: 'all 0.2s',
+            }}>
+              <input type="file" accept="video/*" style={{ display: 'none' }} onChange={e => setVideo(e.target.files?.[0] || null)} />
+              <span style={{ fontSize: '1.4rem' }}>🎥</span>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 600, color: video ? '#60a5fa' : C.muted }}>{video ? video.name : 'Tap to upload video'}</div>
+                {video && <div style={{ fontSize: '0.75rem', color: C.muted, marginTop: 2 }}>{(video.size / 1024 / 1024).toFixed(1)} MB</div>}
+              </div>
+            </label>
+          </div>
+        </Card>
+
+        </div>{/* end submit-cards */}
+      </form>
+
+      {/* Bottom bar */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'rgba(8,6,4,0.92)', backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: `1px solid ${C.border}`,
+        padding: '14px 18px',
+        paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
+        zIndex: 100,
+      }}>
+        {/* Submission overlay */}
+        {submitting && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9997,
+            background: 'rgba(8,6,4,0.88)', backdropFilter: 'blur(8px)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 20,
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              border: '3px solid rgba(245,158,11,0.2)',
+              borderTopColor: '#f59e0b',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#f59e0b', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {submitStage}
+            </div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
+        <button type="submit" form="activity-form" disabled={submitting} onClick={handleSubmit} style={{
+          width: '100%', padding: '14px',
+          background: submitting ? 'rgba(245,158,11,0.12)' : C.orange,
+          color: submitting ? C.muted : '#1a1410',
+          border: 'none', borderRadius: 11,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 800, fontSize: '0.92rem',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          cursor: submitting ? 'not-allowed' : 'pointer',
+          boxShadow: submitting ? 'none' : `0 4px 24px ${C.orangeBorder}`,
+          transition: 'all 0.2s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        }}>
+          {submitting ? (
+            <>
+              <div style={{
+                width: 16, height: 16, borderRadius: '50%',
+                border: '2px solid rgba(245,158,11,0.3)',
+                borderTopColor: C.orange,
+                animation: 'spin 0.7s linear infinite',
+                flexShrink: 0,
+              }} />
+              {submitStage || 'Submitting…'}
+            </>
+          ) : 'Submit Report'}
+        </button>
+      </div>
+    </div>
+  )
+}
