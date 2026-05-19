@@ -576,6 +576,22 @@ export default function SubmitPage() {
   return (
     <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <AmbientBackground />
+      <style>{`
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          margin-left: 4px;
+          padding: 3px 4px;
+          border-radius: 4px;
+          background-color: #ffffff;
+          color: #ffffff;
+          cursor: pointer;
+          filter: invert(0);
+          transition: background-color 0.15s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+          background-color: #000000;
+          filter: invert(1);
+        }
+      `}</style>
 
       {/* Header */}
       <header style={{
