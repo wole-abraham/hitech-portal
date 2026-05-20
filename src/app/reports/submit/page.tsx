@@ -439,9 +439,8 @@ export default function SubmitPage() {
       .then(d => { if (Array.isArray(d)) setAllTypes(d) })
     q('hitech_report_activitysubtype', 'select=id,name,activity_type_id&order=sort_order')
       .then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
-    fetch('/api/employees?status=Active&excludeAdmins=true').then(r => r.json())
+    q('surveycollection_employee', 'select=id,name,role&status=eq.Active&order=name')
       .then(d => { if (Array.isArray(d)) setEmployees(d) })
-    // Equipment table has open read access — fetch directly to avoid session dependency
     q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging&order=fleet_number')
       .then(d => { if (Array.isArray(d)) setEquipmentList(d) })
 
