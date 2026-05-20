@@ -441,7 +441,8 @@ export default function SubmitPage() {
       .then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
     fetch('/api/employees?status=Active&excludeAdmins=true').then(r => r.json())
       .then(d => { if (Array.isArray(d)) setEmployees(d) })
-    fetch('/api/equipment').then(r => r.json())
+    // Equipment table has open read access — fetch directly to avoid session dependency
+    q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging&order=fleet_number')
       .then(d => { if (Array.isArray(d)) setEquipmentList(d) })
 
     // surveycollection_project / section: RLS blocks anon — use service-role API routes instead
