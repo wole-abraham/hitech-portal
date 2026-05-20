@@ -1,10 +1,12 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import AmbientBackground from '@/components/AmbientBackground'
 import { subscribeMediaQueue, getMediaQueueState } from '@/lib/mediaQueue'
 
 export default function SuccessPage() {
+  const router = useRouter()
   const [vis, setVis] = useState(false)
   const [aHov, setAHov] = useState(false)
   const [bHov, setBHov] = useState(false)
@@ -72,38 +74,44 @@ export default function SuccessPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <a
-              href="/reports/submit"
+            <button
+              type="button"
+              disabled={media.state === 'uploading'}
+              onClick={() => router.push('/reports/submit')}
               onMouseEnter={() => setAHov(true)}
               onMouseLeave={() => setAHov(false)}
               style={{
                 padding: '13px 22px',
-                background: '#f59e0b', color: '#1a1410',
-                borderRadius: 10, fontWeight: 800,
-                textDecoration: 'none', fontSize: '0.85rem',
+                background: media.state === 'uploading' ? 'rgba(245,158,11,0.35)' : '#f59e0b',
+                color: '#1a1410',
+                borderRadius: 10, fontWeight: 800, border: 'none',
+                fontSize: '0.85rem', cursor: media.state === 'uploading' ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-display)',
                 letterSpacing: '0.06em', textTransform: 'uppercase',
-                boxShadow: aHov ? '0 6px 32px rgba(245,158,11,0.52)' : '0 4px 20px rgba(245,158,11,0.30)',
-                transform: aHov ? 'translateY(-1px)' : 'translateY(0)',
+                boxShadow: aHov && media.state !== 'uploading' ? '0 6px 32px rgba(245,158,11,0.52)' : '0 4px 20px rgba(245,158,11,0.30)',
+                transform: aHov && media.state !== 'uploading' ? 'translateY(-1px)' : 'translateY(0)',
                 transition: 'box-shadow 0.2s, transform 0.2s',
               }}
-            >Submit Another</a>
-            <a
-              href="/portal"
+            >Submit Another</button>
+            <button
+              type="button"
+              disabled={media.state === 'uploading'}
+              onClick={() => router.push('/portal')}
               onMouseEnter={() => setBHov(true)}
               onMouseLeave={() => setBHov(false)}
               style={{
                 padding: '13px 22px',
                 background: bHov ? 'rgba(237,232,222,0.05)' : 'transparent',
-                color: bHov ? '#ede8de' : '#9e9387',
+                color: media.state === 'uploading' ? 'rgba(158,147,135,0.4)' : bHov ? '#ede8de' : '#9e9387',
                 border: `1px solid ${bHov ? 'rgba(237,232,222,0.20)' : 'rgba(237,232,222,0.10)'}`,
                 borderRadius: 10, fontWeight: 600,
-                textDecoration: 'none', fontSize: '0.85rem',
+                cursor: media.state === 'uploading' ? 'not-allowed' : 'pointer',
+                fontSize: '0.85rem',
                 fontFamily: 'var(--font-display)',
                 letterSpacing: '0.04em', textTransform: 'uppercase',
                 transition: 'all 0.2s',
               }}
-            >Back to Portal</a>
+            >Back to Portal</button>
           </div>
         </div>
       </div>
