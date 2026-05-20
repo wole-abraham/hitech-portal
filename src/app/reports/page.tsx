@@ -210,7 +210,7 @@ export default function ReportsPage() {
       <Sheet open={!!selected} onOpenChange={open => { if (!open) setSelected(null) }}>
         <SheetContent
           side="right"
-          style={{ background: '#110f0c', borderLeft: `1px solid ${T.border}`, padding: '24px 20px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))', maxWidth: 560, width: '100%', overflowY: 'auto', zIndex: 200 }}
+          style={{ background: T.card, borderLeft: `1px solid ${T.border}`, padding: '24px 20px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))', maxWidth: 560, width: '100%', overflowY: 'auto', zIndex: 200 }}
         >
           <SheetHeader style={{ marginBottom: 20 }}>
             <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
@@ -441,7 +441,7 @@ function VideoThumb({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false)
   return (
     <div
-      style={{ aspectRatio: '1', borderRadius: 10, overflow: 'hidden', position: 'relative', background: '#0a0a0c', cursor: 'pointer' }}
+      style={{ aspectRatio: '1', borderRadius: 10, overflow: 'hidden', position: 'relative', background: T.input, cursor: 'pointer' }}
       onMouseEnter={() => ref.current?.play().catch(() => {})}
       onMouseLeave={() => { if (ref.current) { ref.current.pause(); ref.current.currentTime = 0 } }}
     >
@@ -514,7 +514,7 @@ function PersonRow({ name, role, sub }: { name?: string; role?: string; sub?: st
         {sub && <div style={{ fontSize: '0.72rem', color: T.muted, marginTop: 1 }}>{sub}</div>}
       </div>
       {role && (
-        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(96,165,250,0.12)', color: '#60a5fa', padding: '3px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>
+        <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(0,0,0,0.06)', color: T.muted, padding: '3px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>
           {role}
         </span>
       )}
