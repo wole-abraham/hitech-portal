@@ -248,8 +248,9 @@ export default function PortalPage() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
-      if (d.user) setUser(`${d.user.first_name || ''} ${d.user.last_name || ''}`.trim() || d.user.email)
-      if (d.user?.role) setRole(d.user.role)
+      if (!d.user) { router.replace('/login'); return }
+      setUser(`${d.user.first_name || ''} ${d.user.last_name || ''}`.trim() || d.user.email)
+      setRole(d.user.role)
     }).catch(() => {}).finally(() => {
       setLoading(false)
     })

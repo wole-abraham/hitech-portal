@@ -450,7 +450,8 @@ export default function SubmitPage() {
     fetch('/api/sections').then(r => r.json()).then(d => { if (Array.isArray(d)) setAllSections(d) }).catch(() => {})
 
     fetch('/api/auth/me').then(r => r.json()).then(d => {
-    if (d.user) set('reporter_name', d.user.username || `${d.user.first_name} ${d.user.last_name}`.trim() || d.user.email || '')
+    if (!d.user) { router.replace('/login'); return }
+    set('reporter_name', d.user.username || `${d.user.first_name} ${d.user.last_name}`.trim() || d.user.email || '')
   }).catch(() => {})
   }, [])
 
