@@ -67,6 +67,10 @@ export default function ReportsPage() {
   const [detailLoading, setDetailLoading]         = useState(false)
   const [projects, setProjects] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [role, setRole] = useState<string | null>(null)
 
   async function load(p = 0) {
     setLoading(true)
@@ -90,12 +94,34 @@ export default function ReportsPage() {
   }
 
   useEffect(() => { loadFilters() }, [])
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user) setRole(d.user.role) })
+  }, [])
   useEffect(() => { setPage(0); load(0) }, [search, filterProject, filterCategory])
+
+  async function handleDelete() {
+    if (!selected) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const r = await fetch(`/api/reports/${selected.id}`, { method: 'DELETE' })
+      const d = await r.json()
+      if (!r.ok) { setDeleteError(d.error || 'Delete failed'); setDeleting(false); return }
+      setReports(prev => prev.filter(x => x.id !== selected.id))
+      setTotal(prev => prev - 1)
+      setSelected(null)
+      setConfirmDelete(false)
+    } catch {
+      setDeleteError('Network error')
+    }
+    setDeleting(false)
+  }
 
   useEffect(() => {
     if (!selected) {
       setSelectedPhotos([]); setSelectedEmployees([]); setSelectedSupervisors([])
       setSelectedEngineers([]); setSelectedMachines([])
+      setConfirmDelete(false); setDeleteError(null)
       return
     }
     setDetailLoading(true)
@@ -213,9 +239,55 @@ export default function ReportsPage() {
           style={{ background: T.card, borderLeft: `1px solid ${T.border}`, padding: '24px 20px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))', maxWidth: 560, width: '100%', overflowY: 'auto', zIndex: 200 }}
         >
           <SheetHeader style={{ marginBottom: 20 }}>
-            <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
-              Report Detail
-            </SheetTitle>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                Report Detail
+              </SheetTitle>
+              {role === 'admin' && !confirmDelete && (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(248,113,113,0.35)',
+                    background: 'rgba(248,113,113,0.08)', color: '#f87171',
+                    fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'var(--font-display)', letterSpacing: '0.04em',
+                    transition: 'all 0.18s',
+                  }}
+                >Delete</button>
+              )}
+              {role === 'admin' && confirmDelete && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.72rem', color: '#f87171', fontFamily: 'var(--font-mono)' }}>Confirm?</span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    style={{
+                      padding: '6px 14px', borderRadius: 8, border: 'none',
+                      background: deleting ? 'rgba(248,113,113,0.4)' : '#f87171',
+                      color: '#fff', fontSize: '0.75rem', fontWeight: 800,
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-display)',
+                    }}
+                  >{deleting ? 'Deleting…' : 'Yes, Delete'}</button>
+                  <button
+                    onClick={() => { setConfirmDelete(false); setDeleteError(null) }}
+                    disabled={deleting}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8,
+                      border: `1px solid ${T.border}`, background: 'transparent',
+                      color: T.muted, fontSize: '0.75rem', fontWeight: 700,
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-display)',
+                    }}
+                  >Cancel</button>
+                </div>
+              )}
+            </div>
+            {deleteError && (
+              <div style={{ fontSize: '0.72rem', color: '#f87171', fontFamily: 'var(--font-mono)', marginTop: 6 }}>
+                ⚠ {deleteError}
+              </div>
+            )}
           </SheetHeader>
         {selected && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
