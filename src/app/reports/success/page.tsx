@@ -10,7 +10,7 @@ export default function SuccessPage() {
   const [vis, setVis] = useState(false)
   const [aHov, setAHov] = useState(false)
   const [bHov, setBHov] = useState(false)
-  const [media, setMedia] = useState(getMediaQueueState)
+  const [media, setMedia] = useState(() => getMediaQueueState())
 
   useEffect(() => { setVis(true) }, [])
   useEffect(() => subscribeMediaQueue(() => setMedia(getMediaQueueState())), [])
@@ -67,9 +67,16 @@ export default function SuccessPage() {
               </span>
             )}
             {media.state === 'error' && (
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: '#f87171', letterSpacing: '0.05em', marginTop: -10 }}>
-                ⚠ Some media failed to upload
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: -10 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: '#f87171', letterSpacing: '0.05em' }}>
+                  ⚠ Some media failed to upload
+                </span>
+                {media.errors?.map((e, i) => (
+                  <span key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(248,113,113,0.75)', letterSpacing: '0.03em' }}>
+                    {e}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
 
