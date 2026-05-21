@@ -43,7 +43,20 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data ?? [])
+
+  const employees = data ?? []
+  const linkedIds = employees.map((e: { user_id: number | null }) => e.user_id).filter(Boolean) as number[]
+  let adminSet = new Set<number>()
+  if (linkedIds.length > 0) {
+    const { data: admins } = await supabase
+      .from('auth_user')
+      .select('id')
+      .eq('is_staff', true)
+      .in('id', linkedIds)
+    adminSet = new Set((admins ?? []).map((a: { id: number }) => a.id))
+  }
+
+  return NextResponse.json(employees.map((e: { user_id: number | null }) => ({ ...e, is_admin: e.user_id != null && adminSet.has(e.user_id) })))
 }
 
 export async function POST(req: NextRequest) {

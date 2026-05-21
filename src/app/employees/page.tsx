@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 interface Employee {
   id: number; name: string; role: string; phone_number: string
   project_name: string; section_name: string; status: string; email: string; notes: string
-  user_id: number | null; profile_picture: string | null
+  user_id: number | null; profile_picture: string | null; is_admin: boolean
 }
 
 interface Project { id: number; name: string }
@@ -203,7 +203,12 @@ export default function EmployeesPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.95rem', color: T.text }}>{emp.name}</span>
                   <Badge label={emp.status || 'Active'} color={STATUS_COLOR[emp.status] || T.muted} />
-                  {emp.user_id != null && (
+                  {emp.is_admin && (
+                    <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: T.amber, background: `${T.amber}18`, padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>
+                      admin
+                    </span>
+                  )}
+                  {emp.user_id != null && !emp.is_admin && (
                     <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: '#34d399', background: 'rgba(52,211,153,0.1)', padding: '2px 7px', borderRadius: 4 }}>
                       linked
                     </span>
