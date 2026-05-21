@@ -55,6 +55,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
   }
 
+  // Grab linked user_id before deleting the employee row
+  const { data: empRow } = await supabase
+    .from('surveycollection_employee')
+    .select('user_id')
+    .eq('id', id)
+    .single()
+
   // Null out FK references before deleting (FK is RESTRICT in DB, not SET NULL)
   await supabase.from('hitech_report_hitechemployee').update({ employee_profile_id: null }).eq('employee_profile_id', id)
   await supabase.from('hitech_report_hitechsupervisor').update({ employee_profile_id: null }).eq('employee_profile_id', id)
@@ -67,6 +74,11 @@ export async function DELETE(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Delete the linked auth account so they can no longer log in
+  if (empRow?.user_id) {
+    await supabase.from('auth_user').delete().eq('id', empRow.user_id)
   }
 
   return NextResponse.json({ ok: true })
