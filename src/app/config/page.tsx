@@ -330,16 +330,17 @@ function CustomFieldsSection() {
 
   async function save() {
     setSaving(true); setErr('')
-    const options = editVals.optionsRaw !== undefined
-      ? editVals.optionsRaw.split(',').map(s => s.trim()).filter(Boolean)
-      : editVals.options ?? []
+    const { optionsRaw, options: _opts, ...rest } = editVals
+    const options = optionsRaw !== undefined
+      ? optionsRaw.split(',').map(s => s.trim()).filter(Boolean)
+      : _opts ?? []
     const r = await fetch('/api/config/customfields', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...editVals, options,
-        depends_on_key:   editVals.depends_on_key   || null,
-        depends_on_value: editVals.depends_on_value  || null,
+        ...rest, options,
+        depends_on_key:   rest.depends_on_key   || null,
+        depends_on_value: rest.depends_on_value  || null,
       }),
     })
     const d = await r.json()
