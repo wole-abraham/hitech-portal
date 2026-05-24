@@ -842,6 +842,41 @@ export default function SubmitPage() {
           />
         </Card>
 
+        {/* Custom fields */}
+        {customFields.length > 0 && (
+          <Card className="card-full" icon="🧩" title="Additional Details" delay={220} cardBg={CARD_COLORS[1]}>
+            {customFields.map(field => {
+              const depVal = field.depends_on_key
+                ? (customData[field.depends_on_key] ?? (form as Record<string, string>)[field.depends_on_key] ?? '')
+                : ''
+              const visible = !field.depends_on_key || depVal === field.depends_on_value
+              if (!visible) return null
+              return (
+                <div key={field.field_key}>
+                  <Label required={field.required}>{field.label}</Label>
+                  {field.type === 'dropdown' ? (
+                    <Select
+                      value={customData[field.field_key] ?? ''}
+                      onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
+                      placeholder="Select"
+                      options={field.options.map(o => ({ value: o, label: o }))}
+                    />
+                  ) : (
+                    <input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      style={inp}
+                      value={customData[field.field_key] ?? ''}
+                      onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
+                      onBlur={handleAcquired}
+                      placeholder={field.label}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </Card>
+        )}
+
         {/* 4–5. Personnel */}
         <RepeatPersonGroup label="Employees" icon="👷" rows={employeeRows} setRows={setEmployeeRows} employees={employees} delay={240}
           partyOptions={['Employee', 'Sub-contractor']}
@@ -920,41 +955,6 @@ export default function SubmitPage() {
             + Add Machine
           </button>
         </Card>
-
-        {/* Custom fields */}
-        {customFields.length > 0 && (
-          <Card className="card-full" icon="🧩" title="Additional Details" delay={440} cardBg={CARD_COLORS[1]}>
-            {customFields.map(field => {
-              const depVal = field.depends_on_key
-                ? (customData[field.depends_on_key] ?? (form as Record<string, string>)[field.depends_on_key] ?? '')
-                : ''
-              const visible = !field.depends_on_key || depVal === field.depends_on_value
-              if (!visible) return null
-              return (
-                <div key={field.field_key}>
-                  <Label required={field.required}>{field.label}</Label>
-                  {field.type === 'dropdown' ? (
-                    <Select
-                      value={customData[field.field_key] ?? ''}
-                      onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
-                      placeholder="Select"
-                      options={field.options.map(o => ({ value: o, label: o }))}
-                    />
-                  ) : (
-                    <input
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      style={inp}
-                      value={customData[field.field_key] ?? ''}
-                      onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
-                      onBlur={handleAcquired}
-                      placeholder={field.label}
-                    />
-                  )}
-                </div>
-              )
-            })}
-          </Card>
-        )}
 
         {/* 9. Photos & Video */}
         <Card className="card-full" icon="📷" title="Photos & Video — min 1 required" delay={460} cardBg={CARD_COLORS[0]}>
