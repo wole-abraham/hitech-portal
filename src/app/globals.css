@@ -325,8 +325,8 @@ pre, code {
   margin: 0 auto;
   position: relative; z-index: 2;
 }
-@media (min-width: 768px)  { .shell-content { padding: 28px 32px 64px; max-width: 900px; } }
-@media (min-width: 1200px) { .shell-content { padding: 36px 48px 80px; max-width: 1100px; } }
+@media (min-width: 768px)  { .shell-content { padding: 28px 32px 64px; max-width: 1100px; } }
+@media (min-width: 1200px) { .shell-content { padding: 36px 48px 80px; max-width: 1400px; } }
 
 /* Submit form card grid */
 .submit-cards {
