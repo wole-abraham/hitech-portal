@@ -390,7 +390,7 @@ export default function SubmitPage() {
   const [supervisorRows, setSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
   const [machineRows, setMachineRows] = useState<MachineRow[]>([emptyMachine()])
 
-  const [customFields, setCustomFields] = useState<{ id: number; label: string; field_key: string; type: string; options: string[]; required: boolean }[]>([])
+  const [customFields, setCustomFields] = useState<{ id: number; label: string; field_key: string; type: string; options: string[]; required: boolean; depends_on_key: string | null; depends_on_value: string | null }[]>([])
   const [customData, setCustomData] = useState<Record<string, string>>({})
 
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
@@ -924,28 +924,32 @@ export default function SubmitPage() {
         {/* Custom fields */}
         {customFields.length > 0 && (
           <Card className="card-full" icon="🧩" title="Additional Details" delay={440} cardBg={CARD_COLORS[1]}>
-            {customFields.map(field => (
-              <div key={field.field_key}>
-                <Label required={field.required}>{field.label}</Label>
-                {field.type === 'dropdown' ? (
-                  <Select
-                    value={customData[field.field_key] ?? ''}
-                    onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
-                    placeholder="Select"
-                    options={field.options.map(o => ({ value: o, label: o }))}
-                  />
-                ) : (
-                  <input
-                    type={field.type === 'number' ? 'number' : 'text'}
-                    style={inp}
-                    value={customData[field.field_key] ?? ''}
-                    onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
-                    onBlur={handleAcquired}
-                    placeholder={field.label}
-                  />
-                )}
-              </div>
-            ))}
+            {customFields.map(field => {
+              const visible = !field.depends_on_key || customData[field.depends_on_key] === field.depends_on_value
+              if (!visible) return null
+              return (
+                <div key={field.field_key}>
+                  <Label required={field.required}>{field.label}</Label>
+                  {field.type === 'dropdown' ? (
+                    <Select
+                      value={customData[field.field_key] ?? ''}
+                      onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
+                      placeholder="Select"
+                      options={field.options.map(o => ({ value: o, label: o }))}
+                    />
+                  ) : (
+                    <input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      style={inp}
+                      value={customData[field.field_key] ?? ''}
+                      onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
+                      onBlur={handleAcquired}
+                      placeholder={field.label}
+                    />
+                  )}
+                </div>
+              )
+            })}
           </Card>
         )}
 

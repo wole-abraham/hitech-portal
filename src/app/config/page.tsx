@@ -262,14 +262,21 @@ function Section({ icon, title, resource, fields, related }: {
 
 /* ── Custom Fields section ──────────────────────────────────── */
 function CustomFieldsSection() {
-  type CF = { id: number; label: string; field_key: string; type: string; options: string[]; required: boolean; is_active: boolean; order: number }
+  type CF = {
+    id: number; label: string; field_key: string; type: string
+    options: string[]; required: boolean; is_active: boolean; order: number
+    depends_on_key: string | null; depends_on_value: string | null
+  }
 
   const [open, setOpen]         = useState(false)
   const [items, setItems]       = useState<CF[]>([])
   const [loading, setLoading]   = useState(false)
   const [editId, setEditId]     = useState<number | null>(null)
   const [editVals, setEditVals] = useState<Partial<CF> & { optionsRaw?: string }>({})
-  const [newVals, setNewVals]   = useState({ label: '', type: 'text', optionsRaw: '', required: false, order: 10 })
+  const [newVals, setNewVals]   = useState({
+    label: '', type: 'text', optionsRaw: '', required: false, order: 10,
+    depends_on_key: '', depends_on_value: '',
+  })
   const [saving, setSaving]     = useState(false)
   const [err, setErr]           = useState('')
 
@@ -295,11 +302,17 @@ function CustomFieldsSection() {
     const r = await fetch('/api/config/customfields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: newVals.label.trim(), field_key: slugify(newVals.label.trim()), type: newVals.type, options, required: newVals.required, order: newVals.order, is_active: true }),
+      body: JSON.stringify({
+        label: newVals.label.trim(), field_key: slugify(newVals.label.trim()),
+        type: newVals.type, options, required: newVals.required, order: newVals.order,
+        is_active: true,
+        depends_on_key:   newVals.depends_on_key   || null,
+        depends_on_value: newVals.depends_on_value  || null,
+      }),
     })
     const d = await r.json()
     if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
-    setNewVals({ label: '', type: 'text', optionsRaw: '', required: false, order: 10 })
+    setNewVals({ label: '', type: 'text', optionsRaw: '', required: false, order: 10, depends_on_key: '', depends_on_value: '' })
     await load(); setSaving(false)
   }
 
@@ -311,7 +324,11 @@ function CustomFieldsSection() {
     const r = await fetch('/api/config/customfields', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...editVals, options }),
+      body: JSON.stringify({
+        ...editVals, options,
+        depends_on_key:   editVals.depends_on_key   || null,
+        depends_on_value: editVals.depends_on_value  || null,
+      }),
     })
     const d = await r.json()
     if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
@@ -337,6 +354,11 @@ function CustomFieldsSection() {
     await load(); setSaving(false)
   }
 
+  // Options of a field by key — used to populate the "value equals" picker
+  function optionsOf(key: string) {
+    return items.find(i => i.field_key === key)?.options ?? []
+  }
+
   const activeCount = items.filter(i => i.is_active).length
 
   return (
@@ -355,7 +377,7 @@ function CustomFieldsSection() {
       {open && (
         <>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${T.border}` }}>
                   <th style={thStyle}>Label / Key</th>
@@ -374,6 +396,7 @@ function CustomFieldsSection() {
                   <tr key={item.id} style={{ borderBottom: `1px solid ${T.border}`, opacity: item.is_active ? 1 : 0.45 }}>
                     {editId === item.id ? (
                       <>
+                        {/* Edit mode: label + type + options + req in row, dependency below as a second row */}
                         <td style={{ padding: '5px 10px' }}>
                           <input type="text" value={editVals.label ?? ''} onChange={e => setEditVals(v => ({ ...v, label: e.target.value }))} style={inp} />
                         </td>
@@ -407,6 +430,11 @@ function CustomFieldsSection() {
                         <td style={{ padding: '9px 14px' }}>
                           <div style={{ fontSize: '0.84rem', color: T.text, fontWeight: 600 }}>{item.label}</div>
                           <div style={{ fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)', marginTop: 1 }}>{item.field_key}</div>
+                          {item.depends_on_key && (
+                            <div style={{ fontSize: '0.65rem', color: T.amber, fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                              shows when: {items.find(i => i.field_key === item.depends_on_key)?.label ?? item.depends_on_key} = {item.depends_on_value}
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '9px 14px', fontSize: '0.78rem', color: T.muted }}>{item.type}</td>
                         <td style={{ padding: '9px 14px', fontSize: '0.76rem', color: T.sub, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -441,35 +469,98 @@ function CustomFieldsSection() {
             <div style={{ padding: '8px 14px', background: 'rgba(248,113,113,0.08)', color: T.error, fontSize: '0.78rem', borderTop: `1px solid ${T.border}` }}>{err}</div>
           )}
 
-          <div style={{ padding: '12px 14px', borderTop: `1px solid ${T.border}`, background: 'rgba(0,0,0,0.10)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ flex: '2 1 140px', minWidth: 110 }}>
-              <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Label *</div>
-              <input type="text" value={newVals.label} onChange={e => setNewVals(v => ({ ...v, label: e.target.value }))} placeholder="e.g. Soil Type" style={inp} />
+          {/* Add form */}
+          <div style={{ padding: '12px 14px', borderTop: `1px solid ${T.border}`, background: 'rgba(0,0,0,0.10)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Row 1: core fields */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: '2 1 140px', minWidth: 110 }}>
+                <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Label *</div>
+                <input type="text" value={newVals.label} onChange={e => setNewVals(v => ({ ...v, label: e.target.value }))} placeholder="e.g. Soil Type" style={inp} />
+              </div>
+              <div style={{ flex: '1 1 90px', minWidth: 80 }}>
+                <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Type</div>
+                <select value={newVals.type} onChange={e => setNewVals(v => ({ ...v, type: e.target.value }))} style={inp}>
+                  <option value="text">text</option>
+                  <option value="dropdown">dropdown</option>
+                  <option value="number">number</option>
+                </select>
+              </div>
+              <div style={{ flex: '3 1 180px', minWidth: 120 }}>
+                <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Options (comma-separated)</div>
+                <input type="text" value={newVals.optionsRaw} onChange={e => setNewVals(v => ({ ...v, optionsRaw: e.target.value }))} placeholder="Clay, Sandy, Rocky" style={inp} />
+              </div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 2 }}>
+                <input type="checkbox" id="cf-req" checked={newVals.required} onChange={e => setNewVals(v => ({ ...v, required: e.target.checked }))} />
+                <label htmlFor="cf-req" style={{ fontSize: '0.72rem', color: T.muted, cursor: 'pointer' }}>Required</label>
+              </div>
             </div>
-            <div style={{ flex: '1 1 90px', minWidth: 80 }}>
-              <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Type</div>
-              <select value={newVals.type} onChange={e => setNewVals(v => ({ ...v, type: e.target.value }))} style={inp}>
-                <option value="text">text</option>
-                <option value="dropdown">dropdown</option>
-                <option value="number">number</option>
-              </select>
+
+            {/* Row 2: dependency + submit */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: '2 1 160px', minWidth: 130 }}>
+                <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Shows when field… <span style={{ color: T.sub, fontWeight: 400 }}>(optional)</span>
+                </div>
+                <select
+                  value={newVals.depends_on_key}
+                  onChange={e => setNewVals(v => ({ ...v, depends_on_key: e.target.value, depends_on_value: '' }))}
+                  style={inp}
+                >
+                  <option value="">— always show —</option>
+                  {items.map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                </select>
+              </div>
+              {newVals.depends_on_key && (
+                <div style={{ flex: '2 1 140px', minWidth: 110 }}>
+                  <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>…equals value</div>
+                  {optionsOf(newVals.depends_on_key).length > 0 ? (
+                    <select value={newVals.depends_on_value} onChange={e => setNewVals(v => ({ ...v, depends_on_value: e.target.value }))} style={inp}>
+                      <option value="">— pick —</option>
+                      {optionsOf(newVals.depends_on_key).map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input type="text" value={newVals.depends_on_value} onChange={e => setNewVals(v => ({ ...v, depends_on_value: e.target.value }))} placeholder="value" style={inp} />
+                  )}
+                </div>
+              )}
+              <button onClick={add} disabled={saving} style={{
+                padding: '8px 18px', background: T.text, color: T.bg,
+                border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+                flexShrink: 0, alignSelf: 'flex-end', fontFamily: 'var(--font-display)',
+              }}>
+                + Add
+              </button>
             </div>
-            <div style={{ flex: '3 1 180px', minWidth: 120 }}>
-              <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Options (comma-separated)</div>
-              <input type="text" value={newVals.optionsRaw} onChange={e => setNewVals(v => ({ ...v, optionsRaw: e.target.value }))} placeholder="Clay, Sandy, Rocky" style={inp} />
-            </div>
-            <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 2 }}>
-              <input type="checkbox" id="cf-req" checked={newVals.required} onChange={e => setNewVals(v => ({ ...v, required: e.target.checked }))} />
-              <label htmlFor="cf-req" style={{ fontSize: '0.72rem', color: T.muted, cursor: 'pointer' }}>Required</label>
-            </div>
-            <button onClick={add} disabled={saving} style={{
-              padding: '8px 18px', background: T.text, color: T.bg,
-              border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-              flexShrink: 0, alignSelf: 'flex-end', fontFamily: 'var(--font-display)',
-            }}>
-              + Add
-            </button>
+
+            {/* Edit-mode dependency row (shown below the inline edit row) */}
+            {editId !== null && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', padding: '8px 10px', background: 'rgba(0,0,0,0.08)', borderRadius: 8 }}>
+                <span style={{ fontSize: '0.62rem', color: T.sub, fontFamily: 'var(--font-mono)', alignSelf: 'center', whiteSpace: 'nowrap' }}>Condition:</span>
+                <div style={{ flex: '2 1 150px', minWidth: 120 }}>
+                  <select
+                    value={editVals.depends_on_key ?? ''}
+                    onChange={e => setEditVals(v => ({ ...v, depends_on_key: e.target.value || null, depends_on_value: null }))}
+                    style={inp}
+                  >
+                    <option value="">— always show —</option>
+                    {items.filter(f => f.id !== editId).map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                  </select>
+                </div>
+                {editVals.depends_on_key && (
+                  <div style={{ flex: '2 1 130px', minWidth: 100 }}>
+                    {optionsOf(editVals.depends_on_key).length > 0 ? (
+                      <select value={editVals.depends_on_value ?? ''} onChange={e => setEditVals(v => ({ ...v, depends_on_value: e.target.value }))} style={inp}>
+                        <option value="">— pick —</option>
+                        {optionsOf(editVals.depends_on_key).map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input type="text" value={editVals.depends_on_value ?? ''} onChange={e => setEditVals(v => ({ ...v, depends_on_value: e.target.value }))} placeholder="value" style={inp} />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
