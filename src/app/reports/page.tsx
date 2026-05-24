@@ -29,6 +29,7 @@ interface Report {
   drive_folder_link: string | null
   powerbi_photo_links: string | null
   images_note: string | null
+  custom_data: Record<string, string> | null
 }
 
 interface ReportEmployee { employee_name: string; employee_role: string; employee_missing_name: string }
@@ -67,6 +68,7 @@ export default function ReportsPage() {
   const [detailLoading, setDetailLoading]         = useState(false)
   const [projects, setProjects] = useState<string[]>([])
   const [categories, setCategories] = useState<string[]>([])
+  const [customFieldDefs, setCustomFieldDefs] = useState<{ field_key: string; label: string }[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -93,7 +95,13 @@ export default function ReportsPage() {
     if (Array.isArray(data.categories)) setCategories(data.categories)
   }
 
-  useEffect(() => { loadFilters() }, [])
+  useEffect(() => {
+    loadFilters()
+    fetch('/api/config/customfields')
+      .then(r => r.json())
+      .then(d => setCustomFieldDefs((d.items ?? []).map((f: any) => ({ field_key: f.field_key, label: f.label }))))
+      .catch(() => {})
+  }, [])
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user) setRole(d.user.role) })
   }, [])
@@ -408,6 +416,23 @@ export default function ReportsPage() {
                 ))}
               </>
             )}
+
+            {/* Custom fields */}
+            {(() => {
+              const cd = selected.custom_data
+              if (!cd || typeof cd !== 'object') return null
+              const entries = customFieldDefs
+                .map(f => ({ label: f.label, value: cd[f.field_key] }))
+                .filter(e => e.value)
+              if (entries.length === 0) return null
+              return (
+                <>
+                  <Sep />
+                  <SectionLabel>Additional Details</SectionLabel>
+                  {entries.map((e, i) => <Row key={i} label={e.label} value={e.value} />)}
+                </>
+              )
+            })()}
 
             {/* ── Media section ── */}
             {(() => {

@@ -390,6 +390,9 @@ export default function SubmitPage() {
   const [supervisorRows, setSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
   const [machineRows, setMachineRows] = useState<MachineRow[]>([emptyMachine()])
 
+  const [customFields, setCustomFields] = useState<{ id: number; label: string; field_key: string; type: string; options: string[]; required: boolean }[]>([])
+  const [customData, setCustomData] = useState<Record<string, string>>({})
+
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
   const [video, setVideo] = useState<File | null>(null)
 
@@ -453,6 +456,11 @@ export default function SubmitPage() {
     if (!d.user) { router.replace('/login'); return }
     set('reporter_name', d.user.username || `${d.user.first_name} ${d.user.last_name}`.trim() || d.user.email || '')
   }).catch(() => {})
+
+    fetch('/api/config/customfields').then(r => r.json()).then(d => {
+      const active = (d.items ?? []).filter((f: any) => f.is_active)
+      setCustomFields(active)
+    }).catch(() => {})
   }, [])
 
   async function openReuse() {
@@ -536,6 +544,7 @@ export default function SubmitPage() {
         employees: employeeRows,
         supervisors: supervisorRows,
         machines: machineRows,
+        custom_data: customData,
       }),
     })
     const data = await res.json()
@@ -911,6 +920,34 @@ export default function SubmitPage() {
             + Add Machine
           </button>
         </Card>
+
+        {/* Custom fields */}
+        {customFields.length > 0 && (
+          <Card className="card-full" icon="🧩" title="Additional Details" delay={440} cardBg={CARD_COLORS[1]}>
+            {customFields.map(field => (
+              <div key={field.field_key}>
+                <Label required={field.required}>{field.label}</Label>
+                {field.type === 'dropdown' ? (
+                  <Select
+                    value={customData[field.field_key] ?? ''}
+                    onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
+                    placeholder="Select"
+                    options={field.options.map(o => ({ value: o, label: o }))}
+                  />
+                ) : (
+                  <input
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    style={inp}
+                    value={customData[field.field_key] ?? ''}
+                    onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
+                    onBlur={handleAcquired}
+                    placeholder={field.label}
+                  />
+                )}
+              </div>
+            ))}
+          </Card>
+        )}
 
         {/* 9. Photos & Video */}
         <Card className="card-full" icon="📷" title="Photos & Video — min 1 required" delay={460} cardBg={CARD_COLORS[0]}>

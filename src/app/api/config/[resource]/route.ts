@@ -19,6 +19,7 @@ const TABLE_MAP: Record<string, { table: string; order: string | null }> = {
   supervisors:    { table: 'hitech_report_sitesupervisor',   order: 'order' },
   engineers:      { table: 'hitech_report_siteengineer',     order: 'order' },
   machinerytypes: { table: 'hitech_report_machinerytype',    order: 'order' },
+  customfields:   { table: 'hitech_report_customfield',      order: 'order' },
 }
 
 async function requireAdmin(req: NextRequest): Promise<AppSession['user'] | null> {

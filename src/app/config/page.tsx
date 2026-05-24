@@ -285,6 +285,234 @@ function Section({ icon, title, resource, fields, related }: {
   )
 }
 
+/* ── Custom Fields section ──────────────────────────────────── */
+function CustomFieldsSection() {
+  type CF = { id: number; label: string; field_key: string; type: string; options: string[]; required: boolean; is_active: boolean; order: number }
+  const [items, setItems]       = useState<CF[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [editId, setEditId]     = useState<number | null>(null)
+  const [editVals, setEditVals] = useState<Partial<CF> & { optionsRaw?: string }>({})
+  const [newVals, setNewVals]   = useState({ label: '', type: 'text', optionsRaw: '', required: false, order: 10 })
+  const [saving, setSaving]     = useState(false)
+  const [err, setErr]           = useState('')
+
+  function slugify(label: string) {
+    return label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+  }
+
+  async function load() {
+    setLoading(true)
+    try {
+      const r = await fetch('/api/config/customfields')
+      const d = await r.json()
+      setItems(d.items ?? [])
+    } finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function add() {
+    if (!newVals.label.trim()) { setErr('Label is required'); return }
+    setSaving(true); setErr('')
+    const options = newVals.optionsRaw
+      ? newVals.optionsRaw.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+    const r = await fetch('/api/config/customfields', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label:     newVals.label.trim(),
+        field_key: slugify(newVals.label.trim()),
+        type:      newVals.type,
+        options,
+        required:  newVals.required,
+        order:     newVals.order,
+        is_active: true,
+      }),
+    })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
+    setNewVals({ label: '', type: 'text', optionsRaw: '', required: false, order: 10 })
+    await load()
+    setSaving(false)
+  }
+
+  async function save() {
+    setSaving(true); setErr('')
+    const options = editVals.optionsRaw !== undefined
+      ? editVals.optionsRaw.split(',').map(s => s.trim()).filter(Boolean)
+      : editVals.options ?? []
+    const r = await fetch('/api/config/customfields', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...editVals, options }),
+    })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
+    setEditId(null)
+    await load()
+    setSaving(false)
+  }
+
+  async function del(id: number) {
+    if (!window.confirm('Delete this field? It will no longer appear in new reports.')) return
+    setSaving(true); setErr('')
+    const r = await fetch(`/api/config/customfields?id=${id}`, { method: 'DELETE' })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Delete failed'); setSaving(false); return }
+    await load()
+    setSaving(false)
+  }
+
+  async function toggleActive(item: CF) {
+    setSaving(true); setErr('')
+    const r = await fetch('/api/config/customfields', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: item.id, is_active: !item.is_active }),
+    })
+    if (!r.ok) { const d = await r.json(); setErr(d.error || 'Failed') }
+    await load()
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span>🧩</span>
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: T.text, fontFamily: 'var(--font-display)' }}>Custom Fields</span>
+        <span style={{ marginLeft: 4, fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>— added to the activity report form</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>
+          {loading ? '…' : `${items.length} fields`}
+        </span>
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+              {['Label', 'Key', 'Type', 'Options', 'Req', 'Order', ''].map((h, i) => (
+                <th key={i} style={{ padding: '7px 14px', textAlign: 'left', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: T.sub, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={7} style={{ padding: '18px 14px', color: T.sub, fontSize: '0.82rem', textAlign: 'center' }}>Loading…</td></tr>
+            ) : items.length === 0 ? (
+              <tr><td colSpan={7} style={{ padding: '18px 14px', color: T.sub, fontSize: '0.82rem', textAlign: 'center' }}>No custom fields yet — add one below</td></tr>
+            ) : items.map(item => (
+              <tr key={item.id} style={{ borderBottom: `1px solid ${T.border}`, opacity: item.is_active ? 1 : 0.45 }}>
+                {editId === item.id ? (
+                  <>
+                    <td style={{ padding: '5px 10px' }}>
+                      <input type="text" value={editVals.label ?? ''} onChange={e => setEditVals(v => ({ ...v, label: e.target.value }))} style={inp} />
+                    </td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.76rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>{item.field_key}</td>
+                    <td style={{ padding: '5px 10px' }}>
+                      <select value={editVals.type ?? 'text'} onChange={e => setEditVals(v => ({ ...v, type: e.target.value }))} style={inp}>
+                        <option value="text">text</option>
+                        <option value="dropdown">dropdown</option>
+                        <option value="number">number</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: '5px 10px' }}>
+                      <input type="text"
+                        value={editVals.optionsRaw ?? (item.options ?? []).join(', ')}
+                        onChange={e => setEditVals(v => ({ ...v, optionsRaw: e.target.value }))}
+                        placeholder="Option A, Option B"
+                        style={inp}
+                      />
+                    </td>
+                    <td style={{ padding: '5px 10px' }}>
+                      <input type="checkbox" checked={!!editVals.required} onChange={e => setEditVals(v => ({ ...v, required: e.target.checked }))} />
+                    </td>
+                    <td style={{ padding: '5px 10px' }}>
+                      <input type="number" value={editVals.order ?? 10} onChange={e => setEditVals(v => ({ ...v, order: Number(e.target.value) }))} style={{ ...inp, width: 56 }} />
+                    </td>
+                    <td style={{ padding: '5px 10px' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <ActionBtn onClick={save} color={T.success} disabled={saving}>Save</ActionBtn>
+                        <ActionBtn onClick={() => setEditId(null)} color={T.sub}>Cancel</ActionBtn>
+                      </div>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td style={{ padding: '9px 14px', fontSize: '0.84rem', color: T.text }}>{item.label}</td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.72rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>{item.field_key}</td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.76rem', color: T.muted }}>{item.type}</td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.72rem', color: T.sub, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {(item.options ?? []).join(', ') || '—'}
+                    </td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.72rem', color: item.required ? T.text : T.sub }}>
+                      {item.required ? 'yes' : 'no'}
+                    </td>
+                    <td style={{ padding: '9px 14px', fontSize: '0.76rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>{item.order}</td>
+                    <td style={{ padding: '6px 10px' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <ActionBtn onClick={() => toggleActive(item)} color={item.is_active ? T.muted : T.success} disabled={saving}>
+                          {item.is_active ? 'Disable' : 'Enable'}
+                        </ActionBtn>
+                        <ActionBtn onClick={() => { setEditId(item.id); setEditVals({ ...item, optionsRaw: (item.options ?? []).join(', ') }) }} color={T.muted}>Edit</ActionBtn>
+                        <ActionBtn onClick={() => del(item.id)} color={T.error} disabled={saving}>Del</ActionBtn>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {err && (
+        <div style={{ padding: '8px 14px', background: 'rgba(248,113,113,0.08)', color: T.error, fontSize: '0.78rem', borderTop: `1px solid ${T.border}` }}>
+          {err}
+        </div>
+      )}
+
+      {/* Add row */}
+      <div style={{ padding: '12px 14px', borderTop: `1px solid ${T.border}`, background: 'rgba(0,0,0,0.12)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ flex: '2 1 140px', minWidth: 100 }}>
+          <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Label *</div>
+          <input type="text" value={newVals.label} onChange={e => setNewVals(v => ({ ...v, label: e.target.value }))} placeholder="e.g. Soil Type" style={inp} />
+        </div>
+        <div style={{ flex: '1 1 90px', minWidth: 80 }}>
+          <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Type</div>
+          <select value={newVals.type} onChange={e => setNewVals(v => ({ ...v, type: e.target.value }))} style={inp}>
+            <option value="text">text</option>
+            <option value="dropdown">dropdown</option>
+            <option value="number">number</option>
+          </select>
+        </div>
+        <div style={{ flex: '3 1 180px', minWidth: 120 }}>
+          <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Options (comma-separated)</div>
+          <input type="text" value={newVals.optionsRaw} onChange={e => setNewVals(v => ({ ...v, optionsRaw: e.target.value }))} placeholder="Clay, Sandy, Rocky" style={inp} />
+        </div>
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 2 }}>
+          <input type="checkbox" id="cf-req" checked={newVals.required} onChange={e => setNewVals(v => ({ ...v, required: e.target.checked }))} />
+          <label htmlFor="cf-req" style={{ fontSize: '0.72rem', color: T.muted, cursor: 'pointer' }}>Required</label>
+        </div>
+        <button
+          onClick={add}
+          disabled={saving}
+          style={{
+            padding: '8px 18px', background: T.text, color: T.bg,
+            border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+            cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+            flexShrink: 0, alignSelf: 'flex-end', fontFamily: 'var(--font-display)',
+          }}
+        >
+          + Add
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ── Users section ──────────────────────────────────────────── */
 function UsersSection() {
   const [items, setItems]       = useState<Item[]>([])
@@ -593,6 +821,7 @@ export default function ConfigPage() {
         {SECTIONS.map(s => (
           <Section key={s.resource} {...s} related={related} />
         ))}
+        <CustomFieldsSection />
         <UsersSection />
         <SignInHistorySection />
       </div>
