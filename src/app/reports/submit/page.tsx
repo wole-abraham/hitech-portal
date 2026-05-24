@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Category, ActivityType, ActivitySubType, Project, Section, Employee, Machine, ChainageResult, PersonRow, MachineRow } from '@/lib/types'
 import Select from '@/components/Select'
 import AmbientBackground from '@/components/AmbientBackground'
@@ -365,6 +365,10 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
 /* ── Main page ─────────────────────────────────────────────── */
 export default function SubmitPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fromId = searchParams.get('from')
+
+  const [planTitle, setPlanTitle] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     date_of_activity: new Date().toISOString().split('T')[0],
@@ -461,6 +465,26 @@ export default function SubmitPage() {
       const active = (d.items ?? []).filter((f: any) => f.is_active)
       setCustomFields(active)
     }).catch(() => {})
+
+    if (fromId) {
+      fetch(`/api/planned/${fromId}`).then(r => r.json()).then(d => {
+        const p = d.item
+        if (!p) return
+        setPlanTitle(p.title)
+        setForm(f => ({
+          ...f,
+          project_name:      p.project_name      || f.project_name,
+          section_name:      p.section_name      || f.section_name,
+          activity_category: p.activity_category || f.activity_category,
+          activity_type:     p.activity_type     || f.activity_type,
+          activity_subtype:  p.activity_subtype  || f.activity_subtype,
+          side:              p.side              || f.side,
+          weather:           p.weather           || f.weather,
+          start_chainage:    p.start_chainage    || f.start_chainage,
+          end_chainage:      p.end_chainage      || f.end_chainage,
+        }))
+      }).catch(() => {})
+    }
   }, [])
 
   async function openReuse() {
@@ -592,7 +616,7 @@ export default function SubmitPage() {
           borderBottom: `1px solid ${C.border}`,
           padding: '10px 16px 12px', display: 'flex', alignItems: 'center', gap: 12,
         }}>
-        <a href="/portal" style={{
+        <a href="/reports/start" style={{
           height: 34, padding: '0 14px', borderRadius: 8,
           background: C.orange, color: '#fff',
           font: '700 11px/1 var(--font-display)',
@@ -605,7 +629,7 @@ export default function SubmitPage() {
             stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
-          Portal
+          Back
         </a>
         <button type="button" onClick={openReuse} style={{
           height: 34, padding: '0 14px', borderRadius: 8,
@@ -620,7 +644,11 @@ export default function SubmitPage() {
         </button>
         <div>
           <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>Activity Report</div>
-          <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>Hitech Construction</div>
+          <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+            {planTitle ? (
+              <span>Plan: <span style={{ color: C.orange }}>{planTitle}</span></span>
+            ) : 'Hitech Construction'}
+          </div>
         </div>
         </div>
       </header>

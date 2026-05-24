@@ -9,7 +9,7 @@ type IconName = 'report' | 'employees' | 'equipment' | 'submissions' | 'history'
 interface TileProps { href: string; num: string; icon: IconName; tag: string; title: string; desc: string }
 
 const ADMIN_TILES: TileProps[] = [
-  { href: '/reports/submit', num: '01', icon: 'report',      tag: 'Hitech',      title: 'Activity Report',     desc: 'Submit site activities, log chainages, upload field photos.' },
+  { href: '/reports/start',  num: '01', icon: 'report',      tag: 'Hitech',      title: 'Activity Report',     desc: 'Submit site activities, log chainages, upload field photos.' },
   { href: '/employees',      num: '02', icon: 'employees',   tag: 'Management',  title: 'Employees List',      desc: 'Browse workers, track roles, view personnel records.' },
   { href: '/equipment',      num: '03', icon: 'equipment',   tag: 'Assets',      title: 'Equipment Registry',  desc: 'Add machines and assign equipment to site personnel.' },
   { href: '/reports',        num: '04', icon: 'submissions', tag: 'Records',     title: 'Submissions',         desc: 'Browse all submitted Hitech activity reports.' },
@@ -17,7 +17,7 @@ const ADMIN_TILES: TileProps[] = [
 ]
 
 const WORKER_TILES: TileProps[] = [
-  { href: '/reports/submit',  num: '01', icon: 'report',    tag: 'Hitech',   title: 'Activity Report', desc: 'Submit site activities, log chainages, upload field photos.' },
+  { href: '/reports/start',   num: '01', icon: 'report',    tag: 'Hitech',   title: 'Activity Report', desc: 'Submit site activities, log chainages, upload field photos.' },
   { href: '/worker/machines', num: '02', icon: 'machines',  tag: 'My Fleet', title: 'My Machines',     desc: 'View assigned equipment. Confirm receipt or return to base.' },
 ]
 
