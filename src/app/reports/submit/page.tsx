@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Category, ActivityType, ActivitySubType, Project, Section, Employee, Machine, ChainageResult, PersonRow, MachineRow } from '@/lib/types'
 import Select from '@/components/Select'
@@ -364,6 +364,14 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
 
 /* ── Main page ─────────────────────────────────────────────── */
 export default function SubmitPage() {
+  return (
+    <Suspense>
+      <SubmitPageInner />
+    </Suspense>
+  )
+}
+
+function SubmitPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const fromId = searchParams.get('from')
