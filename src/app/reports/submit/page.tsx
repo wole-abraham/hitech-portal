@@ -925,7 +925,10 @@ export default function SubmitPage() {
         {customFields.length > 0 && (
           <Card className="card-full" icon="🧩" title="Additional Details" delay={440} cardBg={CARD_COLORS[1]}>
             {customFields.map(field => {
-              const visible = !field.depends_on_key || customData[field.depends_on_key] === field.depends_on_value
+              const depVal = field.depends_on_key
+                ? (customData[field.depends_on_key] ?? (form as Record<string, string>)[field.depends_on_key] ?? '')
+                : ''
+              const visible = !field.depends_on_key || depVal === field.depends_on_value
               if (!visible) return null
               return (
                 <div key={field.field_key}>

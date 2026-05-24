@@ -260,6 +260,18 @@ function Section({ icon, title, resource, fields, related }: {
   )
 }
 
+/* ── Fixed form fields available as dependency sources ─────── */
+const FIXED_FIELDS: { key: string; label: string; options: string[] }[] = [
+  { key: 'weather',           label: 'Weather',          options: ['Sunny','Cloudy','Rainy','Windy','Overcast','Foggy'] },
+  { key: 'activity_category', label: 'Activity Category', options: [] },
+  { key: 'activity_type',     label: 'Activity Type',     options: [] },
+  { key: 'activity_subtype',  label: 'Activity Sub-type', options: [] },
+  { key: 'side',              label: 'Side',              options: ['Left','Right','Median'] },
+  { key: 'activity_status',   label: 'Status',            options: ['Ongoing','Completed','Suspended','Planned'] },
+  { key: 'project_name',      label: 'Project',           options: [] },
+  { key: 'section_name',      label: 'Section',           options: [] },
+]
+
 /* ── Custom Fields section ──────────────────────────────────── */
 function CustomFieldsSection() {
   type CF = {
@@ -354,9 +366,18 @@ function CustomFieldsSection() {
     await load(); setSaving(false)
   }
 
-  // Options of a field by key — used to populate the "value equals" picker
-  function optionsOf(key: string) {
+  // Options for the "value equals" picker — checks fixed fields first, then custom
+  function optionsOf(key: string): string[] {
+    const fixed = FIXED_FIELDS.find(f => f.key === key)
+    if (fixed) return fixed.options
     return items.find(i => i.field_key === key)?.options ?? []
+  }
+
+  // Label for a dependency key — used in the table display
+  function labelOf(key: string): string {
+    return FIXED_FIELDS.find(f => f.key === key)?.label
+      ?? items.find(i => i.field_key === key)?.label
+      ?? key
   }
 
   const activeCount = items.filter(i => i.is_active).length
@@ -432,7 +453,7 @@ function CustomFieldsSection() {
                           <div style={{ fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)', marginTop: 1 }}>{item.field_key}</div>
                           {item.depends_on_key && (
                             <div style={{ fontSize: '0.65rem', color: T.amber, fontFamily: 'var(--font-mono)', marginTop: 3 }}>
-                              shows when: {items.find(i => i.field_key === item.depends_on_key)?.label ?? item.depends_on_key} = {item.depends_on_value}
+                              shows when: {labelOf(item.depends_on_key)} = {item.depends_on_value}
                             </div>
                           )}
                         </td>
@@ -507,7 +528,14 @@ function CustomFieldsSection() {
                   style={inp}
                 >
                   <option value="">— always show —</option>
-                  {items.map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                  <optgroup label="Form Fields">
+                    {FIXED_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+                  </optgroup>
+                  {items.length > 0 && (
+                    <optgroup label="Custom Fields">
+                      {items.map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               </div>
               {newVals.depends_on_key && (
@@ -544,7 +572,14 @@ function CustomFieldsSection() {
                     style={inp}
                   >
                     <option value="">— always show —</option>
-                    {items.filter(f => f.id !== editId).map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                    <optgroup label="Form Fields">
+                      {FIXED_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    </optgroup>
+                    {items.filter(f => f.id !== editId).length > 0 && (
+                      <optgroup label="Custom Fields">
+                        {items.filter(f => f.id !== editId).map(f => <option key={f.field_key} value={f.field_key}>{f.label}</option>)}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
                 {editVals.depends_on_key && (
