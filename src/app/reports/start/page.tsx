@@ -148,16 +148,14 @@ export default function ReportStartPage() {
           }}>
             <span>Planned Activities</span>
             <div style={{ flex: 1, height: 1, background: 'rgba(245,158,11,0.20)' }} />
-            {role === 'admin' && (
-              <a href="/config" style={{
-                fontSize: '0.58rem', color: C.sub, textDecoration: 'none',
-                fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
-                padding: '2px 7px', borderRadius: 4,
-                border: `1px solid ${C.border}`,
-              }}>
-                Manage ›
-              </a>
-            )}
+            <a href="/planned" style={{
+              fontSize: '0.58rem', color: C.sub, textDecoration: 'none',
+              fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
+              padding: '2px 7px', borderRadius: 4,
+              border: `1px solid ${C.border}`,
+            }}>
+              {role === 'admin' ? 'Manage ›' : 'View all ›'}
+            </a>
           </div>
 
           {loading ? (

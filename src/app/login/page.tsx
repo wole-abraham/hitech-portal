@@ -58,7 +58,7 @@ export default function LoginPage() {
       setErrorKey(k => k + 1)
       return
     }
-    router.push('/portal')
+    router.push(data.role === 'worker' ? '/reports/start' : '/portal')
   }
 
   const wordmark = 'HITECH'.split('')
