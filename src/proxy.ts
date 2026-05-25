@@ -23,7 +23,7 @@ export async function proxy(req: NextRequest) {
   const ADMIN_ONLY = ['/history', '/employees', '/equipment', '/dashboard', '/config', '/api/history', '/api/employees', '/api/equipment', '/api/dashboard', '/api/config']
   const isAdminOnly =
     ADMIN_ONLY.some(p => pathname.startsWith(p)) ||
-    (pathname.startsWith('/reports') && !pathname.startsWith('/reports/submit') && !pathname.startsWith('/reports/success')) ||
+    (pathname.startsWith('/reports') && !pathname.startsWith('/reports/start') && !pathname.startsWith('/reports/submit') && !pathname.startsWith('/reports/success')) ||
     (pathname.startsWith('/api/reports') && !pathname.startsWith('/api/reports/submit') && !pathname.startsWith('/api/reports/upload') && !pathname.startsWith('/api/reports/filters') && !pathname.startsWith('/api/reports/chainage') && !pathname.startsWith('/api/reports/reuse'))
 
   if (isAdminOnly && session.user.role !== 'admin') {
