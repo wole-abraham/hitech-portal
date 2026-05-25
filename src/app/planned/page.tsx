@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AmbientBackground from '@/components/AmbientBackground'
+import Select from '@/components/Select'
 
 type PA = {
   id: number
@@ -35,47 +36,61 @@ const C = {
   text: '#1a1610', muted: '#6b6055', sub: '#8c8480',
   border: 'rgba(0,0,0,0.09)', inputBg: '#edeae5',
   success: '#16a34a', error: '#dc2626',
+  shadow: '0 2px 12px rgba(0,0,0,0.07)',
 }
+
+const CARD_COLORS: [string, string] = ['#ffffff', '#fdf8ef']
 
 const inp: React.CSSProperties = {
-  width: '100%', padding: '10px 12px',
-  background: C.inputBg, border: `1px solid rgba(0,0,0,0.12)`,
-  borderRadius: 10, color: C.text, fontSize: '0.88rem',
+  width: '100%', padding: '12px 14px',
+  background: C.inputBg, border: `1px solid rgba(0,0,0,0.14)`,
+  borderRadius: 11, color: C.text, fontSize: '0.92rem',
   fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  transition: 'border-color 0.2s, box-shadow 0.2s',
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 5 }}>
-      {children}
-    </div>
-  )
-}
-
-function Field({ label, value, onChange, placeholder, flex = '1 1 140px' }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; flex?: string
+function Card({ children, icon, title, delay = 0, cardBg }: {
+  children: React.ReactNode; icon: string; title: string; delay?: number; cardBg?: string
 }) {
+  const [vis, setVis] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setVis(true), delay)
+    return () => clearTimeout(t)
+  }, [delay])
+  const bg = cardBg ?? '#ffffff'
+  const isAlt = bg === CARD_COLORS[1]
   return (
-    <div style={{ flex, minWidth: 100 }}>
-      <Label>{label}</Label>
-      <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={inp} />
+    <div style={{
+      background: bg,
+      border: `1px solid ${isAlt ? 'rgba(245,158,11,0.18)' : C.border}`,
+      borderRadius: 16, boxShadow: C.shadow,
+      opacity: vis ? 1 : 0,
+      transform: vis ? 'translateY(0)' : 'translateY(14px)',
+      transition: 'opacity 0.4s ease, transform 0.4s ease',
+    }}>
+      <div style={{ padding: '13px 16px 11px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, background: '#f0ede8', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', border: `1px solid ${C.border}` }}>
+          {icon}
+        </div>
+        <span style={{ fontWeight: 700, fontSize: '0.92rem', color: C.text, fontFamily: 'var(--font-display)' }}>{title}</span>
+      </div>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {children}
+      </div>
     </div>
   )
 }
 
-function SelectField({ label, value, onChange, options, flex = '1 1 140px' }: {
-  label: string; value: string; onChange: (v: string) => void
-  options: string[]; flex?: string
-}) {
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <div style={{ flex, minWidth: 100 }}>
-      <Label>{label}</Label>
-      <select value={value} onChange={e => onChange(e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
-        <option value="">— select —</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
+    <label style={{ fontSize: '0.63rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.10em', color: C.muted, marginBottom: 6, display: 'block', fontFamily: 'var(--font-mono)' }}>
+      {children}{required && <span style={{ color: C.orange, marginLeft: 3 }}>*</span>}
+    </label>
   )
+}
+
+function Row2({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{children}</div>
 }
 
 function Pill({ children, color = C.sub }: { children: React.ReactNode; color?: string }) {
@@ -88,29 +103,6 @@ function Pill({ children, color = C.sub }: { children: React.ReactNode; color?: 
     }}>
       {children}
     </span>
-  )
-}
-
-function Btn({ onClick, color = C.text, bg = 'transparent', children, disabled, full }: {
-  onClick: () => void; color?: string; bg?: string; children: React.ReactNode; disabled?: boolean; full?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        padding: '9px 18px', background: bg, color,
-        border: bg === 'transparent' ? `1px solid ${color}35` : 'none',
-        borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.55 : 1,
-        fontFamily: 'var(--font-display)',
-        width: full ? '100%' : undefined,
-        transition: 'opacity 0.15s',
-      }}
-    >
-      {children}
-    </button>
   )
 }
 
@@ -128,7 +120,6 @@ export default function PlannedPage() {
   const [err, setErr] = useState('')
   const [vis, setVis] = useState(false)
 
-  // Dropdown data
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([])
   const [allTypes, setAllTypes] = useState<{ id: number; name: string; category_id: number }[]>([])
   const [allSubtypes, setAllSubtypes] = useState<{ id: number; name: string; activity_type_id: number }[]>([])
@@ -239,6 +230,262 @@ export default function PlannedPage() {
 
   const activeCount = items.filter(i => i.is_active).length
 
+  // ── Full-page create form (like activity report) ──
+  if (showForm && role === 'admin') {
+    return (
+      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', color: C.text }}>
+        <AmbientBackground />
+
+        {/* Header */}
+        <header style={{
+          background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: `1px solid ${C.border}`,
+          position: 'sticky', top: 0, zIndex: 100,
+        }}>
+          <div style={{ padding: '10px 16px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              onClick={() => { setShowForm(false); setForm({ ...empty }); setErr('') }}
+              style={{
+                height: 34, padding: '0 14px', borderRadius: 8,
+                background: C.orange, color: '#fff',
+                font: '700 11px/1 var(--font-display)',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                border: 'none', cursor: 'pointer', flexShrink: 0,
+                letterSpacing: '0.09em', textTransform: 'uppercase',
+                boxShadow: `0 2px 12px ${C.orangeBorder}`,
+              }}
+            >
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>New Planned Activity</div>
+              <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+                Create a pre-filled report template for your team
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Form body */}
+        <div style={{ flex: 1, padding: '20px 16px 120px', maxWidth: 760, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* 1. Plan Info */}
+          <Card icon="📋" title="Plan Info" delay={60} cardBg={CARD_COLORS[0]}>
+            <div>
+              <Label required>Title</Label>
+              <input
+                type="text"
+                style={inp}
+                value={form.title}
+                onChange={e => setF('title')(e.target.value)}
+                placeholder="e.g. Morning Paving — Km 12"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <textarea
+                style={{ ...inp, resize: 'vertical', minHeight: 72 }}
+                value={form.description}
+                onChange={e => setF('description')(e.target.value)}
+                placeholder="Brief note for workers (optional)"
+              />
+            </div>
+          </Card>
+
+          {/* 2. Project */}
+          <Card icon="🏗️" title="Project" delay={120} cardBg={CARD_COLORS[1]}>
+            <Row2>
+              <div>
+                <Label>Project</Label>
+                <Select
+                  value={form.project_name}
+                  onChange={v => { setF('project_name')(v); setF('section_name')('') }}
+                  placeholder="Select project"
+                  searchable
+                  options={projects.map(p => ({ value: p.name, label: p.name }))}
+                />
+              </div>
+              <div>
+                <Label>Section</Label>
+                <Select
+                  value={form.section_name}
+                  onChange={setF('section_name')}
+                  placeholder="Select section"
+                  disabled={!form.project_name}
+                  options={filteredSections.map(s => ({ value: s.name, label: s.name }))}
+                />
+              </div>
+            </Row2>
+          </Card>
+
+          {/* 3. Activity Type */}
+          <Card icon="⚡" title="Activity Type" delay={180} cardBg={CARD_COLORS[0]}>
+            <div>
+              <Label>Category</Label>
+              <Select
+                value={form.activity_category}
+                onChange={v => { setF('activity_category')(v); setF('activity_type')(''); setF('activity_subtype')('') }}
+                placeholder="Select category"
+                searchable
+                options={categories.map(c => ({ value: c.name, label: c.name }))}
+              />
+            </div>
+            <Row2>
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={form.activity_type}
+                  onChange={v => { setF('activity_type')(v); setF('activity_subtype')('') }}
+                  placeholder="Select type"
+                  disabled={!form.activity_category}
+                  searchable
+                  options={filteredTypes.map(t => ({ value: t.name, label: t.name }))}
+                />
+              </div>
+              <div>
+                <Label>Sub-type</Label>
+                <Select
+                  value={form.activity_subtype}
+                  onChange={setF('activity_subtype')}
+                  placeholder="Sub-type"
+                  disabled={!form.activity_type}
+                  options={filteredSubtypes.map(s => ({ value: s.name, label: s.name }))}
+                />
+              </div>
+            </Row2>
+            <Row2>
+              <div>
+                <Label>Side</Label>
+                <Select
+                  value={form.side}
+                  onChange={setF('side')}
+                  placeholder="Select"
+                  options={['Left', 'Right', 'Median'].map(s => ({ value: s, label: s }))}
+                />
+              </div>
+              <div>
+                <Label>Weather</Label>
+                <Select
+                  value={form.weather}
+                  onChange={setF('weather')}
+                  placeholder="Select"
+                  options={['Sunny', 'Cloudy', 'Rainy', 'Windy', 'Overcast', 'Foggy'].map(w => ({ value: w, label: w }))}
+                />
+              </div>
+            </Row2>
+          </Card>
+
+          {/* 4. Chainage */}
+          <Card icon="📍" title="Chainage" delay={240} cardBg={CARD_COLORS[1]}>
+            <Row2>
+              <div>
+                <Label>Start Chainage</Label>
+                <input
+                  type="text"
+                  style={inp}
+                  value={form.start_chainage}
+                  onChange={e => setF('start_chainage')(e.target.value)}
+                  placeholder="e.g. 1+250"
+                />
+              </div>
+              <div>
+                <Label>End Chainage</Label>
+                <input
+                  type="text"
+                  style={inp}
+                  value={form.end_chainage}
+                  onChange={e => setF('end_chainage')(e.target.value)}
+                  placeholder="e.g. 2+000"
+                />
+              </div>
+            </Row2>
+          </Card>
+
+        </div>
+
+        {/* Error modal */}
+        {err && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+          }} onClick={() => setErr('')}>
+            <div style={{
+              background: '#fff5f5', border: '1px solid rgba(220,38,38,0.25)',
+              borderRadius: 20, padding: '28px 24px', maxWidth: 400, width: '100%',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.15)', textAlign: 'center',
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: '2.2rem', marginBottom: 14 }}>⚠️</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: C.error, marginBottom: 10 }}>
+                Could not save
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#7a3a3a', lineHeight: 1.6, marginBottom: 22 }}>
+                {err}
+              </div>
+              <button onClick={() => setErr('')} style={{
+                width: '100%', padding: '12px',
+                background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.30)',
+                borderRadius: 10, color: C.error,
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.88rem',
+                cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
+              }}>
+                Fix &amp; Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom bar */}
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: `1px solid rgba(0,0,0,0.08)`,
+          padding: '14px 18px',
+          paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
+          zIndex: 100,
+        }}>
+          <button
+            onClick={create}
+            disabled={saving}
+            style={{
+              width: '100%', padding: '14px',
+              background: saving ? 'rgba(245,158,11,0.12)' : C.orange,
+              color: saving ? C.muted : '#1a1410',
+              border: 'none', borderRadius: 11,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800, fontSize: '0.92rem',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              boxShadow: saving ? 'none' : `0 4px 24px ${C.orangeBorder}`,
+              transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            }}
+          >
+            {saving ? (
+              <>
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%',
+                  border: '2px solid rgba(245,158,11,0.3)',
+                  borderTopColor: C.orange,
+                  animation: 'spin 0.7s linear infinite',
+                  flexShrink: 0,
+                }} />
+                Saving…
+              </>
+            ) : 'Create Plan'}
+          </button>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
+
+  // ── List view ──
   return (
     <div style={{ background: C.bg, minHeight: '100vh', position: 'relative', color: C.text }}>
       <AmbientBackground />
@@ -272,7 +519,7 @@ export default function PlannedPage() {
             </div>
           </div>
 
-          {role === 'admin' && !showForm && (
+          {role === 'admin' && (
             <button
               onClick={() => { setShowForm(true); setErr('') }}
               style={{
@@ -297,107 +544,6 @@ export default function PlannedPage() {
         padding: '20px 16px 80px', maxWidth: 840, margin: '0 auto', position: 'relative', zIndex: 2,
         opacity: vis ? 1 : 0, transition: 'opacity 0.4s ease',
       }}>
-
-        {/* Create form */}
-        {showForm && role === 'admin' && (
-          <div style={{
-            background: C.cardAlt, border: `1px solid ${C.orangeBorder}`,
-            borderRadius: 16, padding: '20px', marginBottom: 24,
-            boxShadow: `0 4px 24px ${C.orangeBorder}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: C.text, fontFamily: 'var(--font-display)' }}>
-                New Planned Activity
-              </div>
-              <button onClick={() => { setShowForm(false); setErr('') }} style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: C.sub, fontSize: '1.1rem', lineHeight: 1,
-              }}>✕</button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* Row 1: title + description */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <Field label="Title *" value={form.title} onChange={setF('title')} placeholder="e.g. Morning Paving — Km 12" flex="2 1 200px" />
-                <Field label="Description" value={form.description} onChange={setF('description')} placeholder="Brief note for workers (optional)" flex="3 1 240px" />
-              </div>
-
-              {/* Row 2: project + section */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ flex: '2 1 170px', minWidth: 130 }}>
-                  <Label>Project</Label>
-                  <select value={form.project_name} onChange={e => { setF('project_name')(e.target.value); setF('section_name')('') }} style={{ ...inp, cursor: 'pointer' }}>
-                    <option value="">— select —</option>
-                    {projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: '2 1 170px', minWidth: 130 }}>
-                  <Label>Section</Label>
-                  <select value={form.section_name} onChange={e => setF('section_name')(e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
-                    <option value="">— select —</option>
-                    {filteredSections.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Row 3: category + type + subtype */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ flex: '2 1 150px', minWidth: 120 }}>
-                  <Label>Category</Label>
-                  <select value={form.activity_category} onChange={e => { setF('activity_category')(e.target.value); setF('activity_type')(''); setF('activity_subtype')('') }} style={{ ...inp, cursor: 'pointer' }}>
-                    <option value="">— select —</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: '2 1 150px', minWidth: 120 }}>
-                  <Label>Type</Label>
-                  <select value={form.activity_type} onChange={e => { setF('activity_type')(e.target.value); setF('activity_subtype')('') }} style={{ ...inp, cursor: 'pointer' }} disabled={!form.activity_category}>
-                    <option value="">— select —</option>
-                    {filteredTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: '2 1 150px', minWidth: 120 }}>
-                  <Label>Sub-type</Label>
-                  <select value={form.activity_subtype} onChange={e => setF('activity_subtype')(e.target.value)} style={{ ...inp, cursor: 'pointer' }} disabled={!form.activity_type}>
-                    <option value="">— select —</option>
-                    {filteredSubtypes.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Row 4: side + weather + chainages */}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <SelectField label="Side" value={form.side} onChange={setF('side')} options={['Left', 'Right', 'Median']} flex="0 1 110px" />
-                <SelectField label="Weather" value={form.weather} onChange={setF('weather')} options={['Sunny', 'Cloudy', 'Rainy', 'Windy', 'Overcast', 'Foggy']} flex="0 1 120px" />
-                <Field label="Start Chainage" value={form.start_chainage} onChange={setF('start_chainage')} placeholder="e.g. 1+250" flex="0 1 130px" />
-                <Field label="End Chainage" value={form.end_chainage} onChange={setF('end_chainage')} placeholder="e.g. 2+000" flex="0 1 130px" />
-              </div>
-            </div>
-
-            {err && (
-              <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(220,38,38,0.08)', color: C.error, fontSize: '0.8rem', borderRadius: 8 }}>
-                {err}
-              </div>
-            )}
-
-            <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => { setShowForm(false); setErr(''); setForm({ ...empty }) }} style={{
-                padding: '9px 18px', background: 'transparent', color: C.sub,
-                border: `1px solid ${C.border}`, borderRadius: 9, fontSize: '0.82rem',
-                fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-display)',
-              }}>
-                Cancel
-              </button>
-              <button onClick={create} disabled={saving} style={{
-                padding: '9px 22px', background: C.orange, color: '#1a1610',
-                border: 'none', borderRadius: 9, fontSize: '0.82rem', fontWeight: 800,
-                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-                fontFamily: 'var(--font-display)',
-              }}>
-                {saving ? 'Saving…' : 'Create Plan'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Admin controls */}
         {role === 'admin' && (
@@ -502,7 +648,7 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
   const eInp: React.CSSProperties = {
     width: '100%', padding: '7px 10px',
     background: 'rgba(0,0,0,0.05)', border: `1px solid rgba(0,0,0,0.12)`,
-    borderRadius: 8, color: C.text, fontSize: '0.82rem',
+    borderRadius: 8, color: '#1a1610', fontSize: '0.82rem',
     fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
   }
 
@@ -616,7 +762,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
         position: 'relative',
       }}
     >
-      {/* Amber left accent */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
         background: C.orange,
@@ -626,7 +771,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
       }} />
 
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        {/* Icon */}
         <div style={{
           width: 40, height: 40, borderRadius: 10, flexShrink: 0,
           background: hov ? C.orangeLight : 'rgba(0,0,0,0.04)',
@@ -645,7 +789,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
           </svg>
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
             <div style={{ fontWeight: 700, fontSize: '0.92rem', color: C.text, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
@@ -678,7 +821,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
           )}
         </div>
 
-        {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
           {item.is_active && (
             <a
