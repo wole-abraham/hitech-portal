@@ -233,7 +233,7 @@ export default function PlannedPage() {
   // ── Full-page create form (like activity report) ──
   if (showForm && role === 'admin') {
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', color: C.text }}>
+      <div style={{ background: C.bg, minHeight: '100vh', position: 'relative', color: C.text }}>
         <AmbientBackground />
 
         {/* Header */}
@@ -271,7 +271,7 @@ export default function PlannedPage() {
         </header>
 
         {/* Form body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', maxWidth: 760, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '20px 16px 40px', maxWidth: 760, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* 1. Plan Info */}
           <Card icon="📋" title="Plan Info" delay={60} cardBg={CARD_COLORS[0]}>
@@ -405,6 +405,52 @@ export default function PlannedPage() {
             </Row2>
           </Card>
 
+          {/* Inline submit — always reachable */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => { setShowForm(false); setForm({ ...empty }); setErr('') }}
+              style={{
+                flex: '0 0 auto', padding: '14px 22px',
+                background: 'transparent', color: C.muted,
+                border: `1px solid ${C.border}`, borderRadius: 11,
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.88rem',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={create}
+              disabled={saving}
+              style={{
+                flex: 1, padding: '14px',
+                background: saving ? 'rgba(245,158,11,0.12)' : C.orange,
+                color: saving ? C.muted : '#1a1410',
+                border: 'none', borderRadius: 11,
+                fontFamily: 'var(--font-display)',
+                fontWeight: 800, fontSize: '0.92rem',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving ? 'none' : `0 4px 24px ${C.orangeBorder}`,
+                transition: 'all 0.2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}
+            >
+              {saving ? (
+                <>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    border: '2px solid rgba(245,158,11,0.3)',
+                    borderTopColor: C.orange,
+                    animation: 'spin 0.7s linear infinite', flexShrink: 0,
+                  }} />
+                  Saving…
+                </>
+              ) : 'Create Plan'}
+            </button>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
         </div>
 
         {/* Error modal */}
@@ -439,48 +485,6 @@ export default function PlannedPage() {
           </div>
         )}
 
-        {/* Bottom bar */}
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: `1px solid rgba(0,0,0,0.08)`,
-          padding: '14px 18px',
-          paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
-          zIndex: 100,
-        }}>
-          <button
-            onClick={create}
-            disabled={saving}
-            style={{
-              width: '100%', padding: '14px',
-              background: saving ? 'rgba(245,158,11,0.12)' : C.orange,
-              color: saving ? C.muted : '#1a1410',
-              border: 'none', borderRadius: 11,
-              fontFamily: 'var(--font-display)',
-              fontWeight: 800, fontSize: '0.92rem',
-              letterSpacing: '0.06em', textTransform: 'uppercase',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              boxShadow: saving ? 'none' : `0 4px 24px ${C.orangeBorder}`,
-              transition: 'all 0.2s',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            }}
-          >
-            {saving ? (
-              <>
-                <div style={{
-                  width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid rgba(245,158,11,0.3)',
-                  borderTopColor: C.orange,
-                  animation: 'spin 0.7s linear infinite',
-                  flexShrink: 0,
-                }} />
-                Saving…
-              </>
-            ) : 'Create Plan'}
-          </button>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
       </div>
     )
   }
