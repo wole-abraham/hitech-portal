@@ -49,14 +49,9 @@ const inp: React.CSSProperties = {
   transition: 'border-color 0.2s, box-shadow 0.2s',
 }
 
-function Card({ children, icon, title, delay = 0, cardBg }: {
+function Card({ children, icon, title, cardBg }: {
   children: React.ReactNode; icon: string; title: string; delay?: number; cardBg?: string
 }) {
-  const [vis, setVis] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => setVis(true), delay)
-    return () => clearTimeout(t)
-  }, [delay])
   const bg = cardBg ?? '#ffffff'
   const isAlt = bg === CARD_COLORS[1]
   return (
@@ -64,9 +59,6 @@ function Card({ children, icon, title, delay = 0, cardBg }: {
       background: bg,
       border: `1px solid ${isAlt ? 'rgba(245,158,11,0.18)' : C.border}`,
       borderRadius: 16, boxShadow: C.shadow,
-      opacity: vis ? 1 : 0,
-      transform: vis ? 'translateY(0)' : 'translateY(14px)',
-      transition: 'opacity 0.4s ease, transform 0.4s ease',
     }}>
       <div style={{ padding: '13px 16px 11px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 32, height: 32, background: '#f0ede8', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', border: `1px solid ${C.border}` }}>
@@ -233,7 +225,7 @@ export default function PlannedPage() {
   // ── Full-page create form (like activity report) ──
   if (showForm && role === 'admin') {
     return (
-      <div style={{ background: C.bg, minHeight: '100vh', position: 'relative', color: C.text }}>
+      <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', color: C.text }}>
         <AmbientBackground />
 
         {/* Header */}
@@ -242,6 +234,7 @@ export default function PlannedPage() {
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: `1px solid ${C.border}`,
           position: 'sticky', top: 0, zIndex: 100,
+          flexShrink: 0,
         }}>
           <div style={{ padding: '10px 16px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
@@ -270,8 +263,8 @@ export default function PlannedPage() {
           </div>
         </header>
 
-        {/* Form body */}
-        <div style={{ padding: '20px 16px 40px', maxWidth: 760, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Form body — flex: 1 so it grows and page scrolls naturally */}
+        <div style={{ flex: 1, padding: '20px 16px 40px', maxWidth: 760, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* 1. Plan Info */}
           <Card icon="📋" title="Plan Info" delay={60} cardBg={CARD_COLORS[0]}>
