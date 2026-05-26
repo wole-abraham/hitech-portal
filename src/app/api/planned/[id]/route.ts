@@ -21,12 +21,21 @@ export async function GET(
   if (!session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const { data, error } = await supabase
-    .from('hitech_report_plannedactivity')
-    .select('*')
-    .eq('id', id)
-    .single()
+
+  const [{ data: item, error }, { data: employees }, { data: supervisors }, { data: machines }] =
+    await Promise.all([
+      supabase.from('hitech_report_plannedactivity').select('*').eq('id', id).single(),
+      supabase.from('hitech_plan_employee').select('*').eq('plan_id', id).order('id'),
+      supabase.from('hitech_plan_supervisor').select('*').eq('plan_id', id).order('id'),
+      supabase.from('hitech_plan_machine').select('*').eq('plan_id', id).order('id'),
+    ])
 
   if (error) return NextResponse.json({ error: error.message }, { status: 404 })
-  return NextResponse.json({ item: data })
+
+  return NextResponse.json({
+    item,
+    employees:   employees  ?? [],
+    supervisors: supervisors ?? [],
+    machines:    machines   ?? [],
+  })
 }

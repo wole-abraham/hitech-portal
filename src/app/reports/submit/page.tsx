@@ -481,16 +481,52 @@ function SubmitPageInner() {
         setPlanTitle(p.title)
         setForm(f => ({
           ...f,
-          project_name:      p.project_name      || f.project_name,
-          section_name:      p.section_name      || f.section_name,
-          activity_category: p.activity_category || f.activity_category,
-          activity_type:     p.activity_type     || f.activity_type,
-          activity_subtype:  p.activity_subtype  || f.activity_subtype,
-          side:              p.side              || f.side,
-          weather:           p.weather           || f.weather,
-          start_chainage:    p.start_chainage    || f.start_chainage,
-          end_chainage:      p.end_chainage      || f.end_chainage,
+          project_name:                p.project_name                || f.project_name,
+          section_name:                p.section_name                || f.section_name,
+          activity_category:           p.activity_category           || f.activity_category,
+          activity_type:               p.activity_type               || f.activity_type,
+          activity_subtype:            p.activity_subtype            || f.activity_subtype,
+          side:                        p.side                        || f.side,
+          weather:                     p.weather                     || f.weather,
+          start_chainage:              p.start_chainage              || f.start_chainage,
+          end_chainage:                p.end_chainage                || f.end_chainage,
+          party_for_activity:          p.party_for_activity          || f.party_for_activity,
+          subcontractor_name_activity: p.subcontractor_name_activity || f.subcontractor_name_activity,
+          activity_status:             p.activity_status             || f.activity_status,
+          comment_activity:            p.comment_activity            || f.comment_activity,
+          not_conforming:              p.not_conforming              || f.not_conforming,
+          not_conforming_issue:        p.not_conforming_issue        || f.not_conforming_issue,
+          not_conforming_correction:   p.not_conforming_correction   || f.not_conforming_correction,
+          car_used:                    p.car_used                    || f.car_used,
+          team_car:                    p.team_car                    || f.team_car,
         }))
+        if (Array.isArray(d.employees) && d.employees.length > 0) {
+          setEmployeeRows(d.employees.map((e: any) => ({
+            name:               e.employee_name || (e.employee_missing_name ? '__other__' : ''),
+            role:               e.employee_role || '',
+            party:              e.party || 'Employee',
+            subcontractor_name: e.subcontractor_name || '',
+            missing_name:       e.employee_missing_name || '',
+          })))
+        }
+        if (Array.isArray(d.supervisors) && d.supervisors.length > 0) {
+          setSupervisorRows(d.supervisors.map((s: any) => ({
+            name:               s.supervisor_name || (s.supervisor_missing_name ? '__other__' : ''),
+            role:               '',
+            party:              s.party || 'Hitech employees',
+            subcontractor_name: s.subcontractor_name || '',
+            missing_name:       s.supervisor_missing_name || '',
+          })))
+        }
+        if (Array.isArray(d.machines) && d.machines.length > 0) {
+          setMachineRows(d.machines.map((m: any) => ({
+            equipment_id:      null,
+            fleet_number:      m.fleet_number || '',
+            machine_name:      m.machine_name || '',
+            machine_belonging: m.machine_belonging || '',
+            driver_name:       m.driver_name || '',
+          })))
+        }
       }).catch(() => {})
     }
   }, [])
