@@ -385,6 +385,10 @@ function SubmitPageInner() {
     start_chainage: '', start_chainage_lat: '', start_chainage_long: '',
     end_chainage: '', end_chainage_lat: '', end_chainage_long: '',
     activity_status: 'Ongoing',
+    party_for_activity: '', subcontractor_name_activity: '',
+    comment_activity: '',
+    not_conforming: 'No', not_conforming_issue: '', not_conforming_correction: '',
+    car_used: 'No', team_car: '',
   })
 
   const [categories, setCategories] = useState<Category[]>([])
