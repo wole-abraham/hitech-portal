@@ -783,6 +783,279 @@ function SignInHistorySection() {
   )
 }
 
+/* ── Chainages section ──────────────────────────────────────── */
+function ChainagesSection({ projects }: { projects: Item[] }) {
+  const [open, setOpen]           = useState(false)
+  const [projectId, setProjectId] = useState<number | ''>('')
+  const [items, setItems]         = useState<Item[]>([])
+  const [loading, setLoading]     = useState(false)
+  const [editId, setEditId]       = useState<number | null>(null)
+  const [editVals, setEditVals]   = useState<Item>({})
+  const [saving, setSaving]       = useState(false)
+  const [err, setErr]             = useState('')
+  const [importText, setImportText] = useState('')
+  const [importOpen, setImportOpen] = useState(false)
+
+  const [newVals, setNewVals] = useState({
+    chainage: '', name: '', label: '', section_name: '', latitude: '', longitude: '',
+  })
+
+  async function load(pid: number | '') {
+    if (!pid) { setItems([]); return }
+    setLoading(true)
+    try {
+      const r = await fetch(`/api/config/chainages?project_id=${pid}`)
+      const d = await r.json()
+      setItems(d.items ?? [])
+    } finally { setLoading(false) }
+  }
+
+  useEffect(() => { if (open) load(projectId) }, [open])
+
+  function changeProject(pid: number | '') {
+    setProjectId(pid)
+    setItems([])
+    setEditId(null)
+    if (pid) load(pid)
+  }
+
+  async function add() {
+    if (!projectId) { setErr('Select a project first'); return }
+    if (!newVals.chainage.trim()) { setErr('Chainage is required'); return }
+    setSaving(true); setErr('')
+    const r = await fetch('/api/config/chainages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newVals, project_id: projectId }),
+    })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
+    setNewVals({ chainage: '', name: '', label: '', section_name: '', latitude: '', longitude: '' })
+    await load(projectId)
+    setSaving(false)
+  }
+
+  async function save() {
+    setSaving(true); setErr('')
+    const r = await fetch('/api/config/chainages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editVals),
+    })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
+    setEditId(null); await load(projectId); setSaving(false)
+  }
+
+  async function del(id: number) {
+    if (!window.confirm('Delete this chainage?')) return
+    setSaving(true); setErr('')
+    const r = await fetch(`/api/config/chainages?id=${id}`, { method: 'DELETE' })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Delete failed'); setSaving(false); return }
+    await load(projectId); setSaving(false)
+  }
+
+  async function bulkImport() {
+    if (!projectId) { setErr('Select a project first'); return }
+    // Parse CSV: chainage,name,label,section_name,latitude,longitude
+    // First line may be a header — skip if non-numeric chainage looks like "chainage"
+    const lines = importText.trim().split('\n').map(l => l.trim()).filter(Boolean)
+    const rows: any[] = []
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim())
+      if (parts[0].toLowerCase() === 'chainage') continue // skip header
+      const [chainage, name, label, section_name, latitude, longitude] = parts
+      if (!chainage) continue
+      rows.push({ chainage, name: name || chainage, label: label || null, section_name: section_name || null, latitude: latitude || null, longitude: longitude || null, project_id: projectId })
+    }
+    if (!rows.length) { setErr('No valid rows found'); return }
+    setSaving(true); setErr('')
+    const r = await fetch('/api/config/chainages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: rows }),
+    })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Import failed'); setSaving(false); return }
+    setImportText(''); setImportOpen(false)
+    await load(projectId); setSaving(false)
+  }
+
+  const cols = ['Chainage', 'Name', 'Label', 'Section', 'Lat', 'Lng']
+
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: 'hidden' }}>
+
+      <div onClick={() => setOpen(o => !o)} style={{ padding: '11px 16px', borderBottom: open ? `1px solid ${T.border}` : 'none', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+        <span style={{ fontSize: '0.95rem' }}>📏</span>
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: T.text, fontFamily: 'var(--font-display)' }}>Chainages</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)', marginRight: 8 }}>
+          {loading ? '…' : projectId && items.length > 0 ? `${items.length} points` : '—'}
+        </span>
+        <Chevron open={open} />
+      </div>
+
+      {open && (
+        <>
+          {/* Project filter */}
+          <div style={{ padding: '10px 14px', borderBottom: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>Project</span>
+            <select
+              value={projectId}
+              onChange={e => changeProject(e.target.value ? Number(e.target.value) : '')}
+              style={{ ...inp, maxWidth: 280 }}
+            >
+              <option value="">— select project —</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: T.sub }}>
+              {projectId ? `${items.length} chainage points` : 'Select a project to view chainages'}
+            </span>
+            {projectId && (
+              <button
+                onClick={() => setImportOpen(o => !o)}
+                style={{ padding: '5px 12px', background: 'transparent', border: `1px solid ${T.amber}50`, borderRadius: 7, color: T.amber, fontSize: '0.76rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
+              >
+                {importOpen ? 'Hide Import' : '↑ CSV Import'}
+              </button>
+            )}
+          </div>
+
+          {/* CSV import panel */}
+          {importOpen && (
+            <div style={{ padding: '12px 14px', borderBottom: `1px solid ${T.border}`, background: 'rgba(245,158,11,0.04)' }}>
+              <div style={{ fontSize: '0.65rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 6 }}>
+                CSV format: <strong>chainage, name, label, section_name, latitude, longitude</strong> (header row optional)
+              </div>
+              <textarea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder={'Ch 1+000, Ch 1+000, , Section A, 9.0579, 7.4951\nCh 1+200, Ch 1+200, , Section A, 9.0601, 7.4970'}
+                rows={5}
+                style={{ ...inp, fontFamily: 'var(--font-mono)', fontSize: '0.76rem', resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={bulkImport} disabled={saving || !importText.trim()} style={{
+                  padding: '7px 16px', background: T.amber, color: '#fff', border: 'none',
+                  borderRadius: 7, fontSize: '0.8rem', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1, fontFamily: 'var(--font-display)',
+                }}>
+                  Import Rows
+                </button>
+                <button onClick={() => { setImportOpen(false); setImportText('') }} style={{
+                  padding: '7px 14px', background: 'transparent', border: `1px solid ${T.border}`,
+                  borderRadius: 7, color: T.sub, fontSize: '0.8rem', cursor: 'pointer',
+                }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Table */}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+                  {cols.map(c => <th key={c} style={thStyle}>{c}</th>)}
+                  <th style={{ width: 100 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {!projectId ? (
+                  <tr><td colSpan={7} style={{ padding: '16px 14px', color: T.sub, fontSize: '0.82rem', textAlign: 'center' }}>Select a project above</td></tr>
+                ) : loading ? (
+                  <tr><td colSpan={7} style={{ padding: '16px 14px', color: T.sub, fontSize: '0.82rem', textAlign: 'center' }}>Loading…</td></tr>
+                ) : items.length === 0 ? (
+                  <tr><td colSpan={7} style={{ padding: '16px 14px', color: T.sub, fontSize: '0.82rem', textAlign: 'center' }}>No chainages yet — add one below or import CSV</td></tr>
+                ) : items.map(item => (
+                  <tr key={item.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+                    {editId === item.id ? (
+                      <>
+                        {(['chainage','name','label','section_name','latitude','longitude'] as const).map(k => (
+                          <td key={k} style={{ padding: '5px 8px' }}>
+                            <input
+                              type={k === 'latitude' || k === 'longitude' ? 'number' : 'text'}
+                              step="any"
+                              value={editVals[k] ?? ''}
+                              onChange={e => setEditVals(v => ({ ...v, [k]: e.target.value }))}
+                              style={{ ...inp, fontSize: '0.78rem' }}
+                            />
+                          </td>
+                        ))}
+                        <td style={{ padding: '5px 8px' }}>
+                          <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                            <ActionBtn onClick={save} color={T.success} disabled={saving}>Save</ActionBtn>
+                            <ActionBtn onClick={() => setEditId(null)} color={T.sub}>Cancel</ActionBtn>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{ padding: '8px 12px', fontSize: '0.84rem', color: T.text, fontFamily: 'var(--font-mono)' }}>{item.chainage}</td>
+                        <td style={{ padding: '8px 12px', fontSize: '0.82rem', color: T.muted }}>{item.name || '—'}</td>
+                        <td style={{ padding: '8px 12px', fontSize: '0.82rem', color: T.muted }}>{item.label || '—'}</td>
+                        <td style={{ padding: '8px 12px', fontSize: '0.82rem', color: T.muted }}>{item.section_name || '—'}</td>
+                        <td style={{ padding: '8px 12px', fontSize: '0.75rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>{item.latitude ?? '—'}</td>
+                        <td style={{ padding: '8px 12px', fontSize: '0.75rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>{item.longitude ?? '—'}</td>
+                        <td style={{ padding: '6px 8px' }}>
+                          <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                            <ActionBtn onClick={() => { setEditId(item.id); setEditVals({ ...item }) }} color={T.muted}>Edit</ActionBtn>
+                            <ActionBtn onClick={() => del(item.id)} color={T.error} disabled={saving}>Del</ActionBtn>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {err && (
+            <div style={{ padding: '8px 14px', background: 'rgba(248,113,113,0.08)', color: T.error, fontSize: '0.78rem', borderTop: `1px solid ${T.border}` }}>{err}</div>
+          )}
+
+          {/* Add row */}
+          <div style={{ padding: '12px 14px', borderTop: `1px solid ${T.border}`, background: 'rgba(0,0,0,0.10)' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              {([
+                { key: 'chainage',     label: 'Chainage *', flex: '2 1 100px' },
+                { key: 'name',         label: 'Name',       flex: '2 1 100px' },
+                { key: 'label',        label: 'Label',      flex: '1 1 80px'  },
+                { key: 'section_name', label: 'Section',    flex: '1 1 90px'  },
+                { key: 'latitude',     label: 'Latitude',   flex: '1 1 80px'  },
+                { key: 'longitude',    label: 'Longitude',  flex: '1 1 80px'  },
+              ] as { key: keyof typeof newVals; label: string; flex: string }[]).map(f => (
+                <div key={f.key} style={{ flex: f.flex, minWidth: 70 }}>
+                  <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{f.label}</div>
+                  <input
+                    type={f.key === 'latitude' || f.key === 'longitude' ? 'number' : 'text'}
+                    step="any"
+                    value={newVals[f.key]}
+                    onChange={e => setNewVals(v => ({ ...v, [f.key]: e.target.value }))}
+                    placeholder={f.label.replace(' *', '')}
+                    style={{ ...inp }}
+                  />
+                </div>
+              ))}
+              <button onClick={add} disabled={saving} style={{
+                padding: '8px 18px', background: T.text, color: T.bg,
+                border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+                flexShrink: 0, alignSelf: 'flex-end', fontFamily: 'var(--font-display)',
+              }}>
+                + Add
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /* ── Page ───────────────────────────────────────────────────── */
 export default function ConfigPage() {
   const [categories, setCategories] = useState<Item[]>([])
@@ -825,6 +1098,7 @@ export default function ConfigPage() {
           { key: 'name', label: 'Name', required: true },
           { key: 'project_id', label: 'Project', type: 'select', getOptions: r => r.projects.map((p: Item) => ({ value: p.id, label: p.name })) },
         ]} />
+        <ChainagesSection projects={projects} />
 
         <GroupLabel>Personnel</GroupLabel>
         <Section icon="👷" title="Site Supervisors" resource="supervisors" related={related} fields={[
