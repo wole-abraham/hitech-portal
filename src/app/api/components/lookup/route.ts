@@ -33,7 +33,18 @@ export async function GET(req: NextRequest) {
     .limit(1)
 
   if (section) query = query.ilike('section_name', section)
-  if (side)    query = query.ilike('side', side)
+  if (side) {
+    // Map portal values (Left/Right) to CSV values (LHS/RHS)
+    const sideMap: Record<string, string> = {
+      left:   'LHS',
+      right:  'RHS',
+      median: 'Median',
+      lhs:    'LHS',
+      rhs:    'RHS',
+    }
+    const mappedSide = sideMap[side.toLowerCase()] ?? side
+    query = query.ilike('side', mappedSide)
+  }
 
   const { data, error } = await query
 
