@@ -289,6 +289,8 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {rows.map((row, i) => {
           const takenNames = new Set(rows.filter((_, j) => j !== i).map(r => r.name).filter(n => n && n !== '__other__'))
+          // also track taken free-text names so "Not in list" can't be duplicated
+          const takenMissing = new Set(rows.filter((_, j) => j !== i).map(r => r.missing_name?.trim().toLowerCase()).filter(Boolean))
           const nameOptions = (nameList
             ? (row.party ? nameList.filter(n => n.party === row.party) : nameList)
             : employees
@@ -340,8 +342,19 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
                   </div>
                 )}
                 {row.name === '__other__' && (
-                  <div><Label>Enter Name</Label>
-                    <input style={inp} value={row.missing_name} onChange={e => update(i, 'missing_name', e.target.value)} onBlur={handleAcquired} />
+                  <div>
+                    <Label>Enter Name</Label>
+                    <input
+                      style={{ ...inp, borderColor: takenMissing.has(row.missing_name?.trim().toLowerCase() ?? '') && row.missing_name?.trim() ? 'rgba(220,38,38,0.6)' : undefined }}
+                      value={row.missing_name}
+                      onChange={e => update(i, 'missing_name', e.target.value)}
+                      onBlur={handleAcquired}
+                    />
+                    {takenMissing.has(row.missing_name?.trim().toLowerCase() ?? '') && row.missing_name?.trim() && (
+                      <div style={{ fontSize: '0.7rem', color: C.error, marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                        This name is already added above.
+                      </div>
+                    )}
                   </div>
                 )}
                 {row.party === 'Sub-contractor' && (
@@ -354,10 +367,29 @@ function RepeatPersonGroup({ label, icon, rows, setRows, employees, delay, party
           )
         })}
       </div>
-      <button type="button" onClick={() => setRows(r => [...r, emptyPerson()])}
-        style={{ width: '100%', padding: '11px', background: 'rgba(59,130,246,0.06)', border: `1px dashed rgba(59,130,246,0.3)`, borderRadius: 12, color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
-        + Add {label.slice(0, -1)}
-      </button>
+      {(() => {
+        const lastRow = rows[rows.length - 1]
+        const lastFilled = lastRow && ((lastRow.name && lastRow.name !== '__other__') || !!lastRow.missing_name?.trim())
+        return (
+          <button
+            type="button"
+            disabled={!lastFilled}
+            onClick={() => setRows(r => [...r, emptyPerson()])}
+            title={!lastFilled ? 'Fill in the current row before adding another' : undefined}
+            style={{
+              width: '100%', padding: '11px',
+              background: lastFilled ? 'rgba(59,130,246,0.06)' : 'rgba(0,0,0,0.04)',
+              border: `1px dashed ${lastFilled ? 'rgba(59,130,246,0.3)' : 'rgba(0,0,0,0.12)'}`,
+              borderRadius: 12,
+              color: lastFilled ? '#60a5fa' : C.muted,
+              fontSize: '0.85rem', fontWeight: 700,
+              cursor: lastFilled ? 'pointer' : 'not-allowed',
+              opacity: lastFilled ? 1 : 0.5,
+            }}>
+            + Add {label.slice(0, -1)}
+          </button>
+        )
+      })()}
     </Card>
   )
 }
@@ -601,6 +633,7 @@ function SubmitPageInner() {
     if (machineRows.every(r => !r.machine_name)) return setError('Please add at least one machine.')
     if (!form.project_name) return setError('Please select a project.')
     if (!form.activity_category) return setError('Please select an activity category.')
+
     setSubmitting(true)
     setSubmitStage('Saving report…')
 
@@ -1013,7 +1046,12 @@ function SubmitPageInner() {
                         disabled={!row.machine_belonging}
                         searchable
                         options={equipmentList
-                          .filter(e => e.machine_belonging === row.machine_belonging)
+                          .filter(e => {
+                            if (e.machine_belonging !== row.machine_belonging) return false
+                            // exclude fleet numbers already picked in other rows
+                            const takenFleets = new Set(machineRows.filter((_, j) => j !== i).map(r => r.fleet_number).filter(Boolean))
+                            return !takenFleets.has(e.fleet_number)
+                          })
                           .map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}` }))}
                       />
                     </div>
@@ -1026,10 +1064,29 @@ function SubmitPageInner() {
               </div>
             ))}
           </div>
-          <button type="button" onClick={() => setMachineRows(r => [...r, emptyMachine()])}
-            style={{ width: '100%', padding: '11px', background: 'rgba(59,130,246,0.06)', border: `1px dashed rgba(59,130,246,0.3)`, borderRadius: 12, color: '#60a5fa', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
-            + Add Machine
-          </button>
+          {(() => {
+            const lastMachine = machineRows[machineRows.length - 1]
+            const lastMachineFilled = lastMachine && !!lastMachine.fleet_number
+            return (
+              <button
+                type="button"
+                disabled={!lastMachineFilled}
+                onClick={() => setMachineRows(r => [...r, emptyMachine()])}
+                title={!lastMachineFilled ? 'Select a machine in the current row before adding another' : undefined}
+                style={{
+                  width: '100%', padding: '11px',
+                  background: lastMachineFilled ? 'rgba(59,130,246,0.06)' : 'rgba(0,0,0,0.04)',
+                  border: `1px dashed ${lastMachineFilled ? 'rgba(59,130,246,0.3)' : 'rgba(0,0,0,0.12)'}`,
+                  borderRadius: 12,
+                  color: lastMachineFilled ? '#60a5fa' : C.muted,
+                  fontSize: '0.85rem', fontWeight: 700,
+                  cursor: lastMachineFilled ? 'pointer' : 'not-allowed',
+                  opacity: lastMachineFilled ? 1 : 0.5,
+                }}>
+                + Add Machine
+              </button>
+            )
+          })()}
         </Card>
 
         {/* 9. Photos & Video */}
