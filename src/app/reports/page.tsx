@@ -320,6 +320,74 @@ export default function ReportsPage() {
             <Row label="Category" value={selected.activity_category} />
             <Row label="Activity Type" value={selected.activity_type} />
             {selected.activity_subtype && <Row label="Subtype" value={selected.activity_subtype} />}
+
+            {/* Component Reference — auto-filled from drainage components table */}
+            {(() => {
+              const cd = selected.custom_data
+              if (!cd) return null
+              const comp = {
+                measurements:          cd['_comp_measurements'],
+                nbr_cell:              cd['_comp_nbr_cell'],
+                length:                cd['_comp_length'],
+                status:                cd['_comp_status'],
+                total_length_to_order: cd['_comp_total_length_to_order'],
+                comment:               cd['_comp_comment'],
+              }
+              const hasAny = Object.values(comp).some(Boolean)
+              if (!hasAny) return null
+              return (
+                <div style={{
+                  background: 'rgba(245,158,11,0.07)',
+                  border: '1px solid rgba(245,158,11,0.22)',
+                  borderRadius: 12, padding: '12px 14px',
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.amber, fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
+                    📋 Component Reference
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {comp.measurements && (
+                      <div>
+                        <div style={{ fontSize: '0.6rem', color: T.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Measurements</div>
+                        <div style={{ fontSize: '0.85rem', color: T.text, fontWeight: 600 }}>{comp.measurements}</div>
+                      </div>
+                    )}
+                    {comp.nbr_cell && (
+                      <div>
+                        <div style={{ fontSize: '0.6rem', color: T.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>No. of Cells / Type</div>
+                        <div style={{ fontSize: '0.85rem', color: T.text, fontWeight: 600 }}>{comp.nbr_cell}</div>
+                      </div>
+                    )}
+                    {comp.length && (
+                      <div>
+                        <div style={{ fontSize: '0.6rem', color: T.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Length (m)</div>
+                        <div style={{ fontSize: '0.85rem', color: T.text, fontWeight: 600 }}>{comp.length}</div>
+                      </div>
+                    )}
+                    {comp.total_length_to_order && (
+                      <div>
+                        <div style={{ fontSize: '0.6rem', color: T.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Total Length to Order</div>
+                        <div style={{ fontSize: '0.85rem', color: T.text, fontWeight: 600 }}>{comp.total_length_to_order}</div>
+                      </div>
+                    )}
+                    {comp.status && (
+                      <div>
+                        <div style={{ fontSize: '0.6rem', color: T.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>Survey Status</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: comp.status.toLowerCase().includes('complete') && !comp.status.toLowerCase().includes('not') ? '#34d399' : T.amber }}>
+                          {comp.status}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {comp.comment && (
+                    <div style={{ fontSize: '0.8rem', color: T.muted, fontStyle: 'italic', borderTop: `1px solid rgba(245,158,11,0.15)`, paddingTop: 8, marginTop: 2 }}>
+                      {comp.comment}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             <Sep />
             <Row label="Start Chainage" value={selected.start_chainage} />
             <Row label="End Chainage" value={selected.end_chainage} />
@@ -423,7 +491,7 @@ export default function ReportsPage() {
               if (!cd || typeof cd !== 'object') return null
               const entries = customFieldDefs
                 .map(f => ({ label: f.label, value: cd[f.field_key] }))
-                .filter(e => e.value)
+                .filter(e => e.value && !e.label.startsWith('_comp_'))
               if (entries.length === 0) return null
               return (
                 <>
