@@ -54,6 +54,40 @@ CREATE TABLE IF NOT EXISTS hitech_plan_machine (
   created_at        TIMESTAMPTZ DEFAULT now()
 );
 
+-- ── Drainage / Road Components table (imported from CSV) ──────────────────
+-- Stores pre-surveyed structures: Box culvert, Ducts, Discharge, Manholes, etc.
+-- Lookup key: project_name + section_name + chainage + item + side
+CREATE TABLE IF NOT EXISTS hitech_report_component (
+  id                     SERIAL PRIMARY KEY,
+  project_name           TEXT NOT NULL,
+  section_name           TEXT NOT NULL,
+  chainage               TEXT NOT NULL,
+  chainage_m             NUMERIC,
+  item                   TEXT NOT NULL,   -- e.g. "Box culvert", "Manholes"
+  side                   TEXT NOT NULL,   -- RHS | LHS | Median
+  measurements           TEXT,
+  nbr_cell               TEXT,            -- number of cells or material note
+  length                 NUMERIC,
+  status                 TEXT,
+  total_length_to_order  NUMERIC,
+  consideration_status   TEXT,
+  comment                TEXT,
+  low_point_elevation    TEXT,
+  northing               NUMERIC,
+  easting                NUMERIC,
+  created_at             TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_component_unique
+  ON hitech_report_component (project_name, section_name, chainage, item, side);
+
+CREATE INDEX IF NOT EXISTS idx_component_lookup
+  ON hitech_report_component (project_name, section_name, chainage, item, side);
+
+ALTER TABLE hitech_report_component ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated read components"
+  ON hitech_report_component FOR SELECT USING (auth.role() = 'authenticated');
+
 -- Allow anon reads so the submit form can load plan detail without service-role
 ALTER TABLE hitech_plan_employee  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hitech_plan_supervisor ENABLE ROW LEVEL SECURITY;

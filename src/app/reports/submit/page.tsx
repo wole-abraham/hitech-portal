@@ -441,6 +441,20 @@ function SubmitPageInner() {
   const [customFields, setCustomFields] = useState<{ id: number; label: string; field_key: string; type: string; options: string[]; required: boolean; depends_on_key: string | null; depends_on_value: string | null }[]>([])
   const [customData, setCustomData] = useState<Record<string, string>>({})
 
+  // Component auto-fill from the drainage components reference table
+  type ComponentData = {
+    measurements: string | null
+    nbr_cell: string | null
+    length: number | null
+    status: string | null
+    total_length_to_order: number | null
+    consideration_status: string | null
+    comment: string | null
+    low_point_elevation: string | null
+  }
+  const [component, setComponent]         = useState<ComponentData | null>(null)
+  const [componentLoading, setComponentLoading] = useState(false)
+
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
   const [video, setVideo] = useState<File | null>(null)
 
@@ -457,6 +471,28 @@ function SubmitPageInner() {
   const filteredSections = allSections.filter(s => s.project_name === form.project_name)
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  // Auto-fill component data when project + section + chainage + activity_type + side are all set
+  useEffect(() => {
+    const { project_name, section_name, start_chainage, activity_type, side } = form
+    if (!project_name || !start_chainage || !activity_type) {
+      setComponent(null)
+      return
+    }
+    setComponentLoading(true)
+    const params = new URLSearchParams({
+      project:  project_name,
+      section:  section_name,
+      chainage: start_chainage,
+      item:     activity_type,
+      side:     side,
+    })
+    fetch(`/api/components/lookup?${params}`)
+      .then(r => r.json())
+      .then(d => setComponent(d.component ?? null))
+      .catch(() => setComponent(null))
+      .finally(() => setComponentLoading(false))
+  }, [form.project_name, form.section_name, form.start_chainage, form.activity_type, form.side])
 
   // XP bar — counts filled required checkpoints (0–10)
   const xpChecks = [
@@ -649,7 +685,18 @@ function SubmitPageInner() {
         employees: employeeRows,
         supervisors: supervisorRows,
         machines: machineRows,
-        custom_data: customData,
+        custom_data: {
+          ...customData,
+          // Merge component reference data so it's saved with the report
+          ...(component ? {
+            _comp_measurements:          component.measurements ?? undefined,
+            _comp_nbr_cell:              component.nbr_cell ?? undefined,
+            _comp_length:                component.length != null ? String(component.length) : undefined,
+            _comp_status:                component.status ?? undefined,
+            _comp_total_length_to_order: component.total_length_to_order != null ? String(component.total_length_to_order) : undefined,
+            _comp_comment:               component.comment ?? undefined,
+          } : {}),
+        },
       }),
     })
     const data = await res.json()
@@ -926,6 +973,104 @@ function SubmitPageInner() {
               />
             </div>
           </Row2>
+
+          {/* Custom fields that depend on activity_type or activity_category — appear inline */}
+          {customFields
+            .filter(f => f.depends_on_key === 'activity_type' || f.depends_on_key === 'activity_category')
+            .map(field => {
+              const depVal = (form as Record<string, string>)[field.depends_on_key!] ?? ''
+              if (depVal !== field.depends_on_value) return null
+              return (
+                <div key={field.field_key}>
+                  <Label required={field.required}>{field.label}</Label>
+                  {field.type === 'dropdown' ? (
+                    <Select
+                      value={customData[field.field_key] ?? ''}
+                      onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
+                      placeholder="Select"
+                      options={field.options.map(o => ({ value: o, label: o }))}
+                    />
+                  ) : (
+                    <input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      style={inp}
+                      value={customData[field.field_key] ?? ''}
+                      onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
+                      onBlur={handleAcquired}
+                      placeholder={field.label}
+                    />
+                  )}
+                </div>
+              )
+            })}
+
+          {/* Component auto-fill panel — shown when a matching structure is found */}
+          {componentLoading && (
+            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.06)', borderRadius: 10, fontSize: '0.78rem', color: C.muted, fontFamily: 'var(--font-mono)' }}>
+              Looking up component data…
+            </div>
+          )}
+          {!componentLoading && component && (
+            <div style={{
+              background: 'rgba(245,158,11,0.07)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              borderRadius: 12, padding: '12px 14px',
+              display: 'flex', flexDirection: 'column', gap: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.orange, fontFamily: 'var(--font-mono)' }}>
+                  📋 Component Reference
+                </span>
+                <div style={{ flex: 1, height: 1, background: 'rgba(245,158,11,0.2)' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {component.measurements && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Measurements</div>
+                    <div style={{ fontSize: '0.88rem', color: C.text, fontWeight: 600 }}>{component.measurements}</div>
+                  </div>
+                )}
+                {component.nbr_cell && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>No. of Cells / Type</div>
+                    <div style={{ fontSize: '0.88rem', color: C.text, fontWeight: 600 }}>{component.nbr_cell}</div>
+                  </div>
+                )}
+                {component.length != null && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Length (m)</div>
+                    <div style={{ fontSize: '0.88rem', color: C.text, fontWeight: 600 }}>{component.length}</div>
+                  </div>
+                )}
+                {component.total_length_to_order != null && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Total Length to Order</div>
+                    <div style={{ fontSize: '0.88rem', color: C.text, fontWeight: 600 }}>{component.total_length_to_order}</div>
+                  </div>
+                )}
+                {component.status && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Survey Status</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: component.status.toLowerCase().includes('complete') && !component.status.toLowerCase().includes('not') ? '#16a34a' : C.orange }}>
+                      {component.status}
+                    </div>
+                  </div>
+                )}
+                {component.low_point_elevation && (
+                  <div>
+                    <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Elevation Note</div>
+                    <div style={{ fontSize: '0.82rem', color: C.text }}>{component.low_point_elevation}</div>
+                  </div>
+                )}
+              </div>
+              {component.comment && (
+                <div>
+                  <div style={{ fontSize: '0.6rem', color: C.muted, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>Site Note</div>
+                  <div style={{ fontSize: '0.82rem', color: C.muted, fontStyle: 'italic' }}>{component.comment}</div>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* 3. Chainage */}
@@ -951,38 +1096,40 @@ function SubmitPageInner() {
           />
         </Card>
 
-        {/* Custom fields */}
-        {customFields.length > 0 && (
+        {/* Custom fields — only those NOT already shown inside the Activity Type card */}
+        {customFields.some(f => f.depends_on_key !== 'activity_type' && f.depends_on_key !== 'activity_category') && (
           <Card className="card-full" icon="🧩" title="Additional Details" delay={220} cardBg={CARD_COLORS[1]}>
-            {customFields.map(field => {
-              const depVal = field.depends_on_key
-                ? (customData[field.depends_on_key] ?? (form as Record<string, string>)[field.depends_on_key] ?? '')
-                : ''
-              const visible = !field.depends_on_key || depVal === field.depends_on_value
-              if (!visible) return null
-              return (
-                <div key={field.field_key}>
-                  <Label required={field.required}>{field.label}</Label>
-                  {field.type === 'dropdown' ? (
-                    <Select
-                      value={customData[field.field_key] ?? ''}
-                      onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
-                      placeholder="Select"
-                      options={field.options.map(o => ({ value: o, label: o }))}
-                    />
-                  ) : (
-                    <input
-                      type={field.type === 'number' ? 'number' : 'text'}
-                      style={inp}
-                      value={customData[field.field_key] ?? ''}
-                      onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
-                      onBlur={handleAcquired}
-                      placeholder={field.label}
-                    />
-                  )}
-                </div>
-              )
-            })}
+            {customFields
+              .filter(f => f.depends_on_key !== 'activity_type' && f.depends_on_key !== 'activity_category')
+              .map(field => {
+                const depVal = field.depends_on_key
+                  ? (customData[field.depends_on_key] ?? (form as Record<string, string>)[field.depends_on_key] ?? '')
+                  : ''
+                const visible = !field.depends_on_key || depVal === field.depends_on_value
+                if (!visible) return null
+                return (
+                  <div key={field.field_key}>
+                    <Label required={field.required}>{field.label}</Label>
+                    {field.type === 'dropdown' ? (
+                      <Select
+                        value={customData[field.field_key] ?? ''}
+                        onChange={v => setCustomData(d => ({ ...d, [field.field_key]: v }))}
+                        placeholder="Select"
+                        options={field.options.map(o => ({ value: o, label: o }))}
+                      />
+                    ) : (
+                      <input
+                        type={field.type === 'number' ? 'number' : 'text'}
+                        style={inp}
+                        value={customData[field.field_key] ?? ''}
+                        onChange={e => setCustomData(d => ({ ...d, [field.field_key]: e.target.value }))}
+                        onBlur={handleAcquired}
+                        placeholder={field.label}
+                      />
+                    )}
+                  </div>
+                )
+              })}
           </Card>
         )}
 

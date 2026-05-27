@@ -1056,6 +1056,102 @@ function ChainagesSection({ projects }: { projects: Item[] }) {
   )
 }
 
+/* ── Components Import section ─────────────────────────────── */
+function ComponentsImportSection() {
+  const [open, setOpen]       = useState(false)
+  const [count, setCount]     = useState<number | null>(null)
+  const [file, setFile]       = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult]   = useState<{ inserted?: number; skipped?: number; errors?: string[] } | null>(null)
+  const [err, setErr]         = useState('')
+
+  useEffect(() => {
+    if (!open || count !== null) return
+    fetch('/api/components/import')
+      .then(r => r.json())
+      .then(d => setCount(d.count ?? 0))
+      .catch(() => {})
+  }, [open])
+
+  async function doImport() {
+    if (!file) { setErr('Select a CSV file first'); return }
+    setLoading(true); setErr(''); setResult(null)
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await fetch('/api/components/import', { method: 'POST', body: fd })
+    const d = await r.json()
+    if (!r.ok) { setErr(d.error || 'Import failed'); setLoading(false); return }
+    setResult(d)
+    setCount(null) // refresh count
+    fetch('/api/components/import').then(r => r.json()).then(d => setCount(d.count ?? 0))
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ padding: '11px 16px', borderBottom: open ? `1px solid ${T.border}` : 'none', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+        <span style={{ fontSize: '0.95rem' }}>🌊</span>
+        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: T.text, fontFamily: 'var(--font-display)' }}>Drainage Components</span>
+        <span style={{ fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)' }}>CSV reference data for auto-fill</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: T.sub, fontFamily: 'var(--font-mono)', marginRight: 8 }}>
+          {count === null ? '…' : `${count} rows`}
+        </span>
+        <Chevron open={open} />
+      </div>
+
+      {open && (
+        <div style={{ padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: '0.76rem', color: T.muted, lineHeight: 1.6 }}>
+            Upload the <strong>components.csv</strong> file once. When a report is filled in with a matching
+            project + section + chainage + activity type + side, the measurements, cell count, length and
+            status will auto-fill on the form.
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 200px' }}>
+              <div style={{ fontSize: '0.6rem', color: T.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.07em' }}>CSV File</div>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={e => { setFile(e.target.files?.[0] ?? null); setResult(null); setErr('') }}
+                style={{ ...inp, fontSize: '0.78rem', cursor: 'pointer' }}
+              />
+            </div>
+            <button
+              onClick={doImport}
+              disabled={loading || !file}
+              style={{
+                padding: '8px 18px', background: T.amber, color: '#fff',
+                border: 'none', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
+                cursor: loading || !file ? 'not-allowed' : 'pointer',
+                opacity: loading || !file ? 0.6 : 1,
+                fontFamily: 'var(--font-display)', whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+              {loading ? 'Importing…' : '⬆ Import'}
+            </button>
+          </div>
+
+          {err && (
+            <div style={{ padding: '8px 12px', background: 'rgba(248,113,113,0.08)', color: T.error, fontSize: '0.78rem', borderRadius: 8 }}>{err}</div>
+          )}
+
+          {result && (
+            <div style={{ padding: '10px 14px', background: 'rgba(52,211,153,0.08)', border: `1px solid rgba(52,211,153,0.2)`, borderRadius: 8 }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: T.success, marginBottom: 4 }}>✓ Import complete</div>
+              <div style={{ fontSize: '0.76rem', color: T.muted, fontFamily: 'var(--font-mono)' }}>
+                {result.inserted} rows upserted · {result.skipped} skipped
+              </div>
+              {result.errors?.map((e, i) => (
+                <div key={i} style={{ fontSize: '0.72rem', color: T.error, marginTop: 4 }}>{e}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Page ───────────────────────────────────────────────────── */
 export default function ConfigPage() {
   const [categories, setCategories] = useState<Item[]>([])
@@ -1132,6 +1228,9 @@ export default function ConfigPage() {
           { key: 'name', label: 'Name', required: true },
           { key: 'order', label: 'Order', type: 'number' },
         ]} />
+
+        <GroupLabel>Drainage Components</GroupLabel>
+        <ComponentsImportSection />
 
         <GroupLabel>Report Fields</GroupLabel>
         <CustomFieldsSection />
