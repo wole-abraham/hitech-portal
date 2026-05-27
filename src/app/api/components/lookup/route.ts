@@ -27,12 +27,12 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from('hitech_report_component')
     .select('*')
-    .eq('project_name', project)
-    .eq('chainage', chainage)
-    .ilike('item', item)   // case-insensitive match against activity_type
+    .ilike('project_name', project)   // case-insensitive — "Coastal Road" matches "Coastal road"
+    .ilike('chainage', chainage)
+    .ilike('item', item)
     .limit(1)
 
-  if (section) query = query.eq('section_name', section)
+  if (section) query = query.ilike('section_name', section)
   if (side)    query = query.ilike('side', side)
 
   const { data, error } = await query
