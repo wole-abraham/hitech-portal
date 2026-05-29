@@ -5,16 +5,15 @@ import { useEffect, useRef, useState } from 'react'
 import AmbientBackground from '@/components/AmbientBackground'
 import CityLoader from '@/components/CityLoader'
 
-type IconName = 'report' | 'employees' | 'equipment' | 'submissions' | 'history' | 'machines' | 'planned'
+type IconName = 'report' | 'employees' | 'equipment' | 'submissions' | 'machines' | 'planned'
 interface TileProps { href: string; num: string; icon: IconName; tag: string; title: string; desc: string }
 
 const ADMIN_TILES: TileProps[] = [
-  { href: '/reports/start',  num: '01', icon: 'report',      tag: 'Hitech',      title: 'Activity Report',     desc: 'Submit site activities, log chainages, upload field photos.' },
-  { href: '/planned',        num: '02', icon: 'planned',     tag: 'Planning',    title: 'Planned Activities',  desc: 'Create and manage pre-filled report templates for your team.' },
-  { href: '/employees',      num: '03', icon: 'employees',   tag: 'Management',  title: 'Employees List',      desc: 'Browse workers, track roles, view personnel records.' },
+  { href: '/reports/start',  num: '01', icon: 'report',      tag: 'Hitech',      title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
+  { href: '/planned',        num: '02', icon: 'planned',     tag: 'Planning',    title: 'Planned Activities', desc: 'Create and manage pre-filled report templates for your team.' },
+  { href: '/employees',      num: '03', icon: 'employees',   tag: 'Management',  title: 'Employees List',     desc: 'Browse workers, track roles, view personnel records.' },
   { href: '/equipment',      num: '04', icon: 'equipment',   tag: 'Assets',      title: 'Equipment Details',  desc: 'Add machines and assign equipment to site personnel.' },
-  { href: '/reports',        num: '05', icon: 'submissions', tag: 'Records',     title: 'Submissions',         desc: 'Browse all submitted Hitech activity reports.' },
-  { href: '/history',        num: '06', icon: 'history',     tag: 'Audit',       title: 'Machine History',     desc: 'Full audit log — assignments, receipts, returns, arrivals.' },
+  { href: '/reports',        num: '05', icon: 'submissions', tag: 'Records',     title: 'Submissions',        desc: 'Browse all submitted Hitech activity reports.' },
 ]
 
 const WORKER_TILES: TileProps[] = [
@@ -70,13 +69,6 @@ function TileIcon({ name, hov }: { name: IconName; hov: boolean }) {
         <svg {...s}>
           <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
           <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-        </svg>
-      )}
-      {name === 'history' && (
-        <svg {...s}>
-          <polyline points="1 4 1 10 7 10"/>
-          <path d="M3.51 15a9 9 0 1 0 .49-5.35L1 10"/>
-          <polyline points="12 7 12 12 15.5 14"/>
         </svg>
       )}
       {name === 'planned' && (
