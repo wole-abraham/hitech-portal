@@ -152,7 +152,7 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
       pointerEvents: fading ? 'none' : 'auto',
       overflow: 'hidden',
     }}>
-      {/* Video background */}
+      {/* Video background — scaled from top-left to crop bottom-right watermark */}
       <video
         ref={videoRef}
         src="/loader.mp4"
@@ -161,9 +161,12 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
         loop
         playsInline
         style={{
-          position: 'absolute', inset: 0,
+          position: 'absolute',
+          top: 0, left: 0,
           width: '100%', height: '100%',
           objectFit: 'cover',
+          transform: 'scale(1.12)',
+          transformOrigin: 'top left',
         }}
       />
 
