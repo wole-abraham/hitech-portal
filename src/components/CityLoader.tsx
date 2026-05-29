@@ -97,11 +97,9 @@ interface CityLoaderProps {
 }
 
 export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
-  const [visible,    setVisible]    = useState(true)
-  const [fading,     setFading]     = useState(false)
-  const [hudVis,     setHudVis]     = useState(false)
-  const [videoEnded, setVideoEnded] = useState(false)
-  const [loadDone,   setLoadDone]   = useState(false)
+  const [visible, setVisible] = useState(true)
+  const [fading,  setFading]  = useState(false)
+  const [hudVis,  setHudVis]  = useState(false)
   const onDoneRef = useRef(onDone)
   const videoRef  = useRef<HTMLVideoElement>(null)
   useEffect(() => { onDoneRef.current = onDone })
@@ -111,7 +109,6 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
     return () => clearTimeout(t)
   }, [])
 
-  // Force play — autoPlay alone is often blocked by the browser
   useEffect(() => {
     const vid = videoRef.current
     if (!vid) return
@@ -119,18 +116,10 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
     vid.play().catch(() => {})
   }, [])
 
-  // Track when app finishes loading
-  useEffect(() => {
-    if (!isLoading) setLoadDone(true)
-  }, [isLoading])
-
-  // Fade out only when BOTH the video has ended AND the app is ready
-  useEffect(() => {
-    if (!videoEnded || !loadDone) return
+  function handleEnded() {
     setFading(true)
-    const t = setTimeout(() => { setVisible(false); onDoneRef.current?.() }, 900)
-    return () => clearTimeout(t)
-  }, [videoEnded, loadDone])
+    setTimeout(() => { setVisible(false); onDoneRef.current?.() }, 700)
+  }
 
   if (!visible) return null
 
@@ -150,7 +139,7 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
         muted
         playsInline
         onCanPlay={() => videoRef.current?.play().catch(() => {})}
-        onEnded={() => setVideoEnded(true)}
+        onEnded={handleEnded}
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
