@@ -97,9 +97,11 @@ interface CityLoaderProps {
 }
 
 export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
-  const [visible, setVisible] = useState(true)
-  const [fading,  setFading]  = useState(false)
-  const [hudVis,  setHudVis]  = useState(false)
+  const [visible,    setVisible]    = useState(true)
+  const [fading,     setFading]     = useState(false)
+  const [hudVis,     setHudVis]     = useState(false)
+  const [videoEnded, setVideoEnded] = useState(false)
+  const [loadDone,   setLoadDone]   = useState(false)
   const onDoneRef = useRef(onDone)
   const videoRef  = useRef<HTMLVideoElement>(null)
   useEffect(() => { onDoneRef.current = onDone })
@@ -117,15 +119,18 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
     vid.play().catch(() => {})
   }, [])
 
+  // Track when app finishes loading
   useEffect(() => {
-    if (isLoading) return
-    const t = setTimeout(() => {
-      setFading(true)
-      const t2 = setTimeout(() => { setVisible(false); onDoneRef.current?.() }, 900)
-      return () => clearTimeout(t2)
-    }, 2400)
-    return () => clearTimeout(t)
+    if (!isLoading) setLoadDone(true)
   }, [isLoading])
+
+  // Fade out only when BOTH the video has ended AND the app is ready
+  useEffect(() => {
+    if (!videoEnded || !loadDone) return
+    setFading(true)
+    const t = setTimeout(() => { setVisible(false); onDoneRef.current?.() }, 900)
+    return () => clearTimeout(t)
+  }, [videoEnded, loadDone])
 
   if (!visible) return null
 
@@ -143,9 +148,9 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
         src="/loader.mp4"
         autoPlay
         muted
-        loop
         playsInline
         onCanPlay={() => videoRef.current?.play().catch(() => {})}
+        onEnded={() => setVideoEnded(true)}
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
