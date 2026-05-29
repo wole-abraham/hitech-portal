@@ -33,13 +33,11 @@ export async function POST(req: NextRequest) {
   if (user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
   const body = await req.json()
-  const { fleet_number, machine_type, machine_belonging, health_status, project_name, section_name, assigned_to } = body
-
-  const resolvedStatus = assigned_to ? 'deployed_to_site' : 'in_store'
+  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to } = body
 
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
-    .insert({ fleet_number, machine_type, machine_belonging, deployment_status: resolvedStatus, health_status, project_name, section_name, assigned_to: assigned_to || null })
+    .insert({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })
     .select()
     .single()
 

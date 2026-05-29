@@ -22,14 +22,11 @@ export async function PATCH(
   if (!id || isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
   const body = await req.json()
-  const { fleet_number, machine_type, machine_belonging, health_status, project_name, section_name, assigned_to } = body
-
-  // Assigning a machine = deploying it; clearing assignment = back in store
-  const resolvedStatus = assigned_to ? 'deployed_to_site' : 'in_store'
+  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to } = body
 
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
-    .update({ fleet_number, machine_type, machine_belonging, deployment_status: resolvedStatus, health_status, project_name, section_name, assigned_to: assigned_to || null })
+    .update({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })
     .eq('id', id)
     .select()
     .single()
