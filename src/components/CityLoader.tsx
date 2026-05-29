@@ -101,11 +101,20 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
   const [fading,  setFading]  = useState(false)
   const [hudVis,  setHudVis]  = useState(false)
   const onDoneRef = useRef(onDone)
+  const videoRef  = useRef<HTMLVideoElement>(null)
   useEffect(() => { onDoneRef.current = onDone })
 
   useEffect(() => {
     const t = setTimeout(() => setHudVis(true), 120)
     return () => clearTimeout(t)
+  }, [])
+
+  // Force play — autoPlay alone is often blocked by the browser
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+    vid.muted = true
+    vid.play().catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -130,11 +139,13 @@ export default function CityLoader({ isLoading, onDone }: CityLoaderProps) {
       overflow: 'hidden',
     }}>
       <video
+        ref={videoRef}
         src="/loader.mp4"
         autoPlay
         muted
         loop
         playsInline
+        onCanPlay={() => videoRef.current?.play().catch(() => {})}
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
