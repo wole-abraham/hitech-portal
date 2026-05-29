@@ -5,9 +5,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /* ─── Scene constants ───────────────────────────────────────────── */
-const ROAD_LEN  = 260
-const ROAD_W    = 10
-const TERRAIN_W = 90
+const ROAD_LEN = 260
+const ROAD_W   = 10
 
 /* ─── Road paving shader ────────────────────────────────────────── */
 // UV.y=0 → near camera (Z≈0), UV.y=1 → far end (Z≈-ROAD_LEN)
@@ -49,69 +48,13 @@ function Road({ pav }: { pav: React.MutableRefObject<number> }) {
   )
 }
 
-/* ─── Sandy terrain (both sides) ───────────────────────────────── */
-function Terrain() {
+/* ─── Full ground plane ─────────────────────────────────────────── */
+function Ground() {
   return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-(ROAD_W / 2 + TERRAIN_W / 2), 0, -ROAD_LEN / 2]}>
-        <planeGeometry args={[TERRAIN_W, ROAD_LEN + 30]} />
-        <meshLambertMaterial color="#b39060" />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[(ROAD_W / 2 + TERRAIN_W / 2), 0, -ROAD_LEN / 2]}>
-        <planeGeometry args={[TERRAIN_W, ROAD_LEN + 30]} />
-        <meshLambertMaterial color="#b39060" />
-      </mesh>
-    </>
-  )
-}
-
-/* ─── Worker figure ─────────────────────────────────────────────── */
-function Worker({ x, z, vest, phase }: { x: number; z: number; vest: string; phase: number }) {
-  const ref  = useRef<THREE.Group>(null)
-  const time = useRef(phase)
-  useFrame((_, dt) => {
-    if (!ref.current) return
-    time.current += dt
-    ref.current.position.y = Math.abs(Math.sin(time.current * 1.5 + phase)) * 0.07
-  })
-  return (
-    <group ref={ref} position={[x, 0, z]}>
-      {/* Left leg */}
-      <mesh position={[-0.12, 0.38, 0]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.75, 6]} />
-        <meshLambertMaterial color="#2a2a38" />
-      </mesh>
-      {/* Right leg */}
-      <mesh position={[0.12, 0.38, 0]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.75, 6]} />
-        <meshLambertMaterial color="#2a2a38" />
-      </mesh>
-      {/* Body / high-vis vest */}
-      <mesh position={[0, 1.0, 0]}>
-        <cylinderGeometry args={[0.25, 0.27, 0.88, 8]} />
-        <meshLambertMaterial color={vest} />
-      </mesh>
-      {/* Left arm */}
-      <mesh position={[-0.36, 1.02, 0]} rotation={[0, 0, 0.45]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.55, 6]} />
-        <meshLambertMaterial color={vest} />
-      </mesh>
-      {/* Right arm */}
-      <mesh position={[0.36, 1.02, 0]} rotation={[0, 0, -0.45]}>
-        <cylinderGeometry args={[0.07, 0.07, 0.55, 6]} />
-        <meshLambertMaterial color={vest} />
-      </mesh>
-      {/* Head */}
-      <mesh position={[0, 1.64, 0]}>
-        <sphereGeometry args={[0.19, 8, 8]} />
-        <meshLambertMaterial color="#c97c4a" />
-      </mesh>
-      {/* Hard hat */}
-      <mesh position={[0, 1.80, 0]}>
-        <cylinderGeometry args={[0.24, 0.22, 0.16, 12]} />
-        <meshLambertMaterial color="#f5c800" />
-      </mesh>
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -ROAD_LEN / 2]}>
+      <planeGeometry args={[400, ROAD_LEN + 60]} />
+      <meshLambertMaterial color="#1a1a18" />
+    </mesh>
   )
 }
 
@@ -208,19 +151,6 @@ function DumpTruck() {
   )
 }
 
-/* ─── Worker positions ──────────────────────────────────────────── */
-const WORKERS: [number, number, string, number][] = [
-  [-4,   -5,  '#f59e0b', 0.0],
-  [ 4.5, -10, '#f97316', 0.8],
-  [-3,   -20, '#f59e0b', 1.4],
-  [ 3.5, -28, '#eab308', 0.4],
-  [-4.5, -38, '#f59e0b', 1.1],
-  [ 2,   -15, '#f97316', 0.2],
-  [-2,   -48, '#f59e0b', 0.7],
-  [ 4,   -55, '#eab308', 1.8],
-  [-3.5, -62, '#f59e0b', 0.9],
-]
-
 /* ─── Main scene (camera + all objects) ─────────────────────────── */
 function Scene() {
   const { camera, scene } = useThree()
@@ -264,15 +194,11 @@ function Scene() {
         shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
       <directionalLight position={[-25, 30, -20]} intensity={0.55} color="#cce8ff" />
 
+      <Ground />
       <Road pav={paving} />
-      <Terrain />
       <Paver pav={paving} />
       <Roller pav={paving} />
       <DumpTruck />
-
-      {WORKERS.map(([x, z, vest, phase], i) => (
-        <Worker key={i} x={x} z={z} vest={vest} phase={phase} />
-      ))}
     </>
   )
 }
