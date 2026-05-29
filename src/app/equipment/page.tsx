@@ -70,14 +70,35 @@ interface HistoryEntry {
 }
 
 const ACTION_COLOR: Record<string, string> = {
-  'Received on site': '#34d399',
-  'Sent back to head office': '#fb923c',
-  'Received at head office': '#60a5fa',
+  'Added to fleet':            '#a78bfa',
+  'Deployed':                  '#34d399',
+  'Unassigned':                '#94a3b8',
+  'Received on site':          '#34d399',
+  'Sent back to head office':  '#fb923c',
+  'Received at head office':   '#60a5fa',
+  'Details updated':           '#f5c800',
 }
 const ACTION_ICON: Record<string, string> = {
-  'Received on site': '✅',
-  'Sent back to head office': '↩',
-  'Received at head office': '🏢',
+  'Added to fleet':            '🆕',
+  'Deployed':                  '🚀',
+  'Unassigned':                '🔓',
+  'Received on site':          '✅',
+  'Sent back to head office':  '↩',
+  'Received at head office':   '🏢',
+  'Details updated':           '✏️',
+}
+
+function resolveColor(state: string) {
+  if (ACTION_COLOR[state]) return ACTION_COLOR[state]
+  if (state?.startsWith('Status →')) return '#f5c800'
+  if (state?.startsWith('Health →')) return '#fb923c'
+  return '#94a3b8'
+}
+function resolveIcon(state: string) {
+  if (ACTION_ICON[state]) return ACTION_ICON[state]
+  if (state?.startsWith('Status →')) return '🔄'
+  if (state?.startsWith('Health →')) return '🩺'
+  return '•'
 }
 
 function fmtDate(d: string) {
@@ -504,8 +525,8 @@ export default function EquipmentPage() {
               }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {historyEntries.map((e, i) => {
-                  const color = ACTION_COLOR[e.deployment_state] || T.muted
-                  const icon  = ACTION_ICON[e.deployment_state]  || '•'
+                  const color = resolveColor(e.deployment_state)
+                  const icon  = resolveIcon(e.deployment_state)
                   return (
                     <div key={e.id} style={{
                       display: 'flex', gap: 14, paddingBottom: 14,
@@ -531,14 +552,22 @@ export default function EquipmentPage() {
                             {fmtDate(e.date_time)}
                           </span>
                         </div>
+                        {e.breakdown_issue && (
+                          <div style={{ marginBottom: 5, fontSize: '0.75rem', color: T.text, lineHeight: 1.5 }}>
+                            {e.breakdown_issue.split(' · ').map((change, ci) => (
+                              <span key={ci} style={{ display: 'inline-block', marginRight: 8, color: T.muted }}>
+                                <span style={{ color: T.text }}>{change}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 12, fontSize: '0.74rem', color: T.muted, flexWrap: 'wrap' }}>
                           {e.assigned_to && <span>👷 <strong style={{ color: T.text }}>{e.assigned_to}</strong></span>}
                           {e.reporter_name && <span>By <strong style={{ color: T.text }}>{e.reporter_name}</strong></span>}
                         </div>
-                        {(e.machine_status || e.breakdown_issue) && (
-                          <div style={{ marginTop: 5, display: 'flex', gap: 10, fontSize: '0.71rem', flexWrap: 'wrap' }}>
-                            {e.machine_status && <span style={{ color: T.sub }}>Health: <span style={{ color: T.text }}>{e.machine_status}</span></span>}
-                            {e.breakdown_issue && <span style={{ color: '#fb923c' }}>⚠ {e.breakdown_issue}</span>}
+                        {e.machine_status && (
+                          <div style={{ marginTop: 5, fontSize: '0.71rem' }}>
+                            <span style={{ color: T.sub }}>Health: <span style={{ color: T.text }}>{e.machine_status}</span></span>
                           </div>
                         )}
                       </div>

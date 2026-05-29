@@ -24,6 +24,13 @@ export async function PATCH(
   const body = await req.json()
   const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to } = body
 
+  // Fetch current state before update so we can diff
+  const { data: current } = await supabase
+    .from('surveycollection_planningtable')
+    .select('*')
+    .eq('id', id)
+    .single()
+
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
     .update({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })
@@ -32,6 +39,55 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Build a change summary and pick an event label
+  if (current) {
+    const adminName = `${session.user.first_name} ${session.user.last_name}`.trim() || session.user.email
+
+    const changes: string[] = []
+    if (current.deployment_status !== deployment_status)
+      changes.push(`Status: ${current.deployment_status} → ${deployment_status}`)
+    if (current.health_status !== health_status)
+      changes.push(`Health: ${current.health_status} → ${health_status}`)
+    if ((current.assigned_to || '') !== (assigned_to || '')) {
+      if (assigned_to && !current.assigned_to) changes.push(`Assigned to ${assigned_to}`)
+      else if (!assigned_to && current.assigned_to) changes.push(`Unassigned from ${current.assigned_to}`)
+      else changes.push(`Operator: ${current.assigned_to} → ${assigned_to}`)
+    }
+    if ((current.project_name || '') !== (project_name || ''))
+      changes.push(`Project: ${project_name || '—'}`)
+    if ((current.section_name || '') !== (section_name || ''))
+      changes.push(`Section: ${section_name || '—'}`)
+    if ((current.machine_type || '') !== (machine_type || ''))
+      changes.push(`Type: ${machine_type}`)
+    if ((current.fleet_number || '') !== (fleet_number || ''))
+      changes.push(`Fleet No.: ${fleet_number}`)
+    if ((current.machine_belonging || '') !== (machine_belonging || ''))
+      changes.push(`Owner: ${machine_belonging}`)
+
+    // Only log if something actually changed
+    if (changes.length > 0) {
+      let eventLabel = 'Details updated'
+      if (assigned_to && !current.assigned_to) eventLabel = 'Deployed'
+      else if (!assigned_to && current.assigned_to) eventLabel = 'Unassigned'
+      else if (current.deployment_status !== deployment_status) eventLabel = `Status → ${deployment_status}`
+      else if (current.health_status !== health_status) eventLabel = `Health → ${health_status}`
+
+      await supabase.from('surveycollection_machinestatusreport').insert({
+        date_time: new Date().toISOString(),
+        machine_type: machine_type || current.machine_type || '',
+        machine_belonging: machine_belonging || current.machine_belonging || '',
+        fleet_number: fleet_number || current.fleet_number || '',
+        deployment_state: eventLabel,
+        machine_status: health_status || current.health_status || '',
+        breakdown_issue: changes.join(' · '),
+        registry_item_id: id,
+        assigned_to: assigned_to || current.assigned_to || '',
+        reporter_name: adminName,
+      })
+    }
+  }
+
   return NextResponse.json(data)
 }
 
