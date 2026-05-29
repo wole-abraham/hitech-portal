@@ -102,7 +102,8 @@ export async function GET(req: NextRequest) {
   const session = await getSession(req)
   if (!session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const showAll = new URL(req.url).searchParams.get('all') === 'true' && session.user.role === 'admin'
+  const isAdmin = session.user.role === 'admin'
+  const showAll = new URL(req.url).searchParams.get('all') === 'true' && isAdmin
 
   let q = supabase
     .from('hitech_report_plannedactivity')
@@ -113,7 +114,20 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ items: data ?? [] })
+
+  let items = data ?? []
+
+  // Workers only see plans whose scheduled_date has arrived (or plans with no date set)
+  if (!isAdmin) {
+    const today = new Date().toISOString().split('T')[0]
+    items = items.filter((item: any) => {
+      const scheduled = item.custom_data?.scheduled_date
+      if (!scheduled) return true
+      return scheduled <= today
+    })
+  }
+
+  return NextResponse.json({ items })
 }
 
 export async function POST(req: NextRequest) {

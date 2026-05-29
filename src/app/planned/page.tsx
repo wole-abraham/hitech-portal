@@ -31,10 +31,12 @@ type PA = {
   is_active: boolean
   created_at: string
   created_by: string | null
+  custom_data: { scheduled_date?: string | null } | null
 }
 
 const emptyForm = () => ({
   title: '', description: '',
+  scheduled_date: '',
   project_name: '', section_name: '',
   activity_category: '', activity_type: '', activity_subtype: '',
   side: '', weather: '', start_chainage: '', end_chainage: '',
@@ -296,9 +298,10 @@ export default function PlannedPage() {
   async function create() {
     if (!form.title.trim()) { setErr('Title is required'); return }
     setSaving(true); setErr('')
+    const { scheduled_date, ...rest } = form
     const r = await fetch('/api/planned', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, employees: employeeRows, supervisors: supervisorRows, machines: machineRows }),
+      body: JSON.stringify({ ...rest, custom_data: { scheduled_date: scheduled_date || null }, employees: employeeRows, supervisors: supervisorRows, machines: machineRows }),
     })
     const d = await r.json()
     if (!r.ok && r.status !== 207) { setErr(d.error || 'Save failed'); setSaving(false); return }
@@ -388,6 +391,13 @@ export default function PlannedPage() {
             <div>
               <Label required>Title</Label>
               <input type="text" style={inp} value={form.title} onChange={e => setF('title')(e.target.value)} placeholder="e.g. Morning Paving — Km 12" />
+            </div>
+            <div>
+              <Label>Scheduled Date</Label>
+              <input type="date" style={inp} value={form.scheduled_date} onChange={e => setF('scheduled_date')(e.target.value)} />
+              <div style={{ fontSize: '0.68rem', color: C.sub, marginTop: 5, fontFamily: 'var(--font-mono)' }}>
+                Workers will not see this plan until this date. Leave blank to show immediately.
+              </div>
             </div>
             <div>
               <Label>Description</Label>
@@ -776,6 +786,10 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
               <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Title *</div>
               <input type="text" value={editVals.title ?? ''} onChange={e => setE('title')(e.target.value)} style={eInp} />
             </div>
+            <div style={{ flex: '1 1 140px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Scheduled Date</div>
+              <input type="date" value={editVals.custom_data?.scheduled_date ?? ''} onChange={e => setEditVals(v => ({ ...v, custom_data: { ...v.custom_data, scheduled_date: e.target.value || null } }))} style={eInp} />
+            </div>
             <div style={{ flex: '3 1 220px' }}>
               <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Description</div>
               <input type="text" value={editVals.description ?? ''} onChange={e => setE('description')(e.target.value)} style={eInp} />
@@ -891,7 +905,27 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
             {item.party_for_activity && <Pill>{item.party_for_activity}</Pill>}
             {item.activity_status && <Pill color="#60a5fa">{item.activity_status}</Pill>}
           </div>
-          {item.created_by && <div style={{ fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)', marginTop: 6 }}>by {item.created_by} · {new Date(item.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+            {item.created_by && <span style={{ fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)' }}>by {item.created_by} · {new Date(item.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</span>}
+            {item.custom_data?.scheduled_date && (() => {
+              const today = new Date().toISOString().split('T')[0]
+              const d = item.custom_data!.scheduled_date!
+              const isToday = d === today
+              const isFuture = d > today
+              return (
+                <span style={{
+                  fontSize: '0.62rem', fontFamily: 'var(--font-mono)', fontWeight: 700,
+                  padding: '2px 8px', borderRadius: 5,
+                  background: isToday ? 'rgba(245,158,11,0.15)' : isFuture ? 'rgba(96,165,250,0.12)' : 'rgba(0,0,0,0.05)',
+                  color: isToday ? C.orange : isFuture ? '#60a5fa' : C.sub,
+                  border: `1px solid ${isToday ? 'rgba(245,158,11,0.35)' : isFuture ? 'rgba(96,165,250,0.25)' : 'rgba(0,0,0,0.08)'}`,
+                }}>
+                  📅 {isToday ? 'Today' : new Date(d + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {isFuture && ' · hidden from workers'}
+                </span>
+              )
+            })()}
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
