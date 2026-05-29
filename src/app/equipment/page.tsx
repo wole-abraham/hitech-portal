@@ -63,6 +63,28 @@ function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set
   )
 }
 
+interface HistoryEntry {
+  id: number; date_time: string; fleet_number: string; machine_type: string
+  machine_belonging: string; deployment_state: string; machine_status: string
+  breakdown_issue: string; assigned_to: string; reporter_name: string
+}
+
+const ACTION_COLOR: Record<string, string> = {
+  'Received on site': '#34d399',
+  'Sent back to head office': '#fb923c',
+  'Received at head office': '#60a5fa',
+}
+const ACTION_ICON: Record<string, string> = {
+  'Received on site': '✅',
+  'Sent back to head office': '↩',
+  'Received at head office': '🏢',
+}
+
+function fmtDate(d: string) {
+  if (!d) return '—'
+  return new Date(d).toLocaleString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 export default function EquipmentPage() {
   const [machines, setMachines] = useState<Machine[]>([])
   const [search, setSearch] = useState('')
@@ -74,6 +96,23 @@ export default function EquipmentPage() {
   const [deleting, setDeleting] = useState(false)
   const [receiving, setReceiving] = useState(false)
   const [form, setForm] = useState(emptyForm)
+
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyMachine, setHistoryMachine] = useState<Machine | null>(null)
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  async function openHistory(m: Machine, e: React.MouseEvent) {
+    e.stopPropagation()
+    setHistoryMachine(m)
+    setHistoryOpen(true)
+    setHistoryEntries([])
+    setHistoryLoading(true)
+    const res = await fetch(`/api/history?fleet=${encodeURIComponent(m.fleet_number)}`)
+    const data = await res.json()
+    setHistoryEntries(Array.isArray(data.entries) ? data.entries : [])
+    setHistoryLoading(false)
+  }
 
   async function load() {
     setLoading(true)
@@ -187,16 +226,30 @@ export default function EquipmentPage() {
 
       {/* Status filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {['', ...DEPLOY_STATUSES].map(s => (
-          <button key={s} className="htchip" onClick={() => setFilterStatus(s)} style={{
-            padding: '6px 14px', borderRadius: 20,
-            background: filterStatus === s ? T.amber : T.card,
-            color: filterStatus === s ? '#fff' : T.muted,
-            border: `1px solid ${filterStatus === s ? T.amber : T.border}`,
-            fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-            transition: 'all 0.18s',
-          }}>{s || 'All'}</button>
-        ))}
+        {(['', ...DEPLOY_STATUSES] as string[]).map(s => {
+          const count = s ? machines.filter(m => m.deployment_status === s).length : machines.length
+          const active = filterStatus === s
+          return (
+            <button key={s} className="htchip" onClick={() => setFilterStatus(s)} style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '6px 12px', borderRadius: 20,
+              background: active ? T.amber : T.card,
+              color: active ? '#fff' : T.muted,
+              border: `1px solid ${active ? T.amber : T.border}`,
+              fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+              transition: 'all 0.18s',
+            }}>
+              <span>{s || 'All'}</span>
+              <span style={{
+                background: active ? 'rgba(255,255,255,0.22)' : 'rgba(242,237,227,0.08)',
+                color: active ? '#fff' : T.sub,
+                borderRadius: 10, padding: '1px 7px',
+                fontSize: '0.72rem', fontWeight: 800, lineHeight: '1.5',
+                minWidth: 20, textAlign: 'center',
+              }}>{count}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* List */}
@@ -209,27 +262,65 @@ export default function EquipmentPage() {
           {filtered.map((m, i) => (
             <div key={m.id} className="htcard" onClick={() => openEdit(m)} style={{
               background: T.card, border: `1px solid ${T.border}`,
-              borderRadius: 16, padding: '15px 16px',
-              display: 'flex', alignItems: 'center', gap: 14,
+              borderRadius: 16, padding: '16px',
               cursor: 'pointer',
               opacity: 0, animation: `tileIn 0.35s ease ${i * 0.04}s forwards`,
               boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>
-                {machineIcon(m.machine_type)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: T.text }}>{m.fleet_number || '—'}</span>
+
+              {/* ── Header row ── */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 11, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+                  {machineIcon(m.machine_type)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: '1rem', color: T.text, letterSpacing: '0.01em' }}>
+                    {m.fleet_number || '—'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: 1 }}>
+                    {m.machine_type || '—'}
+                    {m.machine_belonging ? <span style={{ color: T.sub }}> · {m.machine_belonging}</span> : null}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
                   <Badge label={m.deployment_status || 'Active'} color={DEPLOY_COLOR[m.deployment_status] || T.muted} />
                   {m.health_status && <Badge label={m.health_status} color={HEALTH_COLOR[m.health_status] || T.muted} />}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: T.muted }}>
-                  {m.machine_type}{m.project_name ? ` · ${m.project_name}` : ''}
-                </div>
-                {m.machine_belonging && <div style={{ fontSize: '0.78rem', color: T.sub, marginTop: 2 }}>{m.machine_belonging}</div>}
               </div>
-              <span style={{ color: T.sub, fontSize: '1.1rem' }}>›</span>
+
+              {/* ── Info grid ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 12px', marginBottom: 12 }}>
+                {[
+                  { label: 'Project',  value: m.project_name  || '—' },
+                  { label: 'Section',  value: m.section_name  || '—' },
+                  { label: 'Operator', value: m.assigned_to   || 'Unassigned' },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <div style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: T.sub, marginBottom: 1 }}>{label}</div>
+                    <div style={{ fontSize: '0.8rem', color: value === '—' || value === 'Unassigned' ? T.sub : T.text, fontWeight: 500 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Footer ── */}
+              <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: T.sub }}>Tap to edit</span>
+                <button
+                  onClick={(e) => openHistory(m, e)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8,
+                    background: 'rgba(242,237,227,0.05)', border: `1px solid ${T.border}`,
+                    color: T.muted, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700,
+                    letterSpacing: '0.04em', transition: 'all 0.18s',
+                    fontFamily: 'var(--font-display)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = `${T.amber}15`; e.currentTarget.style.borderColor = `${T.amber}60`; e.currentTarget.style.color = T.amber }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(242,237,227,0.05)'; e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
+                >
+                  History →
+                </button>
+              </div>
+
             </div>
           ))}
         </div>
@@ -370,6 +461,96 @@ export default function EquipmentPage() {
           </form>
         </SheetContent>
       </Sheet>
+      {/* Machine History Sheet */}
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent
+          side="right"
+          style={{ background: '#110f0c', borderLeft: `1px solid ${T.border}`, padding: '24px 20px', maxWidth: 520, width: '100%', overflowY: 'auto' }}
+        >
+          <SheetHeader style={{ marginBottom: 20 }}>
+            <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
+              History — {historyMachine?.fleet_number || historyMachine?.machine_type || ''}
+            </SheetTitle>
+            {historyMachine && (
+              <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: 2 }}>
+                {historyMachine.machine_type}{historyMachine.project_name ? ` · ${historyMachine.project_name}` : ''}
+              </div>
+            )}
+          </SheetHeader>
+
+          {historyLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(242,237,227,0.06)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ width: '60%', height: 10, background: 'rgba(242,237,227,0.07)', borderRadius: 4, marginBottom: 8 }} />
+                    <div style={{ width: '40%', height: 9, background: 'rgba(242,237,227,0.05)', borderRadius: 4 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : historyEntries.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: T.muted, fontSize: '0.85rem' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 10 }}>📋</div>
+              No history found for this machine
+            </div>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                position: 'absolute', left: 17, top: 0, bottom: 0, width: 2,
+                background: `linear-gradient(180deg, ${T.amber}50 0%, ${T.border} 100%)`,
+                borderRadius: 2,
+              }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {historyEntries.map((e, i) => {
+                  const color = ACTION_COLOR[e.deployment_state] || T.muted
+                  const icon  = ACTION_ICON[e.deployment_state]  || '•'
+                  return (
+                    <div key={e.id} style={{
+                      display: 'flex', gap: 14, paddingBottom: 14,
+                      opacity: 0, animation: `tileIn 0.3s ease ${Math.min(i, 12) * 0.04}s forwards`,
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                        background: `${color}18`, border: `2px solid ${color}55`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.9rem', position: 'relative', zIndex: 1,
+                      }}>{icon}</div>
+                      <div style={{
+                        flex: 1, background: T.card, border: `1px solid ${T.border}`,
+                        borderRadius: 12, padding: '10px 13px', marginTop: 2,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+                            letterSpacing: '0.07em', fontFamily: 'var(--font-mono)',
+                            background: `${color}18`, color, padding: '3px 7px', borderRadius: 4,
+                          }}>{e.deployment_state || '—'}</span>
+                          <span style={{ fontSize: '0.7rem', color: T.sub, fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>
+                            {fmtDate(e.date_time)}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, fontSize: '0.74rem', color: T.muted, flexWrap: 'wrap' }}>
+                          {e.assigned_to && <span>👷 <strong style={{ color: T.text }}>{e.assigned_to}</strong></span>}
+                          {e.reporter_name && <span>By <strong style={{ color: T.text }}>{e.reporter_name}</strong></span>}
+                        </div>
+                        {(e.machine_status || e.breakdown_issue) && (
+                          <div style={{ marginTop: 5, display: 'flex', gap: 10, fontSize: '0.71rem', flexWrap: 'wrap' }}>
+                            {e.machine_status && <span style={{ color: T.sub }}>Health: <span style={{ color: T.text }}>{e.machine_status}</span></span>}
+                            {e.breakdown_issue && <span style={{ color: '#fb923c' }}>⚠ {e.breakdown_issue}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
     </PageShell>
   )
 }
