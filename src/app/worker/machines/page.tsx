@@ -375,9 +375,11 @@ export default function WorkerMachinesPage() {
 
   useEffect(() => { load() }, [])
 
+  const LIFECYCLE = ['deployed_to_site','received_on_site','in_transit_back','in_store']
   const pending   = machines.filter(m => m.deployment_status === 'deployed_to_site')
   const active    = machines.filter(m => m.deployment_status === 'received_on_site')
   const returning = machines.filter(m => m.deployment_status === 'in_transit_back')
+  const assigned  = machines.filter(m => !LIFECYCLE.includes(m.deployment_status))
 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', position: 'relative' }}>
@@ -471,6 +473,16 @@ export default function WorkerMachinesPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+            {/* Assigned but not yet deployed — admin set assigned_to without changing status */}
+            {assigned.length > 0 && (
+              <div style={{ marginBottom: pending.length > 0 ? 20 : 0 }}>
+                <SectionHead icon="🔧" title="Assigned to You" count={assigned.length} color={C.blue} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {assigned.map((m, i) => <MachineCard key={m.id} machine={m} onRefresh={load} delay={i * 0.06} />)}
+                </div>
+              </div>
+            )}
 
             {/* Pending receipt */}
             {pending.length > 0 && (

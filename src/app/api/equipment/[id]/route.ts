@@ -41,9 +41,17 @@ export async function PATCH(
     }
   }
 
+  // When a machine is first assigned, auto-promote to deployed_to_site
+  // so the worker sees it immediately without needing a manual status change
+  const ADMIN_STATUSES = ['Active', 'Inactive', 'Breakdown']
+  const isFirstAssignment = assigned_to && !current?.assigned_to
+  const effectiveStatus = isFirstAssignment && ADMIN_STATUSES.includes(deployment_status)
+    ? 'deployed_to_site'
+    : deployment_status
+
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
-    .update({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })
+    .update({ fleet_number, machine_type, machine_belonging, deployment_status: effectiveStatus, health_status, project_name, section_name, assigned_to: assigned_to || null })
     .eq('id', id)
     .select()
     .single()
@@ -55,8 +63,8 @@ export async function PATCH(
     const adminName = `${session.user.first_name} ${session.user.last_name}`.trim() || session.user.email
 
     const changes: string[] = []
-    if (current.deployment_status !== deployment_status)
-      changes.push(`Status: ${current.deployment_status} → ${deployment_status}`)
+    if (current.deployment_status !== effectiveStatus)
+      changes.push(`Status: ${current.deployment_status} → ${effectiveStatus}`)
     if (current.health_status !== health_status)
       changes.push(`Health: ${current.health_status} → ${health_status}`)
     if ((current.assigned_to || '') !== (assigned_to || '')) {
@@ -80,7 +88,7 @@ export async function PATCH(
       let eventLabel = 'Details updated'
       if (assigned_to && !current.assigned_to) eventLabel = 'Deployed'
       else if (!assigned_to && current.assigned_to) eventLabel = 'Unassigned'
-      else if (current.deployment_status !== deployment_status) eventLabel = `Status → ${deployment_status}`
+      else if (current.deployment_status !== effectiveStatus) eventLabel = `Status → ${effectiveStatus}`
       else if (current.health_status !== health_status) eventLabel = `Health → ${health_status}`
 
       await supabase.from('surveycollection_machinestatusreport').insert({
