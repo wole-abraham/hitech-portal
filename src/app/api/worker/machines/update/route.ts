@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const session = await getIronSession<AppSession>(req, res, sessionOptions)
   if (!session.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { machine_id, action, health_status, comment } = await req.json()
+  const { machine_id, action, health_status, comment, litres, hour_meter } = await req.json()
 
   if (!machine_id || !action || !ACTION_STATE[action]) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -73,11 +73,14 @@ export async function POST(req: NextRequest) {
   const newHealthStatus = health_status || machine.health_status
   const newDeploymentStatus = ACTION_STATUS[action]
 
-  const updatePayload: Record<string, string | null> = {
+  const updatePayload: Record<string, string | number | null> = {
     deployment_status: newDeploymentStatus,
     health_status: newHealthStatus,
     operator_comment: comment || '',
   }
+
+  if (litres != null && !isNaN(Number(litres))) updatePayload.litres = Number(litres)
+  if (hour_meter != null && !isNaN(Number(hour_meter))) updatePayload.hour_meter = Number(hour_meter)
 
   if (action === 'return') {
     updatePayload.assigned_to = null
@@ -89,20 +92,22 @@ export async function POST(req: NextRequest) {
     .update(updatePayload)
     .eq('id', machine_id)
 
-  await supabase
-    .from('surveycollection_machinestatusreport')
-    .insert({
-      date_time: new Date().toISOString(),
-      machine_type: machine.machine_type || '',
-      machine_belonging: machine.machine_belonging || 'Hitech',
-      fleet_number: machine.fleet_number || '',
-      deployment_state: ACTION_STATE[action],
-      machine_status: newHealthStatus,
-      breakdown_issue: comment || '',
-      registry_item_id: machine.id,
-      assigned_to: employeeName,
-      reporter_name: employeeName,
-    })
+  const historyEntry: Record<string, string | number | null> = {
+    date_time: new Date().toISOString(),
+    machine_type: machine.machine_type || '',
+    machine_belonging: machine.machine_belonging || 'Hitech',
+    fleet_number: machine.fleet_number || '',
+    deployment_state: ACTION_STATE[action],
+    machine_status: newHealthStatus,
+    breakdown_issue: comment || '',
+    registry_item_id: machine.id,
+    assigned_to: employeeName,
+    reporter_name: employeeName,
+  }
+  if (litres != null && !isNaN(Number(litres))) historyEntry.litres = Number(litres)
+  if (hour_meter != null && !isNaN(Number(hour_meter))) historyEntry.hour_meter = Number(hour_meter)
+
+  await supabase.from('surveycollection_machinestatusreport').insert(historyEntry)
 
   return NextResponse.json({ ok: true })
 }

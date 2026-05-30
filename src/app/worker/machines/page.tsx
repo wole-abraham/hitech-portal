@@ -32,6 +32,8 @@ interface Machine {
   section_name: string | null
   assigned_to: string | null
   operator_comment: string | null
+  litres: number | null
+  hour_meter: number | null
 }
 
 const MACHINE_ICON: Record<string, string> = {
@@ -61,6 +63,8 @@ const DEPLOY_COLOR: Record<string, string> = {
 function ActionPanel({ machine, onDone }: { machine: Machine; onDone: () => void }) {
   const [health, setHealth] = useState(machine.health_status || 'Good')
   const [comment, setComment] = useState('')
+  const [litres, setLitres] = useState(machine.litres != null ? String(machine.litres) : '')
+  const [hourMeter, setHourMeter] = useState(machine.hour_meter != null ? String(machine.hour_meter) : '')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
@@ -72,7 +76,14 @@ function ActionPanel({ machine, onDone }: { machine: Machine; onDone: () => void
     const res = await fetch('/api/worker/machines/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ machine_id: machine.id, action, health_status: health, comment }),
+      body: JSON.stringify({
+        machine_id: machine.id,
+        action,
+        health_status: health,
+        comment,
+        litres: litres !== '' ? parseFloat(litres) : null,
+        hour_meter: hourMeter !== '' ? parseFloat(hourMeter) : null,
+      }),
     })
     const d = await res.json()
     setLoading(false)
@@ -115,6 +126,52 @@ function ActionPanel({ machine, onDone }: { machine: Machine; onDone: () => void
               color: health === h ? HEALTH_COLOR[h] : C.muted,
             }}>{h}</button>
           ))}
+        </div>
+      </div>
+
+      {/* Fuel & hour meter */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: C.muted, marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
+            Fuel (Litres)
+          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={litres}
+            onChange={e => setLitres(e.target.value)}
+            placeholder="e.g. 120"
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: C.inputBg,
+              border: `1px solid rgba(237,232,222,0.14)`,
+              borderRadius: 10, color: C.text,
+              fontSize: '0.85rem', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: C.muted, marginBottom: 6, fontFamily: 'var(--font-mono)' }}>
+            Hour Meter
+          </div>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={hourMeter}
+            onChange={e => setHourMeter(e.target.value)}
+            placeholder="e.g. 4820"
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: C.inputBg,
+              border: `1px solid rgba(237,232,222,0.14)`,
+              borderRadius: 10, color: C.text,
+              fontSize: '0.85rem', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+          />
         </div>
       </div>
 
@@ -243,6 +300,12 @@ function MachineCard({ machine, onRefresh, delay = 0 }: { machine: Machine; onRe
               <span style={{ color: healthColor, fontWeight: 600 }}>● {machine.health_status}</span>
               {machine.project_name && <span>📍 {machine.project_name}{machine.section_name ? ` / ${machine.section_name}` : ''}</span>}
             </div>
+            {(machine.litres != null || machine.hour_meter != null) && (
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: '0.7rem', color: C.sub }}>
+                {machine.litres != null && <span>⛽ {machine.litres}L</span>}
+                {machine.hour_meter != null && <span>⏱ {machine.hour_meter}h</span>}
+              </div>
+            )}
           </div>
 
           {/* Expand toggle */}

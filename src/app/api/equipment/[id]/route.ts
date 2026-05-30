@@ -31,6 +31,16 @@ export async function PATCH(
     .eq('id', id)
     .single()
 
+  // Block reassigning while a worker physically has the machine
+  if (current && ['deployed_to_site', 'received_on_site'].includes(current.deployment_status)) {
+    if ((assigned_to || '') !== (current.assigned_to || '')) {
+      const reason = current.deployment_status === 'received_on_site'
+        ? `${current.assigned_to} has confirmed receipt — they must return it before it can be reassigned.`
+        : `Machine is awaiting confirmation from ${current.assigned_to} — wait for confirmation or clear the assignment first.`
+      return NextResponse.json({ error: reason }, { status: 409 })
+    }
+  }
+
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
     .update({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })

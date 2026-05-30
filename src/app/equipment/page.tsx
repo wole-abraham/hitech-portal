@@ -17,12 +17,19 @@ interface Machine {
 const MACHINE_TYPES = ['Excavator','Bulldozer','Grader','Compactor','Dump Truck','Water Bowser','Concrete Mixer','Crane','Generator','Loader','Other']
 const DEPLOY_STATUSES = ['Active','Idle','Under Repair','Decommissioned']
 const HEALTH_STATUSES = ['Good','Fair','Poor','Critical']
-const DEPLOY_COLOR: Record<string, string> = { Active: '#34d399', Idle: '#f5c800', 'Under Repair': '#60a5fa', Decommissioned: '#f87171' }
+const DEPLOY_COLOR: Record<string, string> = {
+  Active: '#34d399', Idle: '#f5c800', 'Under Repair': '#60a5fa', Decommissioned: '#f87171',
+  deployed_to_site: '#f59e0b', received_on_site: '#34d399', in_transit_back: '#fb923c', in_store: '#94a3b8',
+}
+const DEPLOY_LABEL: Record<string, string> = {
+  deployed_to_site: 'Awaiting Confirmation', received_on_site: 'With Worker',
+  in_transit_back: 'Returning', in_store: 'In Store',
+}
 const HEALTH_COLOR: Record<string, string> = { Good: '#34d399', Fair: '#f5c800', Poor: '#fb923c', Critical: '#f87171' }
 
 const emptyForm = { fleet_number: '', machine_type: '', machine_belonging: '', deployment_status: 'Active', health_status: 'Good', project_name: '', section_name: '', assigned_to: '' }
 
-function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set: (k: string, v: string) => void }) {
+function ProjectSectionPicker({ form, set, assignedLocked }: { form: Record<string, string>; set: (k: string, v: string) => void; assignedLocked?: boolean }) {
   const [projects, setProjects] = useState<{ name: string }[]>([])
   const [sections, setSections] = useState<{ name: string; project_name: string }[]>([])
   const [employees, setEmployees] = useState<{ id: number; name: string }[]>([])
@@ -57,7 +64,12 @@ function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set
       <div>
         <FieldLabel>Assigned To</FieldLabel>
         <Select value={form.assigned_to} onChange={v => set('assigned_to', v)}
-          placeholder="Select employee" options={employeeOpts} />
+          placeholder="Select employee" options={employeeOpts} disabled={assignedLocked} />
+        {assignedLocked && (
+          <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#f59e0b' }}>
+            Assignment locked — machine is currently with a worker.
+          </div>
+        )}
       </div>
     </>
   )
@@ -206,10 +218,15 @@ export default function EquipmentPage() {
       setSheetOpen(false)
       load()
       toast.success(editing ? `${form.fleet_number} updated` : `${form.fleet_number} added`, { description: editing ? 'Equipment record saved.' : 'New machine added to fleet.' })
+    } else if (res.status === 409) {
+      const data = await res.json()
+      toast.error('Assignment locked', { description: data.error })
     } else {
       toast.error('Save failed', { description: 'Please try again.' })
     }
   }
+
+  const pendingCount = machines.filter(m => m.deployment_status === 'deployed_to_site').length
 
   const filtered = machines.filter(m => {
     const q = search.toLowerCase()
@@ -233,6 +250,30 @@ export default function EquipmentPage() {
   return (
     <PageShell title="Equipment" subtitle={`${machines.length} total`}>
 
+      {/* Pending confirmation banner */}
+      {pendingCount > 0 && (
+        <div
+          onClick={() => setFilterStatus('deployed_to_site')}
+          style={{
+            marginBottom: 16, padding: '12px 16px',
+            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.30)',
+            borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>📦</span>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f59e0b' }}>
+              {pendingCount} machine{pendingCount > 1 ? 's' : ''} awaiting worker confirmation
+            </span>
+            <span style={{ fontSize: '0.78rem', color: T.muted, marginLeft: 8 }}>
+              — assigned but not yet received on site
+            </span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>View →</span>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
         <div style={{ flex: 1 }}>
@@ -247,20 +288,22 @@ export default function EquipmentPage() {
 
       {/* Status filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {(['', ...DEPLOY_STATUSES] as string[]).map(s => {
+        {(['', ...DEPLOY_STATUSES, 'deployed_to_site'] as string[]).map(s => {
           const count = s ? machines.filter(m => m.deployment_status === s).length : machines.length
           const active = filterStatus === s
+          const label = DEPLOY_LABEL[s] || s || 'All'
+          const chipColor = s === 'deployed_to_site' ? '#f59e0b' : T.amber
           return (
             <button key={s} className="htchip" onClick={() => setFilterStatus(s)} style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '6px 12px', borderRadius: 20,
-              background: active ? T.amber : T.card,
+              background: active ? chipColor : T.card,
               color: active ? '#fff' : T.muted,
-              border: `1px solid ${active ? T.amber : T.border}`,
+              border: `1px solid ${active ? chipColor : (s === 'deployed_to_site' && count > 0 ? 'rgba(245,158,11,0.35)' : T.border)}`,
               fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
               transition: 'all 0.18s',
             }}>
-              <span>{s || 'All'}</span>
+              <span>{label}</span>
               <span style={{
                 background: active ? 'rgba(255,255,255,0.22)' : 'rgba(242,237,227,0.08)',
                 color: active ? '#fff' : T.sub,
@@ -304,7 +347,7 @@ export default function EquipmentPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-                  <Badge label={m.deployment_status || 'Active'} color={DEPLOY_COLOR[m.deployment_status] || T.muted} />
+                  <Badge label={DEPLOY_LABEL[m.deployment_status] || m.deployment_status || 'Active'} color={DEPLOY_COLOR[m.deployment_status] || T.muted} />
                   {m.health_status && <Badge label={m.health_status} color={HEALTH_COLOR[m.health_status] || T.muted} />}
                 </div>
               </div>
@@ -358,6 +401,42 @@ export default function EquipmentPage() {
               {editing ? 'Edit Equipment' : 'Add Equipment'}
             </SheetTitle>
           </SheetHeader>
+
+          {editing?.deployment_status === 'received_on_site' && (
+            <div style={{
+              marginBottom: 16, padding: '12px 16px',
+              background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.30)',
+              borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>✅</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#34d399', marginBottom: 2 }}>
+                  Machine is with {editing.assigned_to}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: T.muted }}>
+                  Worker has confirmed receipt. The assignment is locked until they return it.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {editing?.deployment_status === 'deployed_to_site' && (
+            <div style={{
+              marginBottom: 16, padding: '12px 16px',
+              background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.30)',
+              borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>📦</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#f59e0b', marginBottom: 2 }}>
+                  Awaiting confirmation from {editing.assigned_to}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: T.muted }}>
+                  Machine has been sent but not yet confirmed. Assignment is locked.
+                </div>
+              </div>
+            </div>
+          )}
 
           {editing?.deployment_status === 'in_transit_back' && (
             <div style={{
@@ -433,7 +512,7 @@ export default function EquipmentPage() {
               </div>
             </div>
 
-            <ProjectSectionPicker form={form} set={set} />
+            <ProjectSectionPicker form={form} set={set} assignedLocked={['deployed_to_site','received_on_site'].includes(editing?.deployment_status || '')} />
 
             <SaveBtn loading={saving} label={editing ? 'Save Changes' : 'Add Equipment'} />
 

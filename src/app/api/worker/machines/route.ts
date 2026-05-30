@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   // Fetch all machines assigned to this employee
   const { data: machines } = await supabase
     .from('surveycollection_planningtable')
-    .select('id, fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to, operator_comment')
+    .select('id, fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to, operator_comment, litres, hour_meter')
     .eq('assigned_to', employee.name)
     .order('fleet_number')
 
