@@ -22,12 +22,16 @@ export async function PATCH(
   if (!id || isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
   const body = await req.json()
-  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id } = body
+  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, marital_status, nationality, gender } = body
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
     .update({
       name, role, phone_number, project_name, section_name, status, email, notes,
+      date_of_birth: date_of_birth || null,
+      marital_status: marital_status || null,
+      nationality: nationality || null,
+      gender: gender || null,
       ...(profile_picture  !== undefined && { profile_picture:  profile_picture  || null }),
       ...(passport_photo   !== undefined && { passport_photo:   passport_photo   || null }),
       ...(passport_document !== undefined && { passport_document: passport_document || null }),

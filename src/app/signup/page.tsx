@@ -5,13 +5,20 @@ import { useRouter } from 'next/navigation'
 import AmbientBackground from '@/components/AmbientBackground'
 
 const ROLES = ['Engineer','Supervisor','Operator','Technician','Labourer','Driver','Surveyor','Site Manager','Other']
+const GENDERS = ['Male','Female','Other']
+const MARITAL = ['Single','Married','Divorced','Widowed']
 
 export default function SignupPage() {
   const router = useRouter()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [jobRole, setJobRole] = useState('')
+  const [dob, setDob] = useState('')
+  const [gender, setGender] = useState('')
+  const [nationality, setNationality] = useState('')
+  const [maritalStatus, setMaritalStatus] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -30,7 +37,7 @@ export default function SignupPage() {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, jobRole }),
+      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, phone, password, jobRole, dob, gender, nationality, marital_status: maritalStatus }),
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); setError(data.error || 'Sign up failed.'); return }
@@ -116,6 +123,67 @@ export default function SignupPage() {
               <input type="email" style={inputBase} value={email} onChange={e => setEmail(e.target.value)}
                 required autoComplete="email" placeholder="you@example.com"
                 onFocus={focus} onBlur={blur} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d0d0d0', marginBottom: 7 }}>
+                Phone Number
+              </label>
+              <input type="tel" style={inputBase} value={phone} onChange={e => setPhone(e.target.value)}
+                autoComplete="tel" placeholder="+234…"
+                onFocus={focus} onBlur={blur} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d0d0d0', marginBottom: 7 }}>
+                  Date of Birth
+                </label>
+                <input type="date" style={inputBase} value={dob} onChange={e => setDob(e.target.value)}
+                  onFocus={focus} onBlur={blur} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d0d0d0', marginBottom: 7 }}>
+                  Gender
+                </label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {GENDERS.map(g => (
+                    <button key={g} type="button" onClick={() => setGender(g)} style={{
+                      flex: 1, padding: '10px 4px', borderRadius: 9, fontFamily: 'var(--font-mono)',
+                      fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.18s',
+                      border: gender === g ? '1px solid rgba(255,255,255,0.30)' : '1px solid rgba(255,255,255,0.10)',
+                      background: gender === g ? 'rgba(255,255,255,0.10)' : '#4e4e4e',
+                      color: gender === g ? '#f0f0f0' : '#d0d0d0',
+                    }}>{g}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d0d0d0', marginBottom: 7 }}>
+                  Nationality
+                </label>
+                <input style={inputBase} value={nationality} onChange={e => setNationality(e.target.value)}
+                  placeholder="e.g. Nigerian" onFocus={focus} onBlur={blur} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#d0d0d0', marginBottom: 7 }}>
+                  Marital Status
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {MARITAL.map(m => (
+                    <button key={m} type="button" onClick={() => setMaritalStatus(m)} style={{
+                      padding: '8px 4px', borderRadius: 9, fontFamily: 'var(--font-mono)',
+                      fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.18s',
+                      border: maritalStatus === m ? '1px solid rgba(255,255,255,0.30)' : '1px solid rgba(255,255,255,0.10)',
+                      background: maritalStatus === m ? 'rgba(255,255,255,0.10)' : '#4e4e4e',
+                      color: maritalStatus === m ? '#f0f0f0' : '#d0d0d0',
+                    }}>{m}</button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div>
