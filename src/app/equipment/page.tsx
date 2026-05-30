@@ -12,6 +12,7 @@ interface Machine {
   id: number; fleet_number: string; machine_type: string; machine_belonging: string
   deployment_status: string; health_status: string
   project_name: string; section_name: string; assigned_to: string
+  litres: number | null; hour_meter: number | null
 }
 
 const MACHINE_TYPES = ['Excavator','Bulldozer','Grader','Compactor','Dump Truck','Water Bowser','Concrete Mixer','Crane','Generator','Loader','Other']
@@ -194,6 +195,9 @@ export default function EquipmentPage() {
   const [deleting, setDeleting] = useState(false)
   const [receiving, setReceiving] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [litres, setLitres] = useState('')
+  const [hourMeter, setHourMeter] = useState('')
+  const [savingMetrics, setSavingMetrics] = useState(false)
 
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyMachine, setHistoryMachine] = useState<Machine | null>(null)
@@ -239,7 +243,26 @@ export default function EquipmentPage() {
       project_name: m.project_name || '',
       section_name: m.section_name || '',
     })
+    setLitres(m.litres != null ? String(m.litres) : '')
+    setHourMeter(m.hour_meter != null ? String(m.hour_meter) : '')
     setSheetOpen(true)
+  }
+
+  async function handleSaveMetrics() {
+    if (!editing) return
+    setSavingMetrics(true)
+    await fetch(`/api/equipment/${editing.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...form,
+        litres: litres !== '' ? parseFloat(litres) : null,
+        hour_meter: hourMeter !== '' ? parseFloat(hourMeter) : null,
+      }),
+    })
+    setSavingMetrics(false)
+    load()
+    toast.success('Fuel & meter updated')
   }
 
   async function handleReceive() {
@@ -537,6 +560,40 @@ export default function EquipmentPage() {
                   Worker Assignment
                 </div>
                 <AssignmentPanel machine={editing} onDone={() => { setSheetOpen(false); load() }} />
+                <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
+              </>
+            )}
+
+            {editing && editing.deployment_status === 'received_on_site' && (
+              <>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 8 }}>
+                  Fuel &amp; Hour Meter
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <FieldLabel>Fuel (Litres)</FieldLabel>
+                    <input type="number" min="0" step="0.1" style={inp} value={litres}
+                      onChange={e => setLitres(e.target.value)} placeholder="e.g. 120"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                  <div>
+                    <FieldLabel>Hour Meter</FieldLabel>
+                    <input type="number" min="0" step="0.1" style={inp} value={hourMeter}
+                      onChange={e => setHourMeter(e.target.value)} placeholder="e.g. 4820"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                </div>
+                <button type="button" disabled={savingMetrics} onClick={handleSaveMetrics} style={{
+                  width: '100%', padding: '11px', background: T.amber, color: '#fff',
+                  border: 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.82rem',
+                  fontFamily: 'var(--font-display)', letterSpacing: '0.04em',
+                  cursor: savingMetrics ? 'not-allowed' : 'pointer', transition: 'all 0.18s',
+                  opacity: savingMetrics ? 0.6 : 1,
+                }}>
+                  {savingMetrics ? 'Saving…' : '⛽ Save Fuel & Meter'}
+                </button>
                 <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
               </>
             )}
