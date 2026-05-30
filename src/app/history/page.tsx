@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { PageShell, SearchBar, EmptyState, T, Skeleton } from '@/components/PageShell'
+import Select from '@/components/Select'
 
 interface HistoryEntry {
   id: number
@@ -74,20 +75,16 @@ export default function HistoryPage() {
 
       {/* Action filter */}
       {actions.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-          {['', ...actions].map(a => {
-            const color = ACTION_COLOR[a] || T.muted
-            const active = filterAction === a
-            return (
-              <button key={a} onClick={() => setFilterAction(a)} style={{
-                padding: '5px 12px', borderRadius: 20,
-                background: active ? `${color}22` : T.card,
-                color: active ? color : T.muted,
-                border: `1px solid ${active ? color + '88' : T.border}`,
-                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.18s',
-              }}>{a ? `${ACTION_ICON[a] || '•'} ${a}` : 'All Actions'}</button>
-            )
-          })}
+        <div style={{ marginBottom: 18 }}>
+          <Select
+            value={filterAction}
+            onChange={v => setFilterAction(v)}
+            options={[
+              { value: '', label: 'All Actions' },
+              ...actions.map(a => ({ value: a, label: `${ACTION_ICON[a] || '•'} ${a}` })),
+            ]}
+            placeholder="Filter by action"
+          />
         </div>
       )}
 
