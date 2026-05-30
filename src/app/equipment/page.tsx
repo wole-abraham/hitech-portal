@@ -556,7 +556,7 @@ export default function EquipmentPage() {
 
             <SaveBtn loading={saving} label={editing ? 'Save Changes' : 'Add Equipment'} />
 
-            {editing && editing.deployment_status === 'Active' && (
+            {editing && form.deployment_status === 'Active' && (
               <>
                 <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 4 }}>
