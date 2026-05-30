@@ -291,18 +291,19 @@ export default function EquipmentPage() {
 
       {/* Status filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {(['', ...DEPLOY_STATUSES, 'deployed_to_site'] as string[]).map(s => {
+        {(['', ...DEPLOY_STATUSES, 'deployed_to_site', 'received_on_site', 'in_transit_back', 'in_store'] as string[]).map(s => {
           const count = s ? machines.filter(m => m.deployment_status === s).length : machines.length
           const active = filterStatus === s
           const label = DEPLOY_LABEL[s] || s || 'All'
-          const chipColor = s === 'deployed_to_site' ? '#f59e0b' : T.amber
+          const chipColor = DEPLOY_COLOR[s] || T.amber
+          const hasPending = s === 'deployed_to_site' && count > 0
           return (
             <button key={s} className="htchip" onClick={() => setFilterStatus(s)} style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '6px 12px', borderRadius: 20,
               background: active ? chipColor : T.card,
               color: active ? '#fff' : T.muted,
-              border: `1px solid ${active ? chipColor : (s === 'deployed_to_site' && count > 0 ? 'rgba(245,158,11,0.35)' : T.border)}`,
+              border: `1px solid ${active ? chipColor : (hasPending ? 'rgba(245,158,11,0.35)' : T.border)}`,
               fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
               transition: 'all 0.18s',
             }}>
@@ -400,7 +401,7 @@ export default function EquipmentPage() {
           style={{ background: '#110f0c', borderLeft: `1px solid ${T.border}`, padding: '24px 20px', maxWidth: 520, width: '100%', overflowY: 'auto' }}
         >
           <SheetHeader style={{ marginBottom: 20 }}>
-            <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
+            <SheetTitle style={{ color: '#ede8de', fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
               {editing ? 'Edit Equipment' : 'Add Equipment'}
             </SheetTitle>
           </SheetHeader>
@@ -571,7 +572,7 @@ export default function EquipmentPage() {
           style={{ background: '#110f0c', borderLeft: `1px solid ${T.border}`, padding: '24px 20px', maxWidth: 520, width: '100%', overflowY: 'auto' }}
         >
           <SheetHeader style={{ marginBottom: 20 }}>
-            <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
+            <SheetTitle style={{ color: '#ede8de', fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
               History — {historyMachine?.fleet_number || historyMachine?.machine_type || ''}
             </SheetTitle>
             {historyMachine && (

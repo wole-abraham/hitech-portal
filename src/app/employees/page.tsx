@@ -412,7 +412,7 @@ export default function EmployeesPage() {
           style={{ background: '#110f0c', borderLeft: `1px solid ${T.border}`, padding: '24px 20px', maxWidth: 500, width: '100%', overflowY: 'auto' }}
         >
           <SheetHeader style={{ marginBottom: 20 }}>
-            <SheetTitle style={{ color: T.text, fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
+            <SheetTitle style={{ color: '#ede8de', fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 700 }}>
               {editing ? 'Edit Employee' : 'Add Employee'}
             </SheetTitle>
           </SheetHeader>
