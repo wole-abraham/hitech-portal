@@ -289,35 +289,20 @@ export default function EquipmentPage() {
         }}>+ Add</button>
       </div>
 
-      {/* Status filter chips */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        {(['', ...DEPLOY_STATUSES, 'deployed_to_site', 'received_on_site', 'in_transit_back', 'in_store'] as string[]).map(s => {
-          const count = s ? machines.filter(m => m.deployment_status === s).length : machines.length
-          const active = filterStatus === s
-          const label = DEPLOY_LABEL[s] || s || 'All'
-          const chipColor = DEPLOY_COLOR[s] || T.amber
-          const hasPending = s === 'deployed_to_site' && count > 0
-          return (
-            <button key={s} className="htchip" onClick={() => setFilterStatus(s)} style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '6px 12px', borderRadius: 20,
-              background: active ? chipColor : T.card,
-              color: active ? '#fff' : T.muted,
-              border: `1px solid ${active ? chipColor : (hasPending ? 'rgba(245,158,11,0.35)' : T.border)}`,
-              fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-              transition: 'all 0.18s',
-            }}>
-              <span>{label}</span>
-              <span style={{
-                background: active ? 'rgba(255,255,255,0.22)' : 'rgba(242,237,227,0.08)',
-                color: active ? '#fff' : T.sub,
-                borderRadius: 10, padding: '1px 7px',
-                fontSize: '0.72rem', fontWeight: 800, lineHeight: '1.5',
-                minWidth: 20, textAlign: 'center',
-              }}>{count}</span>
-            </button>
-          )
-        })}
+      {/* Status filter dropdown */}
+      <div style={{ marginBottom: 18 }}>
+        <Select
+          value={filterStatus}
+          onChange={v => setFilterStatus(v)}
+          options={[
+            { value: '', label: `All (${machines.length})` },
+            ...(['Active', 'Inactive', 'Breakdown', 'deployed_to_site', 'received_on_site', 'in_transit_back', 'in_store'] as string[]).map(s => ({
+              value: s,
+              label: `${DEPLOY_LABEL[s] || s} (${machines.filter(m => m.deployment_status === s).length})`,
+            })),
+          ]}
+          placeholder="Filter by status"
+        />
       </div>
 
       {/* List */}
