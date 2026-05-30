@@ -255,14 +255,20 @@ function MachineCard({ machine, onRefresh, delay = 0 }: { machine: Machine; onRe
   const canAct = machine.deployment_status === 'deployed_to_site' || machine.deployment_status === 'received_on_site'
 
   return (
-    <div className="htcard" style={{
-      background: 'linear-gradient(160deg, #181410 0%, #110f0c 100%)',
-      border: `1px solid ${C.border}`,
-      borderRadius: 16,
-      overflow: 'hidden',
-      opacity: 0,
-      animation: `tileIn 0.35s ease ${delay}s forwards`,
-    }}>
+    <div
+      className="htcard"
+      onClick={() => canAct && setExpanded(e => !e)}
+      style={{
+        background: 'linear-gradient(160deg, #181410 0%, #110f0c 100%)',
+        border: `1px solid ${expanded ? C.orangeBorder : C.border}`,
+        borderRadius: 16,
+        overflow: 'hidden',
+        opacity: 0,
+        animation: `tileIn 0.35s ease ${delay}s forwards`,
+        cursor: canAct ? 'pointer' : 'default',
+        transition: 'border-color 0.2s',
+      }}
+    >
       {/* Status stripe */}
       <div style={{ height: 3, background: `linear-gradient(90deg, ${deployColor} 0%, ${deployColor}30 60%, transparent 100%)` }} />
 
@@ -308,24 +314,14 @@ function MachineCard({ machine, onRefresh, delay = 0 }: { machine: Machine; onRe
             )}
           </div>
 
-          {/* Expand toggle */}
           {canAct && (
-            <button
-              type="button"
-              onClick={() => setExpanded(e => !e)}
-              style={{
-                flexShrink: 0,
-                width: 32, height: 32, borderRadius: 8,
-                background: expanded ? C.orangeDim : 'rgba(237,232,222,0.04)',
-                border: `1px solid ${expanded ? C.orangeBorder : C.border}`,
-                color: expanded ? C.orange : C.muted,
-                cursor: 'pointer', fontSize: '1rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
-              }}
-            >
-              {expanded ? '×' : '⋯'}
-            </button>
+            <div style={{
+              flexShrink: 0, color: C.sub, fontSize: '0.65rem',
+              fontFamily: 'var(--font-mono)', letterSpacing: '0.05em',
+              alignSelf: 'center',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s',
+            }}>▾</div>
           )}
         </div>
 
