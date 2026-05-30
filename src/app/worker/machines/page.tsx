@@ -345,7 +345,7 @@ function SectionHead({ icon, title, count, color }: { icon: string; title: strin
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, marginTop: 8 }}>
       <span style={{ fontSize: '1.1rem' }}>{icon}</span>
-      <span style={{ fontWeight: 700, fontSize: '0.88rem', color: C.text, fontFamily: 'var(--font-display)' }}>{title}</span>
+      <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#ffffff', fontFamily: 'var(--font-display)' }}>{title}</span>
       <span style={{
         marginLeft: 'auto',
         fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 700,
