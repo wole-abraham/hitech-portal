@@ -25,7 +25,6 @@ const ADMIN_NAV = [
   { href: '/employees',  label: 'Employees', icon: 'person'  },
   { href: '/equipment',  label: 'Equipment', icon: 'gear'    },
   { href: '/history',    label: 'History',   icon: 'clock'   },
-  { href: '/dashboard',  label: 'Analytics', icon: 'chart'   },
   { href: '/config',     label: 'Config',    icon: 'sliders' },
 ]
 
