@@ -65,11 +65,11 @@ export async function POST(req: NextRequest) {
   if (user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
   const body = await req.json()
-  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, marital_status, nationality, gender } = body
+  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, nationality, gender } = body
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
-    .insert({ name, role: role || '', phone_number, project_name, section_name, status: status || 'Active', email, notes, profile_picture: profile_picture || null, passport_photo: passport_photo || null, passport_document: passport_document || null, fingerprint_id: fingerprint_id || null, date_added: new Date().toISOString().split('T')[0], date_of_birth: date_of_birth || null, marital_status: marital_status || null, nationality: nationality || null, gender: gender || null })
+    .insert({ name, role: role || '', phone_number, project_name, section_name, status: status || 'Active', email, notes, profile_picture: profile_picture || null, passport_photo: passport_photo || null, passport_document: passport_document || null, fingerprint_id: fingerprint_id || null, date_added: new Date().toISOString().split('T')[0], date_of_birth: date_of_birth || null, nationality: nationality || null, gender: gender || null })
     .select()
     .single()
 

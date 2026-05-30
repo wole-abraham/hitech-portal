@@ -197,6 +197,7 @@ export default function EquipmentPage() {
   const [form, setForm] = useState(emptyForm)
   const [litres, setLitres] = useState('')
   const [hourMeter, setHourMeter] = useState('')
+  const [metricsComment, setMetricsComment] = useState('')
   const [savingMetrics, setSavingMetrics] = useState(false)
 
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -245,6 +246,7 @@ export default function EquipmentPage() {
     })
     setLitres(m.litres != null ? String(m.litres) : '')
     setHourMeter(m.hour_meter != null ? String(m.hour_meter) : '')
+    setMetricsComment('')
     setSheetOpen(true)
   }
 
@@ -258,6 +260,7 @@ export default function EquipmentPage() {
         ...form,
         litres: litres !== '' ? parseFloat(litres) : null,
         hour_meter: hourMeter !== '' ? parseFloat(hourMeter) : null,
+        operator_comment: metricsComment || null,
       }),
     })
     setSavingMetrics(false)
@@ -553,7 +556,7 @@ export default function EquipmentPage() {
 
             <SaveBtn loading={saving} label={editing ? 'Save Changes' : 'Add Equipment'} />
 
-            {editing && (
+            {editing && editing.deployment_status === 'Active' && (
               <>
                 <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 4 }}>
@@ -561,11 +564,48 @@ export default function EquipmentPage() {
                 </div>
                 <AssignmentPanel machine={editing} onDone={() => { setSheetOpen(false); load() }} />
                 <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 8 }}>
+                  Fuel &amp; Hour Meter
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <FieldLabel>Fuel (Litres)</FieldLabel>
+                    <input type="number" min="0" step="0.1" style={inp} value={litres}
+                      onChange={e => setLitres(e.target.value)} placeholder="e.g. 120"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                  <div>
+                    <FieldLabel>Hour Meter</FieldLabel>
+                    <input type="number" min="0" step="0.1" style={inp} value={hourMeter}
+                      onChange={e => setHourMeter(e.target.value)} placeholder="e.g. 4820"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Comment</FieldLabel>
+                  <textarea style={{ ...inp, minHeight: 60, resize: 'vertical' }} value={metricsComment}
+                    onChange={e => setMetricsComment(e.target.value)} placeholder="Any notes…"
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
+                <button type="button" disabled={savingMetrics} onClick={handleSaveMetrics} style={{
+                  width: '100%', padding: '11px', background: T.amber, color: '#fff',
+                  border: 'none', borderRadius: 10, fontWeight: 800, fontSize: '0.82rem',
+                  fontFamily: 'var(--font-display)', letterSpacing: '0.04em',
+                  cursor: savingMetrics ? 'not-allowed' : 'pointer', transition: 'all 0.18s',
+                  opacity: savingMetrics ? 0.6 : 1,
+                }}>
+                  {savingMetrics ? 'Saving…' : '⛽ Save Fuel & Meter'}
+                </button>
+                <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
               </>
             )}
 
             {editing && editing.deployment_status === 'received_on_site' && (
               <>
+                <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 8 }}>
                   Fuel &amp; Hour Meter
                 </div>

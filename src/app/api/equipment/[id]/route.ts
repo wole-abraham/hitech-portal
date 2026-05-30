@@ -22,7 +22,7 @@ export async function PATCH(
   if (!id || isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
   const body = await req.json()
-  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, litres, hour_meter } = body
+  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, litres, hour_meter, operator_comment } = body
 
   // Fetch current state before update so we can diff
   const { data: current } = await supabase
@@ -40,6 +40,7 @@ export async function PATCH(
   const updatePayload: Record<string, unknown> = { fleet_number, machine_type, machine_belonging, deployment_status: effectiveStatus, health_status, project_name, section_name }
   if (litres !== undefined) updatePayload.litres = litres != null && litres !== '' ? Number(litres) : null
   if (hour_meter !== undefined) updatePayload.hour_meter = hour_meter != null && hour_meter !== '' ? Number(hour_meter) : null
+  if (operator_comment !== undefined) updatePayload.operator_comment = operator_comment || null
 
   const { data, error } = await supabase
     .from('surveycollection_planningtable')

@@ -20,7 +20,7 @@ async function makeDjangoPassword(password: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { first_name, last_name, email, phone, password, jobRole, dob, gender, nationality, marital_status } = await req.json()
+  const { first_name, last_name, email, phone, password, jobRole, dob, gender, nationality } = await req.json()
 
   const ALLOWED_ROLES = ['Engineer','Supervisor','Operator','Technician','Labourer','Driver','Surveyor','Site Manager','Other']
 
@@ -85,7 +85,6 @@ export async function POST(req: NextRequest) {
     date_of_birth: dob || null,
     gender: gender || null,
     nationality: nationality || null,
-    marital_status: marital_status || null,
   })
 
   if (empError) {

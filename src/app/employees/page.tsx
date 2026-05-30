@@ -13,7 +13,7 @@ interface Employee {
   project_name: string; section_name: string; status: string; email: string; notes: string
   user_id: number | null; profile_picture: string | null; is_admin: boolean
   passport_photo: string | null; passport_document: string | null; fingerprint_id: string | null
-  date_of_birth: string | null; marital_status: string | null; nationality: string | null; gender: string | null
+  date_of_birth: string | null; nationality: string | null; gender: string | null
 }
 
 interface Project { id: number; name: string }
@@ -23,7 +23,7 @@ const ROLES = ['Engineer','Supervisor','Operator','Technician','Labourer','Drive
 const STATUSES = ['Active','Inactive','On Leave']
 const STATUS_COLOR: Record<string, string> = { Active: '#34d399', Inactive: '#f87171', 'On Leave': '#f5c800' }
 
-const BLANK = { name: '', role: '', phone_number: '', project_name: '', section_name: '', status: 'Active', email: '', notes: '', date_of_birth: '', marital_status: '', nationality: '', gender: '' }
+const BLANK = { name: '', role: '', phone_number: '', project_name: '', section_name: '', status: 'Active', email: '', notes: '', date_of_birth: '', nationality: '', gender: '' }
 
 /* ── Fingerprint scanner component ──────────────────────────── */
 type FpState = 'idle' | 'scanning' | 'done'
@@ -239,7 +239,7 @@ export default function EmployeesPage() {
     setForm({ name: emp.name, role: emp.role, phone_number: emp.phone_number || '',
       project_name: emp.project_name || '', section_name: emp.section_name || '',
       status: emp.status || 'Active', email: emp.email || '', notes: emp.notes || '',
-      date_of_birth: emp.date_of_birth || '', marital_status: emp.marital_status || '',
+      date_of_birth: emp.date_of_birth || '',
       nationality: emp.nationality || '', gender: emp.gender || '' })
     setPhotoFile(null); setPhotoPreview(emp.profile_picture || null)
     setPassportPhotoFile(null); setPassportDocFile(null)
@@ -500,11 +500,6 @@ export default function EmployeesPage() {
                 <input style={inp} value={form.nationality} onChange={e => set('nationality', e.target.value)} placeholder="e.g. Nigerian"
                   onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
                   onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-              </div>
-              <div>
-                <FieldLabel>Marital Status</FieldLabel>
-                <Select value={form.marital_status} onChange={v => set('marital_status', v)} placeholder="Select"
-                  options={['Single','Married','Divorced','Widowed'].map(s => ({ value: s, label: s }))} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
