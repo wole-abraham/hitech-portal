@@ -15,10 +15,10 @@ interface Machine {
 }
 
 const MACHINE_TYPES = ['Excavator','Bulldozer','Grader','Compactor','Dump Truck','Water Bowser','Concrete Mixer','Crane','Generator','Loader','Other']
-const DEPLOY_STATUSES = ['Active','Idle','Under Repair','Decommissioned']
+const DEPLOY_STATUSES = ['Active','Inactive','Breakdown']
 const HEALTH_STATUSES = ['Good','Fair','Poor','Critical']
 const DEPLOY_COLOR: Record<string, string> = {
-  Active: '#34d399', Idle: '#f5c800', 'Under Repair': '#60a5fa', Decommissioned: '#f87171',
+  Active: '#34d399', Inactive: '#f5c800', Breakdown: '#f87171',
   deployed_to_site: '#f59e0b', received_on_site: '#34d399', in_transit_back: '#fb923c', in_store: '#94a3b8',
 }
 const DEPLOY_LABEL: Record<string, string> = {
@@ -41,7 +41,9 @@ function ProjectSectionPicker({ form, set, assignedLocked }: { form: Record<stri
   }, [])
 
   const projectOpts = projects.map(p => ({ value: p.name, label: p.name }))
-  const sectionOpts = sections.map(s => ({ value: s.name, label: `${s.project_name} — ${s.name}` }))
+  const sectionOpts = sections
+    .filter(s => s.project_name === form.project_name)
+    .map(s => ({ value: s.name, label: s.name }))
   const employeeOpts = [
     { value: '', label: 'Unassigned' },
     ...employees.map(e => ({ value: e.name, label: e.name })),
@@ -52,13 +54,14 @@ function ProjectSectionPicker({ form, set, assignedLocked }: { form: Record<stri
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
           <FieldLabel>Project</FieldLabel>
-          <Select value={form.project_name} onChange={v => set('project_name', v)}
+          <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
             placeholder="Select project" options={projectOpts} />
         </div>
         <div>
           <FieldLabel>Section</FieldLabel>
           <Select value={form.section_name} onChange={v => set('section_name', v)}
-            placeholder="Select section" options={sectionOpts} />
+            placeholder="Select section" options={sectionOpts}
+            disabled={!form.project_name} />
         </div>
       </div>
       <div>

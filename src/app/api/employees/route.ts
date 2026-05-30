@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from('surveycollection_employee')
-    .select('id, name, role, status, phone_number, project_name, section_name, email, notes, user_id, profile_picture')
+    .select('id, name, role, status, phone_number, project_name, section_name, email, notes, user_id, profile_picture, passport_photo, passport_document, fingerprint_id')
     .order('name')
 
   if (status) q = (q as any).eq('status', status)
@@ -65,11 +65,11 @@ export async function POST(req: NextRequest) {
   if (user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
   const body = await req.json()
-  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture } = body
+  const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id } = body
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
-    .insert({ name, role: role || '', phone_number, project_name, section_name, status: status || 'Active', email, notes, profile_picture: profile_picture || null, date_added: new Date().toISOString().split('T')[0] })
+    .insert({ name, role: role || '', phone_number, project_name, section_name, status: status || 'Active', email, notes, profile_picture: profile_picture || null, passport_photo: passport_photo || null, passport_document: passport_document || null, fingerprint_id: fingerprint_id || null, date_added: new Date().toISOString().split('T')[0] })
     .select()
     .single()
 
