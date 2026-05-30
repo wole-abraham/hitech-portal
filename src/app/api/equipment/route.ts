@@ -33,11 +33,11 @@ export async function POST(req: NextRequest) {
   if (session.user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
 
   const body = await req.json()
-  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to } = body
+  const { fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name } = body
 
   const { data, error } = await supabase
     .from('surveycollection_planningtable')
-    .insert({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: assigned_to || null })
+    .insert({ fleet_number, machine_type, machine_belonging, deployment_status, health_status, project_name, section_name, assigned_to: null })
     .select()
     .single()
 
@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
   const details: string[] = []
   if (deployment_status) details.push(`Status: ${deployment_status}`)
   if (health_status)     details.push(`Health: ${health_status}`)
-  if (assigned_to)       details.push(`Assigned to ${assigned_to}`)
   if (project_name)      details.push(`Project: ${project_name}`)
 
   await supabase.from('surveycollection_machinestatusreport').insert({
@@ -56,11 +55,11 @@ export async function POST(req: NextRequest) {
     machine_type: machine_type || '',
     machine_belonging: machine_belonging || '',
     fleet_number: fleet_number || '',
-    deployment_state: 'Added to fleet',
+    deployment_state: 'Added to registry',
     machine_status: health_status || '',
     breakdown_issue: details.join(' · '),
     registry_item_id: data.id,
-    assigned_to: assigned_to || '',
+    assigned_to: '',
     reporter_name: adminName,
   })
 

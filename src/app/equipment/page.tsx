@@ -27,54 +27,116 @@ const DEPLOY_LABEL: Record<string, string> = {
 }
 const HEALTH_COLOR: Record<string, string> = { Good: '#34d399', Fair: '#f5c800', Poor: '#fb923c', Critical: '#f87171' }
 
-const emptyForm = { fleet_number: '', machine_type: '', machine_belonging: '', deployment_status: 'Active', health_status: 'Good', project_name: '', section_name: '', assigned_to: '' }
+const emptyForm = { fleet_number: '', machine_type: '', machine_belonging: '', deployment_status: 'Active', health_status: 'Good', project_name: '', section_name: '' }
 
-function ProjectSectionPicker({ form, set, assignedLocked }: { form: Record<string, string>; set: (k: string, v: string) => void; assignedLocked?: boolean }) {
+function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set: (k: string, v: string) => void }) {
   const [projects, setProjects] = useState<{ name: string }[]>([])
   const [sections, setSections] = useState<{ name: string; project_name: string }[]>([])
-  const [employees, setEmployees] = useState<{ id: number; name: string }[]>([])
 
   useEffect(() => {
     fetch('/api/projects').then(r => r.json()).then(d => setProjects(Array.isArray(d) ? d : [])).catch(() => {})
     fetch('/api/sections').then(r => r.json()).then(d => setSections(Array.isArray(d) ? d : [])).catch(() => {})
-    fetch('/api/employees').then(r => r.json()).then(d => setEmployees(Array.isArray(d) ? d : [])).catch(() => {})
   }, [])
 
   const projectOpts = projects.map(p => ({ value: p.name, label: p.name }))
   const sectionOpts = sections
     .filter(s => s.project_name === form.project_name)
     .map(s => ({ value: s.name, label: s.name }))
-  const employeeOpts = [
-    { value: '', label: 'Unassigned' },
-    ...employees.map(e => ({ value: e.name, label: e.name })),
-  ]
 
   return (
-    <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <FieldLabel>Project</FieldLabel>
-          <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
-            placeholder="Select project" options={projectOpts} />
-        </div>
-        <div>
-          <FieldLabel>Section</FieldLabel>
-          <Select value={form.section_name} onChange={v => set('section_name', v)}
-            placeholder="Select section" options={sectionOpts}
-            disabled={!form.project_name} />
-        </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div>
+        <FieldLabel>Project</FieldLabel>
+        <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
+          placeholder="Select project" options={projectOpts} />
       </div>
       <div>
-        <FieldLabel>Assigned To</FieldLabel>
-        <Select value={form.assigned_to} onChange={v => set('assigned_to', v)}
-          placeholder="Select employee" options={employeeOpts} disabled={assignedLocked} />
-        {assignedLocked && (
-          <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#f59e0b' }}>
-            Assignment locked — machine is currently with a worker.
-          </div>
-        )}
+        <FieldLabel>Section</FieldLabel>
+        <Select value={form.section_name} onChange={v => set('section_name', v)}
+          placeholder="Select section" options={sectionOpts}
+          disabled={!form.project_name} />
       </div>
-    </>
+    </div>
+  )
+}
+
+function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => void }) {
+  const [employees, setEmployees] = useState<{ id: number; name: string }[]>([])
+  const [assignTo, setAssignTo] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    fetch('/api/employees').then(r => r.json()).then(d => setEmployees(Array.isArray(d) ? d : [])).catch(() => {})
+  }, [])
+
+  const isLocked = machine.deployment_status === 'received_on_site'
+  const isDeployed = machine.deployment_status === 'deployed_to_site'
+  const isAssigned = !!machine.assigned_to
+
+  async function doAssign() {
+    setSaving(true); setErr('')
+    const res = await fetch(`/api/equipment/${machine.id}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: assignTo || null }),
+    })
+    const d = await res.json()
+    setSaving(false)
+    if (!res.ok) { setErr(d.error || 'Failed'); return }
+    onDone()
+  }
+
+  const employeeOpts = employees.map(e => ({ value: e.name, label: e.name }))
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {err && <div style={{ fontSize: '0.78rem', color: '#f87171' }}>{err}</div>}
+
+      {isLocked ? (
+        <div style={{ fontSize: '0.8rem', color: '#34d399' }}>
+          ✅ {machine.assigned_to} has confirmed receipt — locked until returned.
+        </div>
+      ) : isDeployed ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: '0.8rem', color: '#f59e0b' }}>
+            📦 Awaiting confirmation from <strong>{machine.assigned_to}</strong>
+          </div>
+          <button type="button" disabled={saving} onClick={() => { setAssignTo(''); doAssign() }} style={{
+            padding: '10px', background: 'transparent', color: '#f87171',
+            border: '1px solid rgba(248,113,113,0.30)', borderRadius: 9,
+            fontWeight: 700, fontSize: '0.8rem', cursor: saving ? 'not-allowed' : 'pointer',
+          }}>
+            {saving ? 'Saving…' : '✕ Cancel Assignment'}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isAssigned && (
+            <div style={{ fontSize: '0.75rem', color: T.muted }}>
+              Currently: {machine.assigned_to}
+            </div>
+          )}
+          <Select
+            value={assignTo}
+            onChange={v => setAssignTo(v)}
+            placeholder="Select worker to assign…"
+            options={employeeOpts}
+          />
+          <button type="button" disabled={saving || !assignTo} onClick={doAssign} style={{
+            padding: '11px', background: assignTo ? T.amber : 'rgba(245,158,11,0.1)',
+            color: assignTo ? '#fff' : T.muted,
+            border: 'none', borderRadius: 9,
+            fontWeight: 800, fontSize: '0.82rem',
+            fontFamily: 'var(--font-display)', letterSpacing: '0.04em',
+            cursor: saving || !assignTo ? 'not-allowed' : 'pointer',
+            transition: 'all 0.18s',
+          }}>
+            {saving ? 'Assigning…' : '→ Assign to Worker'}
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -176,7 +238,6 @@ export default function EquipmentPage() {
       health_status: m.health_status || 'Good',
       project_name: m.project_name || '',
       section_name: m.section_name || '',
-      assigned_to: m.assigned_to || '',
     })
     setSheetOpen(true)
   }
@@ -391,42 +452,6 @@ export default function EquipmentPage() {
             </SheetTitle>
           </SheetHeader>
 
-          {editing?.deployment_status === 'received_on_site' && (
-            <div style={{
-              marginBottom: 16, padding: '12px 16px',
-              background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.30)',
-              borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>✅</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#34d399', marginBottom: 2 }}>
-                  Machine is with {editing.assigned_to}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: T.muted }}>
-                  Worker has confirmed receipt. The assignment is locked until they return it.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {editing?.deployment_status === 'deployed_to_site' && (
-            <div style={{
-              marginBottom: 16, padding: '12px 16px',
-              background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.30)',
-              borderRadius: 12, display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{ fontSize: '1.2rem', flexShrink: 0 }}>📦</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#f59e0b', marginBottom: 2 }}>
-                  Awaiting confirmation from {editing.assigned_to}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: T.muted }}>
-                  Machine has been sent but not yet confirmed. Assignment is locked.
-                </div>
-              </div>
-            </div>
-          )}
-
           {editing?.deployment_status === 'in_transit_back' && (
             <div style={{
               marginBottom: 16, padding: '14px 16px',
@@ -501,13 +526,23 @@ export default function EquipmentPage() {
               </div>
             </div>
 
-            <ProjectSectionPicker form={form} set={set} assignedLocked={['deployed_to_site','received_on_site'].includes(editing?.deployment_status || '')} />
+            <ProjectSectionPicker form={form} set={set} />
 
             <SaveBtn loading={saving} label={editing ? 'Save Changes' : 'Add Equipment'} />
 
             {editing && (
               <>
                 <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.muted, marginBottom: 4 }}>
+                  Worker Assignment
+                </div>
+                <AssignmentPanel machine={editing} onDone={() => { setSheetOpen(false); load() }} />
+                <Separator style={{ background: 'rgba(242,237,227,0.08)', margin: '4px 0' }} />
+              </>
+            )}
+
+            {editing && (
+              <>
                 <AlertDialog>
                   <AlertDialogTrigger
                     render={<button type="button" />}
