@@ -15,6 +15,8 @@ interface HistoryEntry {
   breakdown_issue: string
   assigned_to: string
   reporter_name: string
+  litres: number | null
+  hour_meter: number | null
 }
 
 const PAGE_SIZE = 30
@@ -200,6 +202,18 @@ export default function HistoryPage() {
                         )}
                         {e.breakdown_issue && (
                           <span style={{ color: '#fb923c' }}>⚠ {e.breakdown_issue}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fuel & hour meter logged by worker */}
+                    {(e.litres != null || e.hour_meter != null) && (
+                      <div style={{ marginTop: 5, display: 'flex', gap: 12, fontSize: '0.73rem' }}>
+                        {e.litres != null && (
+                          <span style={{ color: T.sub }}>⛽ <span style={{ color: T.text, fontWeight: 700 }}>{e.litres}L</span> diesel</span>
+                        )}
+                        {e.hour_meter != null && (
+                          <span style={{ color: T.sub }}>⏱ <span style={{ color: T.text, fontWeight: 700 }}>{e.hour_meter}h</span> meter</span>
                         )}
                       </div>
                     )}
