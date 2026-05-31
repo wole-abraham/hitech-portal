@@ -1004,6 +1004,42 @@ function SubmitPageInner() {
               )
             })}
 
+          {/* Construction-specific: mixer type + cubic meters */}
+          {form.activity_category?.toLowerCase().includes('construction') && (
+            <>
+              <div>
+                <Label>Mixer Type</Label>
+                <Select
+                  value={customData['mixer_type'] ?? ''}
+                  onChange={v => setCustomData(d => ({ ...d, mixer_type: v }))}
+                  placeholder="Select mixer type"
+                  options={[
+                    'Truck Mixer',
+                    'Drum Mixer',
+                    'Pan Mixer',
+                    'Transit Mixer',
+                    'Self-Loading Mixer',
+                    'Volumetric Mixer',
+                    'Other',
+                  ].map(o => ({ value: o, label: o }))}
+                />
+              </div>
+              <div>
+                <Label>Concrete Volume (m³)</Label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  style={inp}
+                  value={customData['concrete_cubic_meters'] ?? ''}
+                  onChange={e => setCustomData(d => ({ ...d, concrete_cubic_meters: e.target.value }))}
+                  onBlur={handleAcquired}
+                  placeholder="e.g. 12.5"
+                />
+              </div>
+            </>
+          )}
+
           {/* Component auto-fill panel — shown when a matching structure is found */}
           {componentLoading && (
             <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.06)', borderRadius: 10, fontSize: '0.78rem', color: C.muted, fontFamily: 'var(--font-mono)' }}>
