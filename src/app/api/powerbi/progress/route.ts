@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { checkApiKey } from '../_auth'
-
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -22,9 +20,6 @@ async function fetchAll(query: any) {
 }
 
 export async function GET(req: NextRequest) {
-  const deny = checkApiKey(req)
-  if (deny) return deny
-
   const { searchParams } = new URL(req.url)
   const project = searchParams.get('project') || ''
   const like    = project ? `%${project.split(' ')[0]}%` : '%'
