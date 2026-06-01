@@ -21,7 +21,7 @@ export async function POST(
   const id = parseInt(rawId)
   if (!id || isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
-  const { assigned_to } = await req.json()
+  const { assigned_to, litres, hour_meter, concrete_cubic_meters } = await req.json()
 
   const { data: machine } = await supabase
     .from('surveycollection_planningtable')
@@ -40,10 +40,19 @@ export async function POST(
   const adminName = `${session.user.first_name} ${session.user.last_name}`.trim() || session.user.email
 
   if (assigned_to) {
+    const machineUpdate: Record<string, unknown> = { assigned_to, deployment_status: 'deployed_to_site' }
+    if (litres != null)      machineUpdate.litres      = litres
+    if (hour_meter != null)  machineUpdate.hour_meter  = hour_meter
+
     await supabase
       .from('surveycollection_planningtable')
-      .update({ assigned_to, deployment_status: 'deployed_to_site' })
+      .update(machineUpdate)
       .eq('id', id)
+
+    const noteParts = [`Assigned to ${assigned_to}`]
+    if (litres != null)              noteParts.push(`Fuel: ${litres}L`)
+    if (hour_meter != null)          noteParts.push(`Meter: ${hour_meter}h`)
+    if (concrete_cubic_meters != null) noteParts.push(`Concrete: ${concrete_cubic_meters}m³`)
 
     await supabase.from('surveycollection_machinestatusreport').insert({
       date_time: new Date().toISOString(),
@@ -52,10 +61,12 @@ export async function POST(
       fleet_number: machine.fleet_number || '',
       deployment_state: 'Deployed to site',
       machine_status: machine.health_status || '',
-      breakdown_issue: `Assigned to ${assigned_to}`,
+      breakdown_issue: noteParts.join(' · '),
       registry_item_id: id,
       assigned_to,
       reporter_name: adminName,
+      ...(litres != null     && { litres }),
+      ...(hour_meter != null && { hour_meter }),
     })
   } else {
     await supabase

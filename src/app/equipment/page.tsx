@@ -64,8 +64,13 @@ function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set
 function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => void }) {
   const [employees, setEmployees] = useState<{ id: number; name: string }[]>([])
   const [assignTo, setAssignTo] = useState('')
+  const [litresA, setLitresA] = useState('')
+  const [hourMeterA, setHourMeterA] = useState('')
+  const [cubicMeters, setCubicMeters] = useState('')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
+
+  const isMixer = machine.machine_type?.toLowerCase().includes('concrete')
 
   useEffect(() => {
     fetch('/api/employees').then(r => r.json()).then(d => setEmployees(Array.isArray(d) ? d : [])).catch(() => {})
@@ -80,7 +85,12 @@ function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => 
     const res = await fetch(`/api/equipment/${machine.id}/assign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assigned_to: assignTo || null }),
+      body: JSON.stringify({
+        assigned_to: assignTo || null,
+        litres: litresA !== '' ? parseFloat(litresA) : null,
+        hour_meter: hourMeterA !== '' ? parseFloat(hourMeterA) : null,
+        concrete_cubic_meters: cubicMeters !== '' ? parseFloat(cubicMeters) : null,
+      }),
     })
     const d = await res.json()
     setSaving(false)
@@ -124,6 +134,35 @@ function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => 
             placeholder="Select worker to assign…"
             options={employeeOpts}
           />
+
+          {isMixer && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                <div>
+                  <FieldLabel>Fuel (Litres)</FieldLabel>
+                  <input type="number" min="0" step="0.1" style={inp} value={litresA}
+                    onChange={e => setLitresA(e.target.value)} placeholder="e.g. 120"
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
+                <div>
+                  <FieldLabel>Hour Meter</FieldLabel>
+                  <input type="number" min="0" step="0.1" style={inp} value={hourMeterA}
+                    onChange={e => setHourMeterA(e.target.value)} placeholder="e.g. 4820"
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Concrete Volume (m³)</FieldLabel>
+                <input type="number" min="0" step="0.01" style={inp} value={cubicMeters}
+                  onChange={e => setCubicMeters(e.target.value)} placeholder="e.g. 12.5"
+                  onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+              </div>
+            </>
+          )}
+
           <button type="button" disabled={saving || !assignTo} onClick={doAssign} style={{
             padding: '11px', background: assignTo ? T.amber : 'rgba(245,158,11,0.1)',
             color: assignTo ? '#fff' : T.muted,
