@@ -14,9 +14,10 @@ interface NavShellProps {
 }
 
 const WORKER_NAV = [
-  { href: '/portal',          label: 'Home',     icon: 'grid'   },
-  { href: '/reports/submit',  label: 'Submit',   icon: 'plus'   },
-  { href: '/worker/machines', label: 'Machines', icon: 'wrench' },
+  { href: '/portal',          label: 'Home',     icon: 'grid'    },
+  { href: '/reports/submit',  label: 'Submit',   icon: 'plus'    },
+  { href: '/worker/machines', label: 'Machines', icon: 'wrench'  },
+  { href: '/profile',         label: 'Profile',  icon: 'profile' },
 ]
 
 const ADMIN_NAV = [
@@ -26,6 +27,7 @@ const ADMIN_NAV = [
   { href: '/equipment',  label: 'Equipment', icon: 'gear'    },
   { href: '/history',    label: 'History',   icon: 'clock'   },
   { href: '/config',     label: 'Config',    icon: 'sliders' },
+  { href: '/profile',    label: 'Profile',   icon: 'profile' },
 ]
 
 function NavIcon({ name, size = 24 }: { name: string; size?: number }) {
@@ -110,6 +112,13 @@ function NavIcon({ name, size = 24 }: { name: string; size?: number }) {
           <line x1="1"  y1="14" x2="7"  y2="14"/>
           <line x1="9"  y1="8"  x2="15" y2="8"/>
           <line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+      )
+    case 'profile':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
         </svg>
       )
     default:
