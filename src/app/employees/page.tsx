@@ -26,105 +26,219 @@ const STATUS_COLOR: Record<string, string> = { Active: '#34d399', Inactive: '#f8
 const BLANK = { name: '', role: '', phone_number: '', project_name: '', section_name: '', status: 'Active', email: '', notes: '', date_of_birth: '', nationality: '', gender: '' }
 
 /* ── Fingerprint scanner component ──────────────────────────── */
-type FpState = 'idle' | 'scanning' | 'done'
+type FpState = 'idle' | 'scanning' | 'verifying' | 'done'
 
 function FingerprintScanner({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-  const [state, setState] = useState<FpState>(value ? 'done' : 'idle')
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [state, setState]       = useState<FpState>(value ? 'done' : 'idle')
+  const [progress, setProgress] = useState(value ? 100 : 0)
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     setState(value ? 'done' : 'idle')
+    setProgress(value ? 100 : 0)
   }, [value])
 
   function startScan() {
     setState('scanning')
+    setProgress(0)
+    let p = 0
+    intervalRef.current = setInterval(() => {
+      p += Math.random() * 6 + 2
+      if (p >= 100) { p = 100; clearInterval(intervalRef.current!) }
+      setProgress(Math.floor(p))
+    }, 60)
     timerRef.current = setTimeout(() => {
-      const bytes = new Uint8Array(4)
-      crypto.getRandomValues(bytes)
-      const id = 'FP-' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('')
-      onChange(id)
-      setState('done')
-    }, 2200)
+      setState('verifying')
+      setTimeout(() => {
+        const bytes = new Uint8Array(4)
+        crypto.getRandomValues(bytes)
+        const id = 'FP-' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join('')
+        onChange(id)
+        setState('done')
+        setProgress(100)
+      }, 700)
+    }, 2400)
   }
 
   function rescan() {
-    if (timerRef.current) clearTimeout(timerRef.current)
+    if (timerRef.current)    clearTimeout(timerRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current)
     onChange('')
     setState('idle')
+    setProgress(0)
   }
 
-  const scanning = state === 'scanning'
-  const done     = state === 'done'
+  const scanning   = state === 'scanning'
+  const verifying  = state === 'verifying'
+  const done       = state === 'done'
+  const active     = scanning || verifying
+
+  const ridgeColor  = done ? '#34d399' : '#f59e0b'
+  const borderColor = done ? '#34d399' : active ? '#f59e0b' : 'rgba(242,237,227,0.18)'
+  const bgColor     = done ? 'rgba(52,211,153,0.06)' : active ? 'rgba(245,158,11,0.06)' : 'rgba(242,237,227,0.03)'
+
+  const statusMsg = done ? 'Identity confirmed'
+    : verifying  ? 'Verifying…'
+    : scanning   ? `Scanning… ${progress}%`
+    : 'Place finger on sensor'
+
+  /* SVG fingerprint: concentric arcs forming a whorl pattern */
+  const RINGS = [
+    { rx: 5,  ry: 3,  trim: 0   },
+    { rx: 10, ry: 7,  trim: 15  },
+    { rx: 15, ry: 11, trim: 20  },
+    { rx: 20, ry: 15, trim: 25  },
+    { rx: 25, ry: 19, trim: 28  },
+    { rx: 30, ry: 23, trim: 30  },
+    { rx: 35, ry: 27, trim: 32  },
+    { rx: 39, ry: 31, trim: 34  },
+    { rx: 43, ry: 35, trim: 36  },
+  ]
+
+  /* Clip height: how many px of the 96-tall SVG are revealed */
+  const clipH = (progress / 100) * 96
 
   return (
     <div style={{
-      background: 'rgba(242,237,227,0.04)', border: `1px solid ${T.border}`,
-      borderRadius: 14, padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+      background: 'rgba(242,237,227,0.03)',
+      border: `1px solid ${borderColor}`,
+      borderRadius: 16, padding: '20px 16px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+      transition: 'border-color 0.4s',
+      boxShadow: active ? `0 0 18px ${T.amber}18` : done ? '0 0 18px rgba(52,211,153,0.12)' : 'none',
     }}>
-      {/* Fingerprint display area */}
+
+      {/* Circle + SVG fingerprint */}
       <div style={{
-        position: 'relative', width: 90, height: 90,
+        position: 'relative', width: 108, height: 108,
         borderRadius: '50%',
-        background: done
-          ? 'rgba(52,211,153,0.08)'
-          : scanning
-          ? 'rgba(245,158,11,0.08)'
-          : 'rgba(242,237,227,0.05)',
-        border: `2px solid ${done ? '#34d399' : scanning ? T.amber : 'rgba(242,237,227,0.14)'}`,
+        background: bgColor,
+        border: `2px solid ${borderColor}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
-        transition: 'all 0.3s',
-        animation: scanning ? 'fpPulse 1s ease-in-out infinite' : 'none',
+        transition: 'all 0.4s',
+        boxShadow: active ? `0 0 0 4px ${T.amber}18` : done ? '0 0 0 4px rgba(52,211,153,0.12)' : 'none',
       }}>
-        <span style={{ fontSize: '2.6rem', lineHeight: 1, zIndex: 2 }}>
-          {done ? '✅' : '🫆'}
-        </span>
+        <svg viewBox="0 0 96 96" width="86" height="86" style={{ position: 'absolute', top: 11, left: 11 }}>
+          <defs>
+            <clipPath id="fp-reveal">
+              <rect x="0" y="0" width="96" height={clipH} />
+            </clipPath>
+          </defs>
 
-        {/* Scanning line */}
+          {/* Dim base ridges always visible */}
+          {RINGS.map((r, i) => (
+            <ellipse key={`d${i}`} cx="48" cy="52" rx={r.rx} ry={r.ry}
+              fill="none" stroke="rgba(242,237,227,0.10)" strokeWidth="1.4"
+              strokeDasharray={`${Math.max(0, Math.PI * 2 * r.rx - r.trim * 2)} ${r.trim * 2}`}
+              strokeDashoffset={r.trim} />
+          ))}
+
+          {/* Lit ridges revealed by scan progress */}
+          <g clipPath="url(#fp-reveal)">
+            {RINGS.map((r, i) => (
+              <ellipse key={`l${i}`} cx="48" cy="52" rx={r.rx} ry={r.ry}
+                fill="none" stroke={ridgeColor} strokeWidth="1.4"
+                strokeDasharray={`${Math.max(0, Math.PI * 2 * r.rx - r.trim * 2)} ${r.trim * 2}`}
+                strokeDashoffset={r.trim}
+                style={{ filter: `drop-shadow(0 0 3px ${ridgeColor}80)`, transition: 'stroke 0.4s' }} />
+            ))}
+          </g>
+        </svg>
+
+        {/* Scan beam */}
         {scanning && (
           <div style={{
-            position: 'absolute', left: 0, right: 0, height: 2,
-            background: `linear-gradient(90deg, transparent, ${T.amber}, transparent)`,
-            animation: 'fpScan 1.1s linear infinite',
-            zIndex: 3,
+            position: 'absolute', left: 0, right: 0, height: 3,
+            background: `linear-gradient(90deg, transparent 0%, ${T.amber} 40%, #fff8 50%, ${T.amber} 60%, transparent 100%)`,
+            top: `${progress}%`,
+            boxShadow: `0 0 10px ${T.amber}, 0 0 20px ${T.amber}60`,
+            transition: 'top 0.06s linear',
+            zIndex: 4,
           }} />
+        )}
+
+        {/* Verifying spinner */}
+        {verifying && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(17,15,12,0.55)', zIndex: 5,
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: `3px solid rgba(245,158,11,0.2)`,
+              borderTopColor: T.amber,
+              animation: 'spin 0.7s linear infinite',
+            }} />
+          </div>
+        )}
+
+        {/* Done checkmark */}
+        {done && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(52,211,153,0.08)', zIndex: 5,
+          }}>
+            <svg viewBox="0 0 40 40" width="38" height="38">
+              <circle cx="20" cy="20" r="17" fill="none" stroke="#34d399" strokeWidth="2.5" opacity="0.6" />
+              <path d="M11 21 L17 27 L29 14" fill="none" stroke="#34d399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         )}
       </div>
 
-      {/* Status text */}
-      <div style={{ textAlign: 'center' }}>
+      {/* Progress bar */}
+      {(scanning || verifying) && (
+        <div style={{ width: '100%', height: 3, background: 'rgba(242,237,227,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 4,
+            width: `${progress}%`,
+            background: `linear-gradient(90deg, ${T.amber}80, ${T.amber})`,
+            transition: 'width 0.06s linear',
+            boxShadow: `0 0 6px ${T.amber}`,
+          }} />
+        </div>
+      )}
+
+      {/* ID + status */}
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {done && value && (
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700,
-            color: '#34d399', letterSpacing: '0.10em', marginBottom: 4,
+            fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700,
+            color: '#34d399', letterSpacing: '0.12em',
+            background: 'rgba(52,211,153,0.08)', padding: '4px 12px', borderRadius: 6,
           }}>
             {value}
           </div>
         )}
-        <div style={{ fontSize: '0.72rem', color: done ? '#34d399' : scanning ? T.amber : T.sub }}>
-          {done ? 'Fingerprint registered' : scanning ? 'Scanning…' : 'No fingerprint registered'}
+        <div style={{
+          fontSize: '0.72rem', fontWeight: 600,
+          color: done ? '#34d399' : active ? T.amber : T.sub,
+          letterSpacing: '0.04em',
+          transition: 'color 0.3s',
+        }}>
+          {statusMsg}
         </div>
       </div>
 
-      {/* Button */}
-      {!scanning && (
-        <button
-          type="button"
-          onClick={done ? rescan : startScan}
-          style={{
-            padding: '9px 22px', borderRadius: 10,
-            background: done ? 'transparent' : T.amber,
-            color: done ? T.muted : '#1a1410',
-            border: done ? `1px solid ${T.border}` : 'none',
-            fontWeight: 700, fontSize: '0.78rem',
-            fontFamily: 'var(--font-display)',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-            cursor: 'pointer', transition: 'all 0.18s',
-          }}
-        >
+      {/* Action button */}
+      {!active && (
+        <button type="button" onClick={done ? rescan : startScan} style={{
+          padding: '9px 24px', borderRadius: 10,
+          background: done ? 'transparent' : T.amber,
+          color: done ? T.muted : '#1a1410',
+          border: done ? `1px solid ${T.border}` : 'none',
+          fontWeight: 700, fontSize: '0.78rem',
+          fontFamily: 'var(--font-display)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+          cursor: 'pointer', transition: 'all 0.18s',
+        }}>
           {done ? '↺ Re-scan' : '⬡ Scan Fingerprint'}
         </button>
       )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }
