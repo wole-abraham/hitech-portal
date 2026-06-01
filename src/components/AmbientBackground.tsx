@@ -7,8 +7,10 @@ const PEAKS = [
   { cx: 0.72, cy: 0.34, sx: 0.72, sy: 0.62 },
   { cx: 0.54, cy: 0.80, sx: 0.55, sy: 0.55 },
 ]
-const LEVELS = 14
-const PTS    = 64
+const LEVELS = 10
+const PTS    = 32
+const FPS    = 30
+const FRAME  = 1000 / FPS
 
 function drawTopo(ctx: CanvasRenderingContext2D, t: number, w: number, h: number) {
   ctx.clearRect(0, 0, w, h)
@@ -28,7 +30,6 @@ function drawTopo(ctx: CanvasRenderingContext2D, t: number, w: number, h: number
       const pulse  = Math.sin(t * 0.36 + lv * 0.28 + p.cx * Math.PI) * 7
       const r = baseR + pulse
 
-      // Inner lines darker, outer ones fade gently
       const alpha = Math.max(0, 0.14 - lv * 0.008)
       ctx.strokeStyle = `rgba(0,0,0,${alpha.toFixed(4)})`
 
@@ -62,6 +63,7 @@ export default function AmbientBackground() {
     if (!ctx) return
 
     let rafId: number
+    let lastFrame = 0
     const startTime = performance.now()
 
     function resize() {
@@ -69,14 +71,17 @@ export default function AmbientBackground() {
       canvas!.height = window.innerHeight
     }
 
-    function tick() {
-      const t = (performance.now() - startTime) / 1000
-      drawTopo(ctx!, t, canvas!.width, canvas!.height)
+    function tick(now: number) {
       rafId = requestAnimationFrame(tick)
+      if (document.hidden) return
+      if (now - lastFrame < FRAME) return
+      lastFrame = now
+      const t = (now - startTime) / 1000
+      drawTopo(ctx!, t, canvas!.width, canvas!.height)
     }
 
     resize()
-    tick()
+    rafId = requestAnimationFrame(tick)
     window.addEventListener('resize', resize)
 
     return () => {
@@ -88,7 +93,7 @@ export default function AmbientBackground() {
   return (
     <canvas
       ref={canvasRef}
-      style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}
+      style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, willChange: 'contents' }}
     />
   )
 }
