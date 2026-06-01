@@ -21,7 +21,7 @@ export async function POST(
   const id = parseInt(rawId)
   if (!id || isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
 
-  const { assigned_to, litres, hour_meter, concrete_cubic_meters } = await req.json()
+  const { assigned_to, litres, hour_meter, concrete_cubic_meters, diesel_status } = await req.json()
 
   const { data: machine } = await supabase
     .from('surveycollection_planningtable')
@@ -50,9 +50,10 @@ export async function POST(
       .eq('id', id)
 
     const noteParts = [`Assigned to ${assigned_to}`]
-    if (litres != null)              noteParts.push(`Fuel: ${litres}L`)
-    if (hour_meter != null)          noteParts.push(`Meter: ${hour_meter}h`)
-    if (concrete_cubic_meters != null) noteParts.push(`Concrete: ${concrete_cubic_meters}m³`)
+    if (diesel_status === 'still_there') noteParts.push('Diesel: still there')
+    else if (litres != null)             noteParts.push(`Fuel added: ${litres}L`)
+    if (hour_meter != null)              noteParts.push(`Meter: ${hour_meter}h`)
+    if (concrete_cubic_meters != null)   noteParts.push(`Concrete: ${concrete_cubic_meters}m³`)
 
     await supabase.from('surveycollection_machinestatusreport').insert({
       date_time: new Date().toISOString(),

@@ -87,9 +87,10 @@ function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         assigned_to: assignTo || null,
-        litres: litresA !== '' ? parseFloat(litresA) : null,
+        litres: litresA !== '' && litresA !== '__still__' ? parseFloat(litresA) : null,
         hour_meter: hourMeterA !== '' ? parseFloat(hourMeterA) : null,
         concrete_cubic_meters: cubicMeters !== '' ? parseFloat(cubicMeters) : null,
+        diesel_status: litresA === '__still__' ? 'still_there' : 'adding',
       }),
     })
     const d = await res.json()
@@ -137,14 +138,59 @@ function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => 
 
           {isMixer && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+              {/* Fuel status toggle */}
+              <div style={{ marginTop: 4 }}>
+                <FieldLabel>Diesel Status</FieldLabel>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {(['Still there', 'Adding'] as const).map(opt => {
+                    const active = litresA === '' ? opt === 'Still there' : opt === 'Adding'
+                    // track choice via a separate flag: litresA==='' means "still there"
+                    const chosen = (opt === 'Still there' && litresA === '__still__') || (opt === 'Adding' && litresA !== '__still__' && litresA !== '')
+                      ? true
+                      : opt === 'Still there' && litresA === ''
+                    return (
+                      <button key={opt} type="button"
+                        onClick={() => setLitresA(opt === 'Still there' ? '__still__' : '')}
+                        style={{
+                          padding: '10px 8px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
+                          fontFamily: 'var(--font-display)', letterSpacing: '0.04em', cursor: 'pointer',
+                          transition: 'all 0.18s',
+                          background: litresA === '__still__' && opt === 'Still there'
+                            ? 'rgba(52,211,153,0.15)'
+                            : litresA !== '__still__' && opt === 'Adding'
+                            ? `rgba(245,158,11,0.15)`
+                            : 'rgba(242,237,227,0.04)',
+                          border: litresA === '__still__' && opt === 'Still there'
+                            ? '1px solid rgba(52,211,153,0.40)'
+                            : litresA !== '__still__' && opt === 'Adding'
+                            ? `1px solid rgba(245,158,11,0.40)`
+                            : `1px solid ${T.border}`,
+                          color: litresA === '__still__' && opt === 'Still there'
+                            ? '#34d399'
+                            : litresA !== '__still__' && opt === 'Adding'
+                            ? T.amber
+                            : T.muted,
+                        }}
+                      >
+                        {opt === 'Still there' ? '⛽ Still there' : '➕ Adding'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Litres — only shown when Adding */}
+              {litresA !== '__still__' && (
                 <div>
-                  <FieldLabel>Fuel (Litres)</FieldLabel>
+                  <FieldLabel>Litres to Add</FieldLabel>
                   <input type="number" min="0" step="0.1" style={inp} value={litresA}
                     onChange={e => setLitresA(e.target.value)} placeholder="e.g. 120"
                     onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
                     onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
                 </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
                   <FieldLabel>Hour Meter</FieldLabel>
                   <input type="number" min="0" step="0.1" style={inp} value={hourMeterA}
@@ -152,13 +198,13 @@ function AssignmentPanel({ machine, onDone }: { machine: Machine; onDone: () => 
                     onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
                     onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
                 </div>
-              </div>
-              <div>
-                <FieldLabel>Concrete Volume (m³)</FieldLabel>
-                <input type="number" min="0" step="0.01" style={inp} value={cubicMeters}
-                  onChange={e => setCubicMeters(e.target.value)} placeholder="e.g. 12.5"
-                  onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                <div>
+                  <FieldLabel>Concrete Volume (m³)</FieldLabel>
+                  <input type="number" min="0" step="0.01" style={inp} value={cubicMeters}
+                    onChange={e => setCubicMeters(e.target.value)} placeholder="e.g. 12.5"
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
               </div>
             </>
           )}
