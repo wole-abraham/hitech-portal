@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { ok, options } from '../_auth'
+import { respond, options } from '../_auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,5 +37,5 @@ export async function GET(req: NextRequest) {
   if (mediaType) q = (q as any).eq('media_type', mediaType)
 
   const data = await fetchAll(q)
-  return ok(data)
+  return respond(req, data)
 }

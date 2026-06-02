@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { ok, err, options } from '../_auth'
+import { respond, err, options } from '../_auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,5 +16,5 @@ export async function GET(req: NextRequest) {
     .order('fleet_number')
 
   if (error) return err(error.message)
-  return ok(data ?? [])
+  return respond(req, data ?? [])
 }
