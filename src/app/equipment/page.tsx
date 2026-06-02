@@ -16,9 +16,28 @@ interface Machine {
 }
 
 const MACHINE_TYPES = ['Excavator','Bulldozer','Grader','Compactor','Dump Truck','Water Bowser','Concrete Mixer','Crane','Generator','Loader','Other']
-const DEPLOY_STATUSES = ['Active','Inactive','Breakdown']
+const DEPLOY_STATUSES = [
+  'Active/In Use',
+  'Parked/Standby',
+  'In Transit',
+  'Maintenance',
+  'In Transit - Removed',
+  'Ready for Deployment',
+  'Return to HQ',
+  'Deployed',
+  'Deployed to a Project',
+]
 const HEALTH_STATUSES = ['Good','Fair','Poor','Critical']
 const DEPLOY_COLOR: Record<string, string> = {
+  'Active/In Use': '#34d399',
+  'Parked/Standby': '#f5c800',
+  'In Transit': '#fb923c',
+  'Maintenance': '#f87171',
+  'In Transit - Removed': '#fb923c',
+  'Ready for Deployment': '#60a5fa',
+  'Return to HQ': '#94a3b8',
+  'Deployed': '#f59e0b',
+  'Deployed to a Project': '#f59e0b',
   Active: '#34d399', Inactive: '#f5c800', Breakdown: '#f87171',
   deployed_to_site: '#f59e0b', received_on_site: '#34d399', in_transit_back: '#fb923c', in_store: '#94a3b8',
 }
@@ -28,7 +47,7 @@ const DEPLOY_LABEL: Record<string, string> = {
 }
 const HEALTH_COLOR: Record<string, string> = { Good: '#34d399', Fair: '#f5c800', Poor: '#fb923c', Critical: '#f87171' }
 
-const emptyForm = { fleet_number: '', machine_type: '', machine_belonging: '', deployment_status: 'Active', health_status: 'Good', project_name: '', section_name: '' }
+const emptyForm = { fleet_number: '', machine_type: '', machine_belonging: '', deployment_status: 'Ready for Deployment', health_status: 'Good', project_name: '', section_name: '' }
 
 function ProjectSectionPicker({ form, set }: { form: Record<string, string>; set: (k: string, v: string) => void }) {
   const [projects, setProjects] = useState<{ name: string }[]>([])
@@ -628,7 +647,8 @@ export default function EquipmentPage() {
               <div>
                 <FieldLabel>Deployment Status</FieldLabel>
                 <Select value={form.deployment_status} onChange={v => set('deployment_status', v)}
-                  options={DEPLOY_STATUSES.map(s => ({ value: s, label: s }))} />
+                  options={DEPLOY_STATUSES.map(s => ({ value: s, label: s }))}
+                  placeholder="Select status" />
               </div>
               <div>
                 <FieldLabel>Health Status</FieldLabel>
