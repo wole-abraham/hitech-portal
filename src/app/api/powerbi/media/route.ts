@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ok, options } from '../_auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +21,8 @@ async function fetchAll(query: any) {
   return all
 }
 
+export async function OPTIONS() { return options() }
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const reportId  = searchParams.get('report_id') || ''
@@ -34,5 +37,5 @@ export async function GET(req: NextRequest) {
   if (mediaType) q = (q as any).eq('media_type', mediaType)
 
   const data = await fetchAll(q)
-  return NextResponse.json(data)
+  return ok(data)
 }

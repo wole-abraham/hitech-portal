@@ -1,9 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export function checkApiKey(req: NextRequest): NextResponse | null {
-  const key = req.nextUrl.searchParams.get('key') ?? req.headers.get('x-api-key') ?? ''
-  if (!process.env.POWERBI_API_KEY || key !== process.env.POWERBI_API_KEY) {
-    return NextResponse.json({ error: 'Unauthorized — invalid or missing API key' }, { status: 401 })
-  }
-  return null
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+}
+
+export function ok(data: unknown) {
+  return NextResponse.json(data, { headers: CORS })
+}
+
+export function err(msg: string, status = 500) {
+  return NextResponse.json({ error: msg }, { status, headers: CORS })
+}
+
+export function options() {
+  return new NextResponse(null, { status: 204, headers: CORS })
 }
