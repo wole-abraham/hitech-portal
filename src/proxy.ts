@@ -9,6 +9,7 @@ export async function proxy(req: NextRequest) {
 
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return NextResponse.next()
   if (pathname.startsWith('/api/auth')) return NextResponse.next()
+  if (pathname.startsWith('/api/powerbi')) return NextResponse.next()
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) return NextResponse.next()
   // Allow all static assets (images, fonts, etc.)
   if (/\.(jpg|jpeg|png|gif|svg|ico|webp|woff|woff2|ttf|otf|mp4|glb)$/i.test(pathname)) return NextResponse.next()
