@@ -117,13 +117,31 @@ export async function GET(req: NextRequest) {
 
   let items = data ?? []
 
-  // Workers only see plans whose scheduled_date has arrived (or plans with no date set)
   if (!isAdmin) {
     const today = new Date().toISOString().split('T')[0]
+
+    // Look up the worker's assigned project and section
+    const { data: emp } = await supabase
+      .from('surveycollection_employee')
+      .select('project_name, section_name')
+      .eq('user_id', session.user.id)
+      .limit(1)
+
+    const workerProject = emp?.[0]?.project_name ?? null
+    const workerSection = emp?.[0]?.section_name ?? null
+
     items = items.filter((item: any) => {
+      // Must be scheduled for today or earlier (or no date set)
       const scheduled = item.custom_data?.scheduled_date
-      if (!scheduled) return true
-      return scheduled <= today
+      if (scheduled && scheduled > today) return false
+
+      // Must match worker's project (if the plan has one set)
+      if (item.project_name && item.project_name !== workerProject) return false
+
+      // Must match worker's section (if the plan has one set)
+      if (item.section_name && item.section_name !== workerSection) return false
+
+      return true
     })
   }
 

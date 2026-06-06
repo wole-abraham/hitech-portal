@@ -1,10 +1,155 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import AmbientBackground from '@/components/AmbientBackground'
 import Select from '@/components/Select'
 import type { Employee, Machine, PersonRow, MachineRow } from '@/lib/types'
+
+type ChainageResult = { chainage: string; name: string; label: string | null; section_name: string | null }
+
+function ChainageInput({ label, project, section, value, onChange }: {
+  label: string; project: string; section: string;
+  value: string; onChange: (val: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<ChainageResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node
+      if (triggerRef.current && !triggerRef.current.contains(target)) {
+        const drop = document.getElementById('chainage-drop-planned-' + label)
+        if (drop && drop.contains(target)) return
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open, label])
+
+  useEffect(() => {
+    if (open && searchRef.current) setTimeout(() => searchRef.current?.focus(), 40)
+  }, [open])
+
+  async function fetchResults(q: string) {
+    if (!project) return
+    setLoading(true)
+    const params = new URLSearchParams({ project, section, q })
+    const res = await fetch(`/api/reports/chainage?${params}`)
+    const data = await res.json()
+    setResults(data.results || [])
+    setLoading(false)
+  }
+
+  function openDrop() {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) setDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+    setQuery('')
+    setOpen(o => {
+      if (!o) fetchResults('')
+      return !o
+    })
+  }
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div ref={triggerRef}>
+        <button
+          type="button"
+          onClick={openDrop}
+          disabled={!project}
+          style={{
+            width: '100%', padding: '12px 14px',
+            background: !project ? 'rgba(0,0,0,0.04)' : C.inputBg,
+            border: `1px solid ${open ? 'rgba(245,158,11,0.50)' : 'rgba(0,0,0,0.14)'}`,
+            borderRadius: 11, color: value ? C.text : C.muted,
+            fontSize: '0.92rem', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            cursor: !project ? 'not-allowed' : 'pointer', outline: 'none', textAlign: 'left',
+            boxShadow: open ? '0 0 0 3px rgba(245,158,11,0.12)' : 'none',
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+            opacity: !project ? 0.5 : 1,
+          }}
+        >
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {value || (!project ? 'Select project first' : 'Select chainage…')}
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={open ? C.orange : C.muted} strokeWidth="2.5"
+            style={{ flexShrink: 0, marginLeft: 8, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div id={`chainage-drop-planned-${label}`} style={{
+          position: 'fixed',
+          top: dropPos.top, left: dropPos.left, width: Math.max(dropPos.width, 260),
+          zIndex: 9999,
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.10)',
+          borderRadius: 12,
+          boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); fetchResults(e.target.value) }}
+              placeholder="Search chainage…"
+              style={{
+                width: '100%', padding: '8px 10px',
+                background: '#f5f4f2', border: '1px solid rgba(0,0,0,0.10)',
+                borderRadius: 8, fontSize: '0.88rem', fontFamily: 'inherit',
+                color: C.text, outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+            {loading ? (
+              <div style={{ padding: '14px 16px', color: C.sub, fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>Loading…</div>
+            ) : results.length === 0 ? (
+              <div style={{ padding: '14px 16px', color: C.sub, fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                {project ? 'No chainages found' : 'Select project first'}
+              </div>
+            ) : (
+              results.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { onChange(r.chainage); setOpen(false) }}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: r.chainage === value ? 'rgba(245,158,11,0.10)' : 'transparent',
+                    border: 'none', cursor: 'pointer', textAlign: 'left',
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                    borderBottom: i < results.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                  }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: '0.88rem', color: C.text, fontFamily: 'var(--font-mono)' }}>{r.chainage}</span>
+                  {(r.name !== r.chainage || r.label) && (
+                    <span style={{ fontSize: '0.72rem', color: C.muted }}>{r.label || r.name}</span>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 type PA = {
   id: number
@@ -453,15 +598,26 @@ export default function PlannedPage() {
 
           {/* 4. Chainage */}
           <Card icon="📍" title="Chainage" cardBg={CARD_COLORS[1]}>
+            {!form.project_name && (
+              <div style={{ fontSize: '0.72rem', color: C.sub, fontFamily: 'var(--font-mono)', padding: '4px 2px' }}>
+                Select a project above to pick chainages from the database.
+              </div>
+            )}
             <Row2>
-              <div>
-                <Label>Start Chainage</Label>
-                <input type="text" style={inp} value={form.start_chainage} onChange={e => setF('start_chainage')(e.target.value)} placeholder="e.g. 1+250" />
-              </div>
-              <div>
-                <Label>End Chainage</Label>
-                <input type="text" style={inp} value={form.end_chainage} onChange={e => setF('end_chainage')(e.target.value)} placeholder="e.g. 2+000" />
-              </div>
+              <ChainageInput
+                label="Start Chainage"
+                project={form.project_name}
+                section={form.section_name}
+                value={form.start_chainage}
+                onChange={setF('start_chainage')}
+              />
+              <ChainageInput
+                label="End Chainage"
+                project={form.project_name}
+                section={form.section_name}
+                value={form.end_chainage}
+                onChange={setF('end_chainage')}
+              />
             </Row2>
           </Card>
 
@@ -745,6 +901,93 @@ export default function PlannedPage() {
   )
 }
 
+function EditChainagePicker({ label, project, section, value, onChange }: {
+  label: string; project: string; section: string; value: string; onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<ChainageResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node
+      const drop = document.getElementById('ecpick-' + label)
+      if (drop && drop.contains(target)) return
+      if (triggerRef.current && !triggerRef.current.contains(target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open, label])
+
+  async function fetch_(q: string) {
+    if (!project) return
+    setLoading(true)
+    const params = new URLSearchParams({ project, section, q })
+    const res = await fetch(`/api/reports/chainage?${params}`)
+    const data = await res.json()
+    setResults(data.results || [])
+    setLoading(false)
+  }
+
+  function openDrop() {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (rect) setDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+    if (!open) fetch_(query)
+    setOpen(o => !o)
+  }
+
+  const eInpS: React.CSSProperties = {
+    width: '100%', padding: '7px 10px',
+    background: 'rgba(0,0,0,0.05)', border: `1px solid rgba(0,0,0,0.12)`,
+    borderRadius: 8, color: '#1a1610', fontSize: '0.82rem',
+    fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none',
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>{label}</div>
+      <div ref={triggerRef}>
+        <button type="button" onClick={openDrop} disabled={!project}
+          style={{ ...eInpS, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: !project ? 'not-allowed' : 'pointer', opacity: !project ? 0.5 : 1 }}>
+          <span style={{ flex: 1, textAlign: 'left', color: value ? '#1a1610' : C.sub }}>{value || 'Select…'}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+      </div>
+      {open && (
+        <div id={`ecpick-${label}`} style={{
+          position: 'fixed', top: dropPos.top, left: dropPos.left, width: Math.max(dropPos.width, 220),
+          zIndex: 9999, background: '#fff', border: '1px solid rgba(0,0,0,0.10)',
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)', overflow: 'hidden',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <input type="text" value={query} onChange={e => { setQuery(e.target.value); fetch_(e.target.value) }}
+              placeholder="Search…" autoFocus
+              style={{ width: '100%', padding: '6px 8px', background: '#f5f4f2', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, fontSize: '0.8rem', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+            {loading ? (
+              <div style={{ padding: '10px 12px', color: C.sub, fontSize: '0.76rem', fontFamily: 'var(--font-mono)' }}>Loading…</div>
+            ) : results.length === 0 ? (
+              <div style={{ padding: '10px 12px', color: C.sub, fontSize: '0.76rem', fontFamily: 'var(--font-mono)' }}>No chainages found</div>
+            ) : results.map((r, i) => (
+              <button key={i} type="button" onClick={() => { onChange(r.chainage); setOpen(false) }}
+                style={{ width: '100%', padding: '8px 12px', background: r.chainage === value ? 'rgba(245,158,11,0.10)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 1, borderBottom: i < results.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#1a1610', fontFamily: 'var(--font-mono)' }}>{r.chainage}</span>
+                {(r.label || (r.name !== r.chainage)) && <span style={{ fontSize: '0.68rem', color: C.muted }}>{r.label || r.name}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, editFilteredSubtypes, editFilteredSections, categories, projects, saving, onEdit, onCancelEdit, onSaveEdit, onToggle, onDelete, setE, setEditVals, allTypes, allSubtypes, allSections }: {
   item: PA; delay: number; role: string
   isEditing: boolean; editVals: Partial<PA>
@@ -849,13 +1092,23 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
                 {['Sunny','Cloudy','Rainy','Windy','Overcast','Foggy'].map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
-            <div style={{ flex: '0 1 130px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Start Chainage</div>
-              <input type="text" value={editVals.start_chainage ?? ''} onChange={e => setE('start_chainage')(e.target.value)} placeholder="e.g. 1+250" style={eInp} />
+            <div style={{ flex: '0 1 160px' }}>
+              <EditChainagePicker
+                label="Start Chainage"
+                project={editVals.project_name || ''}
+                section={editVals.section_name || ''}
+                value={editVals.start_chainage ?? ''}
+                onChange={v => setEditVals(ev => ({ ...ev, start_chainage: v }))}
+              />
             </div>
-            <div style={{ flex: '0 1 130px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>End Chainage</div>
-              <input type="text" value={editVals.end_chainage ?? ''} onChange={e => setE('end_chainage')(e.target.value)} placeholder="e.g. 2+000" style={eInp} />
+            <div style={{ flex: '0 1 160px' }}>
+              <EditChainagePicker
+                label="End Chainage"
+                project={editVals.project_name || ''}
+                section={editVals.section_name || ''}
+                value={editVals.end_chainage ?? ''}
+                onChange={v => setEditVals(ev => ({ ...ev, end_chainage: v }))}
+              />
             </div>
           </div>
         </div>
