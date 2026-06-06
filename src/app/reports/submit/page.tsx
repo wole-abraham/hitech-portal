@@ -463,9 +463,6 @@ function SubmitPageInner() {
   const [submitting, setSubmitting] = useState(false)
   const [submitStage, setSubmitStage] = useState('')
 
-  const [reuseOpen, setReuseOpen] = useState(false)
-  const [reuseReports, setReuseReports] = useState<any[]>([])
-  const [reuseLoading, setReuseLoading] = useState(false)
 
   const filteredTypes = allTypes.filter(t => categories.find(c => c.name === form.activity_category)?.id === t.category_id)
   const filteredSubtypes = allSubtypes.filter(s => allTypes.find(t => t.name === form.activity_type)?.id === s.activity_type_id)
@@ -607,62 +604,6 @@ function SubmitPageInner() {
     }
   }, [])
 
-  async function openReuse() {
-    setReuseOpen(true)
-    setReuseLoading(true)
-    try {
-      const res = await fetch('/api/reports/reuse')
-      const data = await res.json()
-      setReuseReports(Array.isArray(data.reports) ? data.reports : [])
-    } catch { setReuseReports([]) }
-    setReuseLoading(false)
-  }
-
-  function applyReuse(report: any) {
-    setReuseOpen(false)
-    setForm(f => ({
-      ...f,
-      date_of_activity: new Date().toISOString().split('T')[0],
-      weather: report.weather || '',
-      project_name: report.project_name || '',
-      section_name: report.section_name || '',
-      activity_category: report.activity_category || '',
-      activity_type: report.activity_type || '',
-      activity_subtype: report.activity_subtype || '',
-      side: report.side || '',
-      start_chainage: report.start_chainage || '',
-      end_chainage: report.end_chainage || '',
-      activity_status: 'Ongoing',
-    }))
-    if (Array.isArray(report.employees) && report.employees.length > 0) {
-      setEmployeeRows(report.employees.map((e: any) => ({
-        name: e.employee_name || (e.employee_missing_name ? '__other__' : ''),
-        role: e.employee_role || '',
-        party: 'Employee',
-        subcontractor_name: '',
-        missing_name: e.employee_missing_name || '',
-      })))
-    }
-    if (Array.isArray(report.supervisors) && report.supervisors.length > 0) {
-      setSupervisorRows(report.supervisors.map((s: any) => ({
-        name: s.supervisor_name || (s.supervisor_missing_name ? '__other__' : ''),
-        role: '',
-        party: s.party || 'Employee',
-        subcontractor_name: s.subcontractor_name || '',
-        missing_name: s.supervisor_missing_name || '',
-      })))
-    }
-    if (Array.isArray(report.machines) && report.machines.length > 0) {
-      setMachineRows(report.machines.map((m: any) => ({
-        equipment_id: null,
-        fleet_number: m.fleet_number || m.plate_number || '',
-        machine_name: m.machine_name || '',
-        machine_belonging: m.ownership || '',
-        driver_name: m.driver_name || '',
-      })))
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -768,17 +709,6 @@ function SubmitPageInner() {
           </svg>
           Back
         </a>
-        <button type="button" onClick={openReuse} style={{
-          height: 34, padding: '0 14px', borderRadius: 8,
-          background: C.inputBg, color: C.muted,
-          font: '700 11px/1 var(--font-display)',
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          border: `1px solid ${C.border}`,
-          cursor: 'pointer', flexShrink: 0,
-          letterSpacing: '0.09em', textTransform: 'uppercase',
-        }}>
-          ↺ Reuse
-        </button>
         <div>
           <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>Activity Report</div>
           <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
@@ -792,57 +722,6 @@ function SubmitPageInner() {
 
       <form id="activity-form" onSubmit={handleSubmit} style={{ flex: 1, padding: '20px 16px 120px', maxWidth: 1100, margin: '0 auto', width: '100%', position: 'relative', zIndex: 2 }}>
         <div className="submit-cards">
-
-        {/* Reuse Previous Report modal */}
-        {reuseOpen && (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 9998,
-            background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-            padding: '0 0 80px',
-          }} onClick={() => setReuseOpen(false)}>
-            <div style={{
-              background: '#ffffff', border: `1px solid ${C.orangeBorder}`,
-              borderRadius: 20, padding: '18px 16px',
-              width: '100%', maxWidth: 560, maxHeight: '68vh',
-              display: 'flex', flexDirection: 'column', gap: 12,
-            }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: C.text, fontFamily: 'var(--font-display)' }}>Reuse Previous Report</div>
-                  <div style={{ fontSize: '0.68rem', color: C.muted, marginTop: 2, fontFamily: 'var(--font-mono)' }}>Select a report to pre-fill this form</div>
-                </div>
-                <button type="button" onClick={() => setReuseOpen(false)}
-                  style={{ background: 'transparent', border: 'none', color: C.muted, cursor: 'pointer', fontSize: '1.1rem', padding: 4 }}>✕</button>
-              </div>
-              <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {reuseLoading ? (
-                  <div style={{ color: C.muted, fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>Loading reports…</div>
-                ) : reuseReports.length === 0 ? (
-                  <div style={{ color: C.muted, fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>No previous reports found.</div>
-                ) : reuseReports.map((r: any) => (
-                  <button type="button" key={r.id} onClick={() => applyReuse(r)} style={{
-                    width: '100%', padding: '12px 14px', textAlign: 'left',
-                    background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.08)',
-                    borderRadius: 12, cursor: 'pointer', color: C.text,
-                    display: 'flex', flexDirection: 'column', gap: 3,
-                    transition: 'background 0.15s',
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.87rem', color: C.text }}>
-                      {r.project_name || '—'}{r.section_name ? ` / ${r.section_name}` : ''}
-                    </div>
-                    <div style={{ fontSize: '0.74rem', color: C.orange }}>
-                      {r.activity_category}{r.activity_type ? ` › ${r.activity_type}` : ''}
-                    </div>
-                    <div style={{ fontSize: '0.71rem', color: C.muted, fontFamily: 'var(--font-mono)' }}>
-                      {r.date_of_activity} · {r.reporter_name} · {r.start_chainage} → {r.end_chainage}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Error modal */}
         {error && (
