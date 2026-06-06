@@ -24,10 +24,13 @@ const bebasNeue = Bebas_Neue({
   weight: "400",
 });
 
+const APP_NAME    = process.env.NEXT_PUBLIC_APP_NAME    || 'Portal'
+const APP_COMPANY = process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'
+const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || 'Daily Activity & Asset Management'
+
 export const metadata: Metadata = {
-  title: "Hitech Portal",
-  description: "Daily Activity & Asset Management — Hitech Construction Ltd",
-  icons: { apple: '/logo.jpg' },
+  title: `${APP_NAME} — ${APP_COMPANY}`,
+  description: `${APP_TAGLINE} — ${APP_COMPANY}`,
 };
 
 export default function RootLayout({
@@ -40,9 +43,7 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", dmSans.variable, dmMono.variable, bebasNeue.variable, "font-sans", geist.variable)}
     >
-      <head>
-        <link rel="preload" as="image" href="/logo.jpg" />
-      </head>
+      <head></head>
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster position="bottom-right" theme="light" richColors />

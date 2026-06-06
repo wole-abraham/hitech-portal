@@ -29,7 +29,7 @@ function HUD({ vis }: { vis: boolean }) {
         letterSpacing: '0.12em', lineHeight: 1,
         marginBottom: 12, textTransform: 'uppercase',
       }}>
-        {'HITECH'.split('').map((ch, i) => (
+        {(process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL').split('').map((ch, i) => (
           <span key={i} style={{
             display: 'inline-block', color: '#ede8de',
             textShadow: '0 2px 32px rgba(0,0,0,0.85)',
@@ -47,7 +47,7 @@ function HUD({ vis }: { vis: boolean }) {
         opacity: vis ? 1 : 0, transition: 'opacity 0.6s ease 0.65s',
         marginBottom: 40,
       }}>
-        Construction Ltd · Site Command
+        {process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'} · Site Command
       </div>
 
       <div style={{

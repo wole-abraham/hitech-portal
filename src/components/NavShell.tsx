@@ -171,28 +171,17 @@ export default function NavShell({ title, subtitle, children, action }: NavShell
             justifyContent: collapsed ? 'center' : 'flex-start',
             textDecoration: 'none', flexShrink: 0,
           }}>
-            <img
-              src="/logo.jpg"
-              alt="Hitech"
-              style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, objectFit: 'cover' }}
-              onError={e => {
-                const t = e.currentTarget
-                t.style.display = 'none'
-                const fb = t.nextElementSibling as HTMLElement | null
-                if (fb) fb.style.display = 'flex'
-              }}
-            />
             <div style={{
               width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              background: '#b45309', display: 'none', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: 14, color: '#fff', fontFamily: 'var(--font-display)',
-            }}>H</div>
+              background: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 13, color: '#fff', fontFamily: 'var(--font-display)',
+            }}>{(process.env.NEXT_PUBLIC_APP_NAME || 'P')[0]}</div>
             {!collapsed && (
               <span style={{
                 fontWeight: 800, fontSize: 13, color: T.text,
                 fontFamily: 'var(--font-display)', letterSpacing: '0.12em',
                 textTransform: 'uppercase', whiteSpace: 'nowrap',
-              }}>HITECH</span>
+              }}>{process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL'}</span>
             )}
           </Link>
 

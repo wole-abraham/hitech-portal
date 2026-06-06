@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AmbientBackground from '@/components/AmbientBackground'
 
+const APP_NAME    = process.env.NEXT_PUBLIC_APP_NAME    || 'PORTAL'
+const APP_COMPANY = process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'
+const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || 'Daily Activity & Asset Management'
+
 const BOOT_LINES = [
   '> SYS INIT...              [████████] OK',
   '> AUTH MODULE...           ONLINE',
@@ -61,7 +65,7 @@ export default function LoginPage() {
     router.push(data.role === 'worker' ? '/reports/start' : '/portal')
   }
 
-  const wordmark = 'HITECH'.split('')
+  const wordmark = APP_NAME.split('')
 
   const inputBase: React.CSSProperties = {
     width: '100%', padding: '12px 14px',
@@ -109,7 +113,7 @@ export default function LoginPage() {
             minWidth: 290, position: 'relative', zIndex: 1,
           }}>
             <div style={{ color: '#d0d0d0', marginBottom: 4, fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              HITECH CONSTRUCTION LTD — PORTAL v2026.05
+              {APP_COMPANY.toUpperCase()} — PORTAL v2026.05
             </div>
             {BOOT_LINES.map((line, i) => (
               bootLines > i && (
@@ -139,16 +143,7 @@ export default function LoginPage() {
           {/* ── Brand panel (left on desktop) ── */}
           <div className="login-brand">
           <div style={{ marginBottom: 36 }}>
-            <div style={{ position: 'relative', display: 'inline-block', marginBottom: 20 }}>
-              <img src="/logo.jpg" alt="Hitech" style={{
-                position: 'relative',
-                width: 'clamp(80px, 14vw, 120px)',
-                height: 'clamp(80px, 14vw, 120px)',
-                borderRadius: 20,
-                display: 'block',
-                boxShadow: '0 0 0 2px rgba(0,0,0,0.08), 0 16px 48px rgba(0,0,0,0.12)',
-              }} />
-            </div>
+            <div style={{ marginBottom: 20 }}>
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 800,
               fontSize: 'clamp(2.4rem, 11vw, 4.8rem)',
@@ -175,7 +170,7 @@ export default function LoginPage() {
               transform: vis ? 'translateY(0)' : 'translateY(6px)',
               transition: 'opacity 0.5s ease 0.56s, transform 0.5s ease 0.56s',
             }}>
-              Construction Ltd
+              {APP_COMPANY}
             </div>
 
             <div style={{
@@ -193,7 +188,7 @@ export default function LoginPage() {
               opacity: vis ? 1 : 0,
               transition: 'opacity 0.5s ease 1.15s',
             }}>
-              Daily Activity &amp; Asset Management
+              {APP_TAGLINE}
             </div>
           </div>
           </div>
@@ -220,16 +215,10 @@ export default function LoginPage() {
               ].join(', '),
             }}
           >
-            {/* Logo — mobile only */}
+            {/* Brand — mobile only */}
             <div className="login-mobile-logo" style={{ textAlign: 'center', marginBottom: 18 }}>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src="/logo.jpg" alt="Hitech" style={{
-                  position: 'relative',
-                  width: 80, height: 80, borderRadius: 16,
-                  boxShadow: '0 0 0 2px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.08)',
-                  display: 'block',
-                }} />
-              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.04em', color: '#1a1610' }}>{APP_NAME}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.16em', color: '#6b6055', textTransform: 'uppercase', marginTop: 4 }}>{APP_COMPANY}</div>
             </div>
 
             <div style={{
@@ -490,7 +479,7 @@ export default function LoginPage() {
                 fontFamily: 'var(--font-mono)', color: '#8c8480', fontSize: '0.6rem',
                 letterSpacing: '0.09em', textTransform: 'uppercase', margin: 0,
               }}>
-                Hitech Construction Ltd
+                {APP_COMPANY}
               </p>
               <p style={{
                 fontFamily: 'var(--font-mono)', color: '#8c8480', fontSize: '0.6rem',
