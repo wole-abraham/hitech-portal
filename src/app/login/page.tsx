@@ -300,7 +300,9 @@ export default function LoginPage() {
                   fontWeight: 500, textTransform: 'uppercase',
                   letterSpacing: '0.11em', color: '#5a5248',
                   marginBottom: 7, display: 'flex', alignItems: 'center', gap: 7,
+                  justifyContent: 'space-between',
                 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                   Password
                   <span style={{
                     display: 'inline-block',
@@ -311,6 +313,16 @@ export default function LoginPage() {
                   }}>
                     {unlocked ? '🔓' : '🔒'}
                   </span>
+                  </span>
+                  <a href="/forgot-password" style={{
+                    fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
+                    color: '#8c8480', textDecoration: 'none',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#f59e0b')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#8c8480')}
+                  >Forgot?</a>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <PowerLine active={pwFocused && unlocked} />
