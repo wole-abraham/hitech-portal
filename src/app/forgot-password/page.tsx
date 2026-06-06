@@ -42,12 +42,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
+    <main style={{ minHeight: '100vh', background: '#f8f7f5', position: 'relative', color: '#1a1610' }}>
       <AmbientBackground />
       <div style={{
         minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
         padding: '24px 16px',
+        position: 'relative', zIndex: 2,
       }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
 
