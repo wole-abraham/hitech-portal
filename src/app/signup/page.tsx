@@ -39,7 +39,7 @@ export default function SignupPage() {
     })
     const data = await res.json()
     if (!res.ok) { setLoading(false); setError(data.error || 'Sign up failed.'); return }
-    router.push('/portal')
+    router.push('/verify-email')
   }
 
   const inputBase: React.CSSProperties = {

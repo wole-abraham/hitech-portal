@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (!user.is_active) {
+    // Check if they have a pending verification token
+    const { data: pending } = await supabase
+      .from('email_verification_tokens')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('used', false)
+      .limit(1)
+    if (pending && pending.length > 0) {
+      return NextResponse.json({ error: 'Please verify your email before signing in. Check your inbox.' }, { status: 401 })
+    }
     return NextResponse.json({ error: 'Account is disabled.' }, { status: 401 })
   }
 

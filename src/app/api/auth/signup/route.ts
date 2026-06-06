@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { pbkdf2, randomBytes } from 'crypto'
 import { promisify } from 'util'
-import { sessionOptions, AppSession } from '@/lib/session'
+import { Resend } from 'resend'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://hitech.datatodecisions.org'
 
 const pbkdf2Async = promisify(pbkdf2)
 
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     password: encoded,
     is_staff: false,
     is_superuser: false,
-    is_active: true,
+    is_active: false,
     date_joined: now,
     last_login: now,
   }).select('id').single()
@@ -91,19 +92,36 @@ export async function POST(req: NextRequest) {
     console.error('Employee insert failed:', empError.message)
   }
 
-  const res = NextResponse.json({ ok: true })
-  const session = await getIronSession<AppSession>(req, res, sessionOptions)
-  session.user = {
-    id: newUser.id,
-    username,
-    first_name: first_name.trim(),
-    last_name: last_name.trim(),
-    email,
-    is_staff: false,
-    is_superuser: false,
-    role: 'worker',
-  }
-  await session.save()
+  // Generate verification token (24-hour expiry)
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  await supabase.from('email_verification_tokens').insert({
+    user_id: newUser.id, token, expires_at: expiresAt,
+  })
 
-  return res
+  const verifyLink = `${SITE_URL}/verify-email?token=${token}`
+  const name = first_name.trim()
+
+  if (process.env.RESEND_API_KEY) {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    await resend.emails.send({
+      from: 'Hi-Tech Portal <noreply@hitech.datatodecisions.org>',
+      to: email,
+      subject: 'Verify your Hi-Tech Portal account',
+      html: `
+        <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:32px;background:#1a1208;color:#f2ede3;border-radius:12px;">
+          <div style="font-size:1.4rem;font-weight:800;color:#f2b950;margin-bottom:4px;letter-spacing:-0.02em;">HI-TECH</div>
+          <div style="font-size:0.65rem;letter-spacing:0.18em;color:#8c7a58;text-transform:uppercase;margin-bottom:28px;">Construction Ltd — Portal</div>
+          <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:16px;">Hi ${name},</p>
+          <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:24px;">Welcome to Hi-Tech Portal. Click the button below to verify your email address and activate your account. This link expires in <strong style="color:#f2b950;">24 hours</strong>.</p>
+          <a href="${verifyLink}" style="display:inline-block;padding:13px 28px;background:#f2b950;color:#1a1208;font-weight:800;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;border-radius:9px;text-decoration:none;">Verify Email →</a>
+          <p style="color:#8c7a58;font-size:0.75rem;margin-top:28px;">If you didn't sign up for Hi-Tech Portal, you can ignore this email.</p>
+          <hr style="border:none;border-top:1px solid rgba(242,185,80,0.15);margin:24px 0;" />
+          <p style="color:#8c7a58;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;">Hitech Construction Ltd · Daily Activity &amp; Asset Management</p>
+        </div>
+      `,
+    })
+  }
+
+  return NextResponse.json({ ok: true, pending: true })
 }

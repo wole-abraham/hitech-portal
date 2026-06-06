@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import { sessionOptions, AppSession } from '@/lib/session'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password']
+const PUBLIC_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email']
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
