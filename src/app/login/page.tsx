@@ -192,6 +192,7 @@ export default function LoginPage() {
             </div>
           </div>
           </div>
+          </div>{/* /login-brand */}
 
           {/* ── Form panel ── */}
           <div className="login-panel">
@@ -490,7 +491,6 @@ export default function LoginPage() {
             </div>
           </div>
           </div>
-          </div>{/* login-brand */}
 
         </div>
       </div>
