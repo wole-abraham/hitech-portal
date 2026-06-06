@@ -31,6 +31,9 @@ const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || 'Daily Activity & Ass
 export const metadata: Metadata = {
   title: `${APP_NAME} — ${APP_COMPANY}`,
   description: `${APP_TAGLINE} — ${APP_COMPANY}`,
+  icons: {
+    icon: process.env.NEXT_PUBLIC_FAVICON_URL || '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
