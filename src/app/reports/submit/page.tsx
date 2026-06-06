@@ -409,6 +409,7 @@ function SubmitPageInner() {
   const fromId = searchParams.get('from')
 
   const [planTitle, setPlanTitle] = useState<string | null>(null)
+  const [plannedChainages, setPlannedChainages] = useState<{ start: string; end: string } | null>(null)
 
   const [form, setForm] = useState({
     date_of_activity: new Date().toISOString().split('T')[0],
@@ -560,8 +561,8 @@ function SubmitPageInner() {
           activity_subtype:            p.activity_subtype            || f.activity_subtype,
           side:                        p.side                        || f.side,
           weather:                     p.weather                     || f.weather,
-          start_chainage:              p.start_chainage              || f.start_chainage,
-          end_chainage:                p.end_chainage                || f.end_chainage,
+          // Planned chainages are NOT pre-filled — worker enters actual values
+          // They are captured separately below for display and storage
           party_for_activity:          p.party_for_activity          || f.party_for_activity,
           subcontractor_name_activity: p.subcontractor_name_activity || f.subcontractor_name_activity,
           activity_status:             p.activity_status             || f.activity_status,
@@ -572,6 +573,9 @@ function SubmitPageInner() {
           car_used:                    p.car_used                    || f.car_used,
           team_car:                    p.team_car                    || f.team_car,
         }))
+        if (p.start_chainage || p.end_chainage) {
+          setPlannedChainages({ start: p.start_chainage || '', end: p.end_chainage || '' })
+        }
         if (Array.isArray(d.employees) && d.employees.length > 0) {
           setEmployeeRows(d.employees.map((e: any) => ({
             name:               e.employee_name || (e.employee_missing_name ? '__other__' : ''),
@@ -687,6 +691,11 @@ function SubmitPageInner() {
         machines: machineRows,
         custom_data: {
           ...customData,
+          // Planned chainages from the plan template (read-only reference)
+          ...(plannedChainages ? {
+            planned_start_chainage: plannedChainages.start || undefined,
+            planned_end_chainage:   plannedChainages.end   || undefined,
+          } : {}),
           // Merge component reference data so it's saved with the report
           ...(component ? {
             _comp_measurements:          component.measurements ?? undefined,
@@ -1111,8 +1120,46 @@ function SubmitPageInner() {
 
         {/* 3. Chainage */}
         <Card icon="📍" title="Chainage" delay={180} cardBg={CARD_COLORS[0]}>
+          {plannedChainages && (
+            <div style={{
+              background: 'rgba(245,158,11,0.07)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              borderRadius: 10, padding: '10px 14px',
+              marginBottom: 4,
+            }}>
+              <div style={{ fontSize: '0.58rem', fontFamily: 'var(--font-mono)', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                Planned (from template — reference only)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Planned Start</div>
+                  <div style={{
+                    padding: '9px 12px', background: 'rgba(245,158,11,0.06)',
+                    border: '1px solid rgba(245,158,11,0.20)', borderRadius: 8,
+                    fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    fontSize: '0.88rem', color: C.orange,
+                    letterSpacing: '0.04em',
+                  }}>
+                    {plannedChainages.start || <span style={{ color: C.muted, fontWeight: 400 }}>—</span>}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Planned End</div>
+                  <div style={{
+                    padding: '9px 12px', background: 'rgba(245,158,11,0.06)',
+                    border: '1px solid rgba(245,158,11,0.20)', borderRadius: 8,
+                    fontFamily: 'var(--font-mono)', fontWeight: 700,
+                    fontSize: '0.88rem', color: C.orange,
+                    letterSpacing: '0.04em',
+                  }}>
+                    {plannedChainages.end || <span style={{ color: C.muted, fontWeight: 400 }}>—</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <ChainageInput
-            label="Start Chainage" required
+            label={plannedChainages ? 'Actual Start Chainage' : 'Start Chainage'} required
             project={form.project_name} section={form.section_name}
             value={form.start_chainage}
             onChange={v => set('start_chainage', v)}
@@ -1120,7 +1167,7 @@ function SubmitPageInner() {
           />
           <div style={{ marginTop: 12 }} />
           <ChainageInput
-            label="End Chainage" required
+            label={plannedChainages ? 'Actual End Chainage' : 'End Chainage'} required
             project={form.project_name} section={form.section_name}
             value={form.end_chainage}
             onChange={v => set('end_chainage', v)}
