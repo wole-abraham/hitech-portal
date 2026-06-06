@@ -48,7 +48,7 @@ export async function POST(
   await supabase.from('surveycollection_machinestatusreport').insert({
     date_time: new Date().toISOString(),
     machine_type: machine.machine_type || '',
-    machine_belonging: machine.machine_belonging || 'Hitech',
+    machine_belonging: machine.machine_belonging || (process.env.NEXT_PUBLIC_APP_NAME || 'Company'),
     fleet_number: machine.fleet_number || '',
     deployment_state: 'Received at head office',
     machine_status: machine.health_status || '',

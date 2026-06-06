@@ -1200,7 +1200,7 @@ export default function ConfigPage() {
         <Section icon="👷" title="Site Supervisors" resource="supervisors" related={related} fields={[
           { key: 'name', label: 'Name', required: true },
           { key: 'party', label: 'Party', type: 'select', getOptions: () => [
-            { value: 'Hitech employees', label: 'Hitech employees' },
+            { value: `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`, label: `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees` },
             { value: 'Sub-contractor', label: 'Sub-contractor' },
           ]},
           { key: 'order', label: 'Order', type: 'number' },
@@ -1208,7 +1208,7 @@ export default function ConfigPage() {
         <Section icon="🧑‍💼" title="Site Engineers" resource="engineers" related={related} fields={[
           { key: 'name', label: 'Name', required: true },
           { key: 'party', label: 'Party', type: 'select', getOptions: () => [
-            { value: 'Hitech employees', label: 'Hitech employees' },
+            { value: `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`, label: `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees` },
             { value: 'Sub-contractor', label: 'Sub-contractor' },
           ]},
           { key: 'order', label: 'Order', type: 'number' },

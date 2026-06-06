@@ -58,12 +58,12 @@ export default function ForgotPasswordPage() {
               fontFamily: 'var(--font-display)', fontWeight: 800,
               fontSize: '2.2rem', letterSpacing: '-0.04em', lineHeight: 0.9,
               color: '#1a1610',
-            }}>HITECH</div>
+            }}>{process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL'}</div>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.6rem',
               letterSpacing: '0.18em', color: '#6b6055',
               textTransform: 'uppercase', marginTop: 6,
-            }}>Construction Ltd</div>
+            }}>{process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'}</div>
           </div>
 
           <div style={{

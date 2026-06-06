@@ -586,7 +586,7 @@ function SubmitPageInner() {
           setSupervisorRows(d.supervisors.map((s: any) => ({
             name:               s.supervisor_name || (s.supervisor_missing_name ? '__other__' : ''),
             role:               '',
-            party:              s.party || 'Hitech employees',
+            party:              s.party || `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`,
             subcontractor_name: s.subcontractor_name || '',
             missing_name:       s.supervisor_missing_name || '',
           })))
@@ -714,7 +714,7 @@ function SubmitPageInner() {
           <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
             {planTitle ? (
               <span>Plan: <span style={{ color: C.orange }}>{planTitle}</span></span>
-            ) : 'Hitech Construction'}
+            ) : (process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd')}
           </div>
         </div>
         </div>
@@ -1108,9 +1108,9 @@ function SubmitPageInner() {
           cardBg={CARD_COLORS[1]}
         />
         <RepeatPersonGroup label="Supervisors" icon="🦺" rows={supervisorRows} setRows={setSupervisorRows} employees={employees} delay={280}
-          partyOptions={['Hitech employees', 'Sub-contractor']}
+          partyOptions={[`${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`, 'Sub-contractor']}
           nameList={[
-            ...employees.filter(e => e.role === 'Supervisor').map(e => ({ id: e.id, name: e.name, party: 'Hitech employees' })),
+            ...employees.filter(e => e.role === 'Supervisor').map(e => ({ id: e.id, name: e.name, party: `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees` })),
             { id: -1, name: 'Zenith', party: 'Sub-contractor' },
             { id: -2, name: 'SPG', party: 'Sub-contractor' },
             { id: -3, name: 'Multi road', party: 'Sub-contractor' },

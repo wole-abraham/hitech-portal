@@ -629,7 +629,7 @@ export default function PlannedPage() {
                 value={form.party_for_activity}
                 onChange={v => { setF('party_for_activity')(v); if (v !== 'Sub-contractor') setF('subcontractor_name_activity')('') }}
                 placeholder="Select"
-                options={['Hitech','Sub-contractor'].map(s => ({ value: s, label: s }))}
+                options={[process.env.NEXT_PUBLIC_APP_NAME || 'Company', 'Sub-contractor'].map(s => ({ value: s, label: s }))}
               />
             </div>
             {form.party_for_activity === 'Sub-contractor' && (
@@ -697,7 +697,7 @@ export default function PlannedPage() {
             label="Supervisors" icon="🦺"
             rows={supervisorRows} setRows={setSupervisorRows}
             nameOptions={supervisorNameOptions}
-            partyOptions={['Hitech employees','Sub-contractor']}
+            partyOptions={[`${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`,'Sub-contractor']}
             cardBg={CARD_COLORS[1]}
           />
 

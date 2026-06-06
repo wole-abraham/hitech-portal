@@ -9,15 +9,15 @@ type IconName = 'report' | 'employees' | 'equipment' | 'submissions' | 'machines
 interface TileProps { href: string; num: string; icon: IconName; tag: string; title: string; desc: string }
 
 const ADMIN_TILES: TileProps[] = [
-  { href: '/reports/start',  num: '01', icon: 'report',      tag: 'Hitech',      title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
+  { href: '/reports/start',  num: '01', icon: 'report',      tag: process.env.NEXT_PUBLIC_APP_NAME || 'Portal',      title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
   { href: '/planned',        num: '02', icon: 'planned',     tag: 'Planning',    title: 'Planned Activities', desc: 'Create and manage pre-filled report templates for your team.' },
   { href: '/employees',      num: '03', icon: 'employees',   tag: 'Management',  title: 'Employees List',     desc: 'Browse workers, track roles, view personnel records.' },
   { href: '/equipment',      num: '04', icon: 'equipment',   tag: 'Assets',      title: 'Equipment Details',  desc: 'Add machines and assign equipment to site personnel.' },
-  { href: '/reports',        num: '05', icon: 'submissions', tag: 'Records',     title: 'Submissions',        desc: 'Browse all submitted Hitech activity reports.' },
+  { href: '/reports',        num: '05', icon: 'submissions', tag: 'Records',     title: 'Submissions',        desc: 'Browse all submitted activity reports.' },
 ]
 
 const WORKER_TILES: TileProps[] = [
-  { href: '/reports/start',   num: '01', icon: 'report',    tag: 'Hitech',    title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
+  { href: '/reports/start',   num: '01', icon: 'report',    tag: process.env.NEXT_PUBLIC_APP_NAME || 'Portal',    title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
   { href: '/planned',         num: '02', icon: 'planned',   tag: 'Planning',  title: 'Planned Activities', desc: 'Pick a pre-planned activity and fill your report.' },
   { href: '/worker/machines', num: '03', icon: 'machines',  tag: 'My Fleet',  title: 'My Machines',        desc: 'View assigned equipment. Confirm receipt or return to base.' },
 ]
@@ -264,7 +264,7 @@ export default function PortalPage() {
     router.push('/login')
   }
 
-  const wordmark = 'HITECH'.split('')
+  const wordmark = (process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL').split('')
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
@@ -311,11 +311,9 @@ export default function PortalPage() {
             transform: vis ? 'translateY(0)' : 'translateY(-8px)',
             transition: 'opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s',
           }}>
-            <img src="/logo.jpg" alt="Hitech" style={{
-              width: 42, height: 42, borderRadius: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
-              flexShrink: 0,
-            }} />
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#fff', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+              {(process.env.NEXT_PUBLIC_APP_NAME || 'P')[0]}
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
@@ -421,7 +419,7 @@ export default function PortalPage() {
             transition: 'opacity 0.5s ease 1.1s',
           }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#8c8480', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-              Hitech Construction Ltd
+              {process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'}
             </span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: '#8c8480', letterSpacing: '0.06em' }}>
               v2026.05

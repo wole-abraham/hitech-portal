@@ -637,7 +637,7 @@ export default function EquipmentPage() {
               <FieldLabel required>Belonging / Owner</FieldLabel>
               <Select value={form.machine_belonging} onChange={v => set('machine_belonging', v)} placeholder="Select owner"
                 options={[
-                  { value: 'Hitech', label: 'Hitech' },
+                  { value: process.env.NEXT_PUBLIC_APP_NAME || 'Company', label: process.env.NEXT_PUBLIC_APP_NAME || 'Company' },
                   { value: 'Renting', label: 'Renting' },
                   { value: 'Subcontractor', label: 'Subcontractor' },
                 ]} />

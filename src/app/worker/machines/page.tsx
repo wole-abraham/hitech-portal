@@ -248,7 +248,7 @@ function MachineCard({ machine, onRefresh, delay = 0 }: { machine: Machine; onRe
             </div>
             <div style={{ fontSize: '0.78rem', color: C.muted, marginBottom: 4, fontFamily: 'var(--font-mono)', letterSpacing: '0.03em' }}>
               Fleet #{machine.fleet_number}
-              {machine.machine_belonging && machine.machine_belonging !== 'Hitech' && (
+              {machine.machine_belonging && machine.machine_belonging !== (process.env.NEXT_PUBLIC_APP_NAME || 'Company') && (
                 <span style={{ color: C.sub, marginLeft: 8 }}>· {machine.machine_belonging}</span>
               )}
             </div>
@@ -338,10 +338,12 @@ export default function WorkerMachinesPage() {
         display: 'flex', alignItems: 'center', gap: 12,
         position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <img src="/logo.jpg" alt="Hitech" style={{
-          width: 36, height: 36, borderRadius: 8,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.5)', flexShrink: 0,
-        }} />
+        <div style={{
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          background: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 800, fontSize: 14, color: '#fff', fontFamily: 'var(--font-display)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+        }}>{(process.env.NEXT_PUBLIC_APP_NAME || 'P')[0]}</div>
         <a href="/portal" style={{
           height: 34, padding: '0 14px', borderRadius: 8,
           background: C.orange, color: '#1a1410',

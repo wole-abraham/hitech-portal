@@ -8,7 +8,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://hitech.datatodecisions.org'
+const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL    || 'https://hitech.datatodecisions.org'
+const APP_NAME    = process.env.NEXT_PUBLIC_APP_NAME    || 'PORTAL'
+const APP_COMPANY = process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'
+const EMAIL_FROM  = process.env.RESEND_FROM_EMAIL       || `noreply@hitech.datatodecisions.org`
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
@@ -50,19 +53,19 @@ export async function POST(req: NextRequest) {
   if (process.env.RESEND_API_KEY) {
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: 'Hi-Tech Portal <noreply@hitech.datatodecisions.org>',
+      from: `${APP_NAME} Portal <${EMAIL_FROM}>`,
       to: user.email,
-      subject: 'Reset your Hi-Tech Portal password',
+      subject: `Reset your ${APP_NAME} Portal password`,
       html: `
         <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:32px;background:#1a1208;color:#f2ede3;border-radius:12px;">
-          <div style="font-size:1.4rem;font-weight:800;color:#f2b950;margin-bottom:4px;letter-spacing:-0.02em;">HI-TECH</div>
-          <div style="font-size:0.65rem;letter-spacing:0.18em;color:#8c7a58;text-transform:uppercase;margin-bottom:28px;">Construction Ltd — Portal</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#f2b950;margin-bottom:4px;letter-spacing:-0.02em;">${APP_NAME}</div>
+          <div style="font-size:0.65rem;letter-spacing:0.18em;color:#8c7a58;text-transform:uppercase;margin-bottom:28px;">${APP_COMPANY} — Portal</div>
           <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:16px;">Hi ${name},</p>
           <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:24px;">A password reset was requested for your account. Click the button below to set a new password. This link expires in <strong style="color:#f2b950;">1 hour</strong>.</p>
           <a href="${resetLink}" style="display:inline-block;padding:13px 28px;background:#f2b950;color:#1a1208;font-weight:800;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;border-radius:9px;text-decoration:none;">Reset Password →</a>
           <p style="color:#8c7a58;font-size:0.75rem;margin-top:28px;">If you didn't request this, ignore this email — your password won't change.</p>
           <hr style="border:none;border-top:1px solid rgba(242,185,80,0.15);margin:24px 0;" />
-          <p style="color:#8c7a58;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;">Hitech Construction Ltd · Daily Activity &amp; Asset Management</p>
+          <p style="color:#8c7a58;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;">${APP_COMPANY}</p>
         </div>
       `,
     })

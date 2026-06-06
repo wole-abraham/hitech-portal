@@ -70,7 +70,7 @@ async function saveSubRecords(planId: number, body: any) {
         .map((s: any) => ({
           plan_id:                planId,
           supervisor_name:        s.name !== '__other__' ? (s.name || '') : '',
-          party:                  s.party || 'Hitech employees',
+          party:                  s.party || `${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`,
           subcontractor_name:     s.subcontractor_name || '',
           supervisor_missing_name: s.name === '__other__' ? (s.missing_name || '') : '',
         }))

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   const historyEntry: Record<string, string | number | null> = {
     date_time: new Date().toISOString(),
     machine_type: machine.machine_type || '',
-    machine_belonging: machine.machine_belonging || 'Hitech',
+    machine_belonging: machine.machine_belonging || (process.env.NEXT_PUBLIC_APP_NAME || 'Company'),
     fleet_number: machine.fleet_number || '',
     deployment_state: ACTION_STATE[action],
     machine_status: newHealthStatus,

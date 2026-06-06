@@ -72,17 +72,13 @@ export default function SignupPage() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ position: 'relative', display: 'inline-block' }}>
-            <img src="/logo.jpg" alt="Hitech" style={{
-              position: 'relative',
-              width: 100, height: 100, borderRadius: 20,
-              boxShadow: '0 0 0 2px rgba(255,255,255,0.10), 0 12px 40px rgba(0,0,0,0.5)',
-              display: 'block',
-              marginBottom: 14,
-            }} />
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.2em', color: '#d0d0d0', textTransform: 'uppercase', marginTop: 2 }}>
-            Hitech Construction Ltd
+          <div style={{
+            fontFamily: 'var(--font-display)', fontWeight: 800,
+            fontSize: '2.2rem', letterSpacing: '-0.04em', lineHeight: 0.9,
+            color: '#f0f0f0',
+          }}>{process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL'}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', letterSpacing: '0.2em', color: '#d0d0d0', textTransform: 'uppercase', marginTop: 6 }}>
+            {process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'}
           </div>
         </div>
 

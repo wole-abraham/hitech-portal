@@ -177,7 +177,7 @@ export default function HistoryPage() {
                           padding: '2px 7px', borderRadius: 4,
                         }}>Fleet #{e.fleet_number}</span>
                       )}
-                      {e.machine_belonging && e.machine_belonging !== 'Hitech' && (
+                      {e.machine_belonging && e.machine_belonging !== (process.env.NEXT_PUBLIC_APP_NAME || 'Company') && (
                         <span style={{ fontSize: '0.72rem', color: T.sub }}>· {e.machine_belonging}</span>
                       )}
                     </div>
