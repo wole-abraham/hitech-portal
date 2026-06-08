@@ -7,6 +7,7 @@ import AmbientBackground from '@/components/AmbientBackground'
 const APP_NAME    = process.env.NEXT_PUBLIC_APP_NAME    || 'PORTAL'
 const APP_COMPANY = process.env.NEXT_PUBLIC_APP_COMPANY || 'Field Operations Ltd'
 const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || 'Daily Activity & Asset Management'
+const LOGO_URL    = process.env.NEXT_PUBLIC_LOGO_URL    || ''
 
 const BOOT_LINES = [
   '> SYS INIT...              [████████] OK',
@@ -144,6 +145,16 @@ export default function LoginPage() {
           <div className="login-brand">
           <div style={{ marginBottom: 36 }}>
             <div style={{ marginBottom: 20 }}>
+            {LOGO_URL && (
+              <div style={{
+                marginBottom: 20,
+                opacity: vis ? 1 : 0,
+                transition: 'opacity 0.5s ease 0.1s',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={LOGO_URL} alt={APP_NAME} style={{ width: 90, height: 90, objectFit: 'contain', display: 'block' }} />
+              </div>
+            )}
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 800,
               fontSize: 'clamp(2.4rem, 11vw, 4.8rem)',
@@ -218,8 +229,18 @@ export default function LoginPage() {
           >
             {/* Brand — mobile only */}
             <div className="login-mobile-logo" style={{ textAlign: 'center', marginBottom: 18 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.04em', color: '#1a1610' }}>{APP_NAME}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.16em', color: '#6b6055', textTransform: 'uppercase', marginTop: 4 }}>{APP_COMPANY}</div>
+              {LOGO_URL ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={LOGO_URL} alt={APP_NAME} style={{ width: 72, height: 72, objectFit: 'contain', display: 'block', margin: '0 auto 8px' }} />
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.16em', color: '#6b6055', textTransform: 'uppercase' }}>{APP_COMPANY}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.04em', color: '#1a1610' }}>{APP_NAME}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.16em', color: '#6b6055', textTransform: 'uppercase', marginTop: 4 }}>{APP_COMPANY}</div>
+                </>
+              )}
             </div>
 
             <div style={{
