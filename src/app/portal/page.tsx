@@ -264,6 +264,7 @@ export default function PortalPage() {
   }
 
   const wordmark = (process.env.NEXT_PUBLIC_APP_NAME || 'PORTAL').split('')
+  const logoUrl  = process.env.NEXT_PUBLIC_LOGO_URL || ''
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
@@ -310,9 +311,14 @@ export default function PortalPage() {
             transform: vis ? 'translateY(0)' : 'translateY(-8px)',
             transition: 'opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s',
           }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#fff', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
-              {(process.env.NEXT_PUBLIC_APP_NAME || 'P')[0]}
-            </div>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={process.env.NEXT_PUBLIC_APP_NAME || 'Portal'} style={{ width: 42, height: 42, objectFit: 'contain', flexShrink: 0, borderRadius: 10 }} />
+            ) : (
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#fff', flexShrink: 0, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+                {(process.env.NEXT_PUBLIC_APP_NAME || 'P')[0]}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.72rem',
@@ -352,6 +358,16 @@ export default function PortalPage() {
 
           {/* Wordmark */}
           <div style={{ marginBottom: 44 }}>
+            {logoUrl && (
+              <div style={{
+                marginBottom: 18,
+                opacity: vis ? 1 : 0,
+                transition: 'opacity 0.5s ease 0.1s',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt={process.env.NEXT_PUBLIC_APP_NAME || 'Portal'} style={{ width: 80, height: 80, objectFit: 'contain', display: 'block' }} />
+              </div>
+            )}
             <div style={{
               fontFamily: 'var(--font-display)', fontWeight: 800,
               fontSize: 'clamp(2.8rem, 11vw, 4rem)',
