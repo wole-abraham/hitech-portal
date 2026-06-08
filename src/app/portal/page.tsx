@@ -17,9 +17,8 @@ const ADMIN_TILES: TileProps[] = [
 ]
 
 const WORKER_TILES: TileProps[] = [
-  { href: '/reports/start',   num: '01', icon: 'report',    tag: process.env.NEXT_PUBLIC_APP_NAME || 'Portal',    title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
-  { href: '/planned',         num: '02', icon: 'planned',   tag: 'Planning',  title: 'Planned Activities', desc: 'Pick a pre-planned activity and fill your report.' },
-  { href: '/worker/machines', num: '03', icon: 'machines',  tag: 'My Fleet',  title: 'My Machines',        desc: 'View assigned equipment. Confirm receipt or return to base.' },
+  { href: '/reports/start',   num: '01', icon: 'report',    tag: process.env.NEXT_PUBLIC_APP_NAME || 'Portal',    title: 'Activity Report',    desc: 'Submit site activities, pick a planned task, or start a fresh report.' },
+  { href: '/worker/machines', num: '02', icon: 'machines',  tag: 'My Fleet',  title: 'My Machines',        desc: 'View assigned equipment. Confirm receipt or return to base.' },
 ]
 
 function TileIcon({ name, hov }: { name: IconName; hov: boolean }) {
