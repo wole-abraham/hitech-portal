@@ -410,6 +410,7 @@ function SubmitPageInner() {
 
   const [planTitle, setPlanTitle] = useState<string | null>(null)
   const [plannedChainages, setPlannedChainages] = useState<{ start: string; end: string } | null>(null)
+  const [plannedDate, setPlannedDate] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     date_of_activity: new Date().toISOString().split('T')[0],
@@ -573,6 +574,9 @@ function SubmitPageInner() {
         if (p.start_chainage || p.end_chainage) {
           setPlannedChainages({ start: p.start_chainage || '', end: p.end_chainage || '' })
         }
+        if (p.custom_data?.scheduled_date) {
+          setPlannedDate(p.custom_data.scheduled_date)
+        }
         if (Array.isArray(d.employees) && d.employees.length > 0) {
           setEmployeeRows(d.employees.map((e: any) => ({
             name:               e.employee_name || (e.employee_missing_name ? '__other__' : ''),
@@ -632,7 +636,8 @@ function SubmitPageInner() {
         machines: machineRows,
         custom_data: {
           ...customData,
-          // Planned chainages from the plan template (read-only reference)
+          // Planned date and chainages from the plan template (read-only reference)
+          ...(plannedDate ? { planned_date: plannedDate } : {}),
           ...(plannedChainages ? {
             planned_start_chainage: plannedChainages.start || undefined,
             planned_end_chainage:   plannedChainages.end   || undefined,
@@ -763,9 +768,33 @@ function SubmitPageInner() {
 
         {/* 1. Activity Info */}
         <Card className="card-full" icon="📋" title="Activity Information" delay={60} cardBg={CARD_COLORS[0]}>
+          {plannedDate && (
+            <div style={{
+              background: 'rgba(245,158,11,0.07)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              borderRadius: 10, padding: '10px 14px',
+              marginBottom: 4,
+            }}>
+              <div style={{ fontSize: '0.58rem', fontFamily: 'var(--font-mono)', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                Planned (from template — reference only)
+              </div>
+              <div>
+                <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Date Planned</div>
+                <div style={{
+                  padding: '9px 12px', background: 'rgba(245,158,11,0.06)',
+                  border: '1px solid rgba(245,158,11,0.20)', borderRadius: 8,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
+                  fontSize: '0.88rem', color: C.orange,
+                  letterSpacing: '0.04em',
+                }}>
+                  {new Date(plannedDate + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+          )}
           <Row2>
             <div>
-              <Label required>Date</Label>
+              <Label required>{plannedDate ? 'Actual Date' : 'Date'}</Label>
               <input type="date" style={inp} value={form.date_of_activity} onChange={e => set('date_of_activity', e.target.value)} required />
             </div>
             <div>
