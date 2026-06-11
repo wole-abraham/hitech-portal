@@ -3,6 +3,7 @@ import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
 import { parseChainage } from '@/lib/parseChainage'
+import { notifyReportSubmitted } from '@/lib/notify'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,6 +163,18 @@ export async function POST(req: NextRequest) {
     })
     if (error) failures.push('video: ' + error.message)
   }
+
+  // Send notifications fire-and-forget — don't await, never block the response
+  notifyReportSubmitted({
+    id:                reportId,
+    reporter_name:     body.reporter_name     || '',
+    date_of_activity:  body.date_of_activity  || '',
+    project_name:      body.project_name      || '',
+    section_name:      body.section_name      || '',
+    activity_category: body.activity_category || '',
+    activity_type:     body.activity_type     || '',
+    activity_status:   body.activity_status   || '',
+  }).catch(() => {})
 
   if (failures.length > 0) {
     console.error(`Report ${reportId} saved with partial data:`, failures)
