@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
+import { notifyMachineAction } from '@/lib/notify'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -108,6 +109,17 @@ export async function POST(req: NextRequest) {
   if (hour_meter != null && !isNaN(Number(hour_meter))) historyEntry.hour_meter = Number(hour_meter)
 
   await supabase.from('surveycollection_machinestatusreport').insert(historyEntry)
+
+  notifyMachineAction({
+    fleet_number:  machine.fleet_number  || '',
+    machine_type:  machine.machine_type  || '',
+    worker_name:   employeeName,
+    action:        action as 'receive' | 'return',
+    health_status: newHealthStatus,
+    comment:       comment || '',
+    litres:        litres != null && !isNaN(Number(litres)) ? Number(litres) : null,
+    hour_meter:    hour_meter != null && !isNaN(Number(hour_meter)) ? Number(hour_meter) : null,
+  })
 
   return NextResponse.json({ ok: true })
 }

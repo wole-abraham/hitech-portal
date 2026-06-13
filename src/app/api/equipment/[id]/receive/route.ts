@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
+import { notifyMachineReceivedAtHQ } from '@/lib/notify'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,6 +58,8 @@ export async function POST(
     assigned_to: '',
     reporter_name: adminName,
   })
+
+  notifyMachineReceivedAtHQ(machine.fleet_number || '', machine.machine_type || '', adminName)
 
   return NextResponse.json({ ok: true })
 }

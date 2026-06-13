@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
+import { notifyMachineAssigned, notifyMachineUnassigned } from '@/lib/notify'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,6 +70,15 @@ export async function POST(
       ...(litres != null     && { litres }),
       ...(hour_meter != null && { hour_meter }),
     })
+
+    notifyMachineAssigned({
+      fleet_number: machine.fleet_number || '',
+      machine_type: machine.machine_type || '',
+      assigned_to,
+      by_admin: adminName,
+      litres,
+      hour_meter,
+    })
   } else {
     await supabase
       .from('surveycollection_planningtable')
@@ -87,6 +97,8 @@ export async function POST(
       assigned_to: '',
       reporter_name: adminName,
     })
+
+    notifyMachineUnassigned(machine.fleet_number || '', machine.assigned_to || '', adminName)
   }
 
   return NextResponse.json({ ok: true })
