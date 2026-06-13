@@ -71,13 +71,36 @@ export async function POST(
       ...(hour_meter != null && { hour_meter }),
     })
 
+    // Look up the worker's email so they get a personal copy
+    const { data: empRow } = await supabase
+      .from('surveycollection_employee')
+      .select('user_id')
+      .eq('name', assigned_to)
+      .limit(1)
+      .single()
+
+    let workerEmail: string | null = null
+    let workerFirstName: string | null = null
+    if (empRow?.user_id) {
+      const { data: userRow } = await supabase
+        .from('auth_user')
+        .select('email, first_name')
+        .eq('id', empRow.user_id)
+        .single()
+      workerEmail     = userRow?.email      || null
+      workerFirstName = userRow?.first_name || null
+    }
+
     notifyMachineAssigned({
-      fleet_number: machine.fleet_number || '',
-      machine_type: machine.machine_type || '',
+      fleet_number:       machine.fleet_number       || '',
+      machine_type:       machine.machine_type       || '',
+      machine_belonging:  machine.machine_belonging  || '',
       assigned_to,
-      by_admin: adminName,
+      by_admin:           adminName,
       litres,
       hour_meter,
+      worker_email:       workerEmail,
+      worker_first_name:  workerFirstName,
     })
   } else {
     await supabase
