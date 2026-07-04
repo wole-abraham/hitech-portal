@@ -95,6 +95,24 @@ function Row2({ children }: { children: React.ReactNode }) {
   return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{children}</div>
 }
 
+function LockedField({ label, value, required }: { label: string; value: string; required?: boolean }) {
+  return (
+    <div>
+      <Label required={required}>{label}</Label>
+      <div style={{
+        padding: '11px 14px',
+        background: 'rgba(245,158,11,0.07)',
+        border: '1px solid rgba(245,158,11,0.25)',
+        borderRadius: 11,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+      }}>
+        <span style={{ fontSize: '0.92rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: C.orange }}>{value}</span>
+        <span style={{ fontSize: '0.55rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0 }}>from template</span>
+      </div>
+    </div>
+  )
+}
+
 function YesNo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -411,6 +429,7 @@ function SubmitPageInner() {
   const [planTitle, setPlanTitle] = useState<string | null>(null)
   const [plannedChainages, setPlannedChainages] = useState<{ start: string; end: string } | null>(null)
   const [plannedDate, setPlannedDate] = useState<string | null>(null)
+  const [planData, setPlanData] = useState<Record<string, string | null> | null>(null)
 
   const [form, setForm] = useState({
     date_of_activity: new Date().toISOString().split('T')[0],
@@ -550,6 +569,7 @@ function SubmitPageInner() {
         const p = d.item
         if (!p) return
         setPlanTitle(p.title)
+        setPlanData(p)
         setForm(f => ({
           ...f,
           project_name:                p.project_name                || f.project_name,
@@ -813,24 +833,36 @@ function SubmitPageInner() {
           </div>
           <Row2>
             <div>
-              <Label required>Project</Label>
-              <Select
-                value={form.project_name}
-                onChange={v => { set('project_name', v); set('section_name', '') }}
-                placeholder="Select project"
-                searchable
-                options={projects.map(p => ({ value: p.name, label: p.name }))}
-              />
+              {planData?.project_name ? (
+                <LockedField label="Project" value={planData.project_name} required />
+              ) : (
+                <>
+                  <Label required>Project</Label>
+                  <Select
+                    value={form.project_name}
+                    onChange={v => { set('project_name', v); set('section_name', '') }}
+                    placeholder="Select project"
+                    searchable
+                    options={projects.map(p => ({ value: p.name, label: p.name }))}
+                  />
+                </>
+              )}
             </div>
             <div>
-              <Label>Section</Label>
-              <Select
-                value={form.section_name}
-                onChange={v => set('section_name', v)}
-                placeholder="Select section"
-                disabled={!form.project_name}
-                options={filteredSections.map(s => ({ value: s.name, label: s.name }))}
-              />
+              {planData?.section_name ? (
+                <LockedField label="Section" value={planData.section_name} />
+              ) : (
+                <>
+                  <Label>Section</Label>
+                  <Select
+                    value={form.section_name}
+                    onChange={v => set('section_name', v)}
+                    placeholder="Select section"
+                    disabled={!form.project_name}
+                    options={filteredSections.map(s => ({ value: s.name, label: s.name }))}
+                  />
+                </>
+              )}
             </div>
           </Row2>
         </Card>
@@ -838,47 +870,71 @@ function SubmitPageInner() {
         {/* 2. Activity Type */}
         <Card icon="🏗️" title="Activity Type" delay={120} cardBg={CARD_COLORS[1]}>
           <div>
-            <Label required>Category</Label>
-            <Select
-              value={form.activity_category}
-              onChange={v => { set('activity_category', v); set('activity_type', ''); set('activity_subtype', '') }}
-              placeholder="Select category"
-              searchable
-              options={categories.map(c => ({ value: c.name, label: c.name }))}
-            />
+            {planData?.activity_category ? (
+              <LockedField label="Category" value={planData.activity_category} required />
+            ) : (
+              <>
+                <Label required>Category</Label>
+                <Select
+                  value={form.activity_category}
+                  onChange={v => { set('activity_category', v); set('activity_type', ''); set('activity_subtype', '') }}
+                  placeholder="Select category"
+                  searchable
+                  options={categories.map(c => ({ value: c.name, label: c.name }))}
+                />
+              </>
+            )}
           </div>
           <Row2>
             <div>
-              <Label>Type</Label>
-              <Select
-                value={form.activity_type}
-                onChange={v => { set('activity_type', v); set('activity_subtype', '') }}
-                placeholder="Select type"
-                disabled={!form.activity_category}
-                searchable
-                options={filteredTypes.map(t => ({ value: t.name, label: t.name }))}
-              />
+              {planData?.activity_type ? (
+                <LockedField label="Type" value={planData.activity_type} />
+              ) : (
+                <>
+                  <Label>Type</Label>
+                  <Select
+                    value={form.activity_type}
+                    onChange={v => { set('activity_type', v); set('activity_subtype', '') }}
+                    placeholder="Select type"
+                    disabled={!form.activity_category}
+                    searchable
+                    options={filteredTypes.map(t => ({ value: t.name, label: t.name }))}
+                  />
+                </>
+              )}
             </div>
             <div>
-              <Label>Sub-type</Label>
-              <Select
-                value={form.activity_subtype}
-                onChange={v => set('activity_subtype', v)}
-                placeholder="Sub-type"
-                disabled={!form.activity_type}
-                options={filteredSubtypes.map(s => ({ value: s.name, label: s.name }))}
-              />
+              {planData?.activity_subtype ? (
+                <LockedField label="Sub-type" value={planData.activity_subtype} />
+              ) : (
+                <>
+                  <Label>Sub-type</Label>
+                  <Select
+                    value={form.activity_subtype}
+                    onChange={v => set('activity_subtype', v)}
+                    placeholder="Sub-type"
+                    disabled={!form.activity_type}
+                    options={filteredSubtypes.map(s => ({ value: s.name, label: s.name }))}
+                  />
+                </>
+              )}
             </div>
           </Row2>
           <Row2>
             <div>
-              <Label>Side</Label>
-              <Select
-                value={form.side}
-                onChange={v => set('side', v)}
-                placeholder="Select"
-                options={['Left','Right','Median'].map(s => ({ value: s, label: s }))}
-              />
+              {planData?.side ? (
+                <LockedField label="Side" value={planData.side} />
+              ) : (
+                <>
+                  <Label>Side</Label>
+                  <Select
+                    value={form.side}
+                    onChange={v => set('side', v)}
+                    placeholder="Select"
+                    options={['Left','Right','Median'].map(s => ({ value: s, label: s }))}
+                  />
+                </>
+              )}
             </div>
             <div>
               <Label>Status</Label>
