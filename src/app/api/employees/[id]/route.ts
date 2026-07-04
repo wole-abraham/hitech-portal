@@ -24,6 +24,13 @@ export async function PATCH(
   const body = await req.json()
   const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, nationality, gender } = body
 
+  // Fetch current record so we can detect status changes for the audit trail
+  const { data: current } = await supabase
+    .from('surveycollection_employee')
+    .select('status, name')
+    .eq('id', id)
+    .single()
+
   const { data, error } = await supabase
     .from('surveycollection_employee')
     .update({
@@ -41,6 +48,20 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Record audit entry whenever status changes
+  if (status !== undefined && current && current.status !== status) {
+    await supabase
+      .from('surveycollection_employee_status_history')
+      .insert({
+        employee_id:     id,
+        employee_name:   current.name,
+        previous_status: current.status ?? null,
+        new_status:      status,
+        changed_by:      session.user.username,
+      })
+  }
+
   return NextResponse.json(data)
 }
 

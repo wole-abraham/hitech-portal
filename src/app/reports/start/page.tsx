@@ -139,14 +139,14 @@ export default function ReportStartPage() {
           </a>
         </div>
 
-        {/* Section: Planned Activities */}
+        {/* Section: Planning Activities */}
         <div>
           <div style={{
             fontSize: '0.58rem', fontWeight: 800, textTransform: 'uppercase',
             letterSpacing: '0.14em', color: C.orange, fontFamily: 'var(--font-mono)',
             marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <span>Planned Activities</span>
+            <span>Planning Activities</span>
             <div style={{ flex: 1, height: 1, background: 'rgba(245,158,11,0.20)' }} />
             <a href="/planned" style={{
               fontSize: '0.58rem', color: C.sub, textDecoration: 'none',
@@ -169,12 +169,12 @@ export default function ReportStartPage() {
             }}>
               <div style={{ fontSize: '1.6rem', marginBottom: 10 }}>📋</div>
               <div style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text, fontFamily: 'var(--font-display)', marginBottom: 6 }}>
-                No planned activities yet
+                No planning activities yet
               </div>
               <div style={{ fontSize: '0.74rem', color: C.sub, lineHeight: 1.5 }}>
                 {role === 'admin'
-                  ? 'Create planned activities in Config → Planned Activities.'
-                  : 'An admin will set up planned activities for you to pick from.'}
+                  ? 'Create planning activities in Config → Planning Activities.'
+                  : 'An admin will set up planning activities for you to pick from.'}
               </div>
             </div>
           ) : (

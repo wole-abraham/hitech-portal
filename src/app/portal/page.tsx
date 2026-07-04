@@ -10,7 +10,7 @@ interface TileProps { href: string; num: string; icon: IconName; tag: string; ti
 
 const ADMIN_TILES: TileProps[] = [
   { href: '/reports/start',  num: '01', icon: 'report',      tag: process.env.NEXT_PUBLIC_APP_NAME || 'Portal',      title: 'Activity Report',    desc: 'Submit site activities, log chainages, upload field photos.' },
-  { href: '/planned',        num: '02', icon: 'planned',     tag: 'Planning',    title: 'Planned Activities', desc: 'Create and manage pre-filled report templates for your team.' },
+  { href: '/planned',        num: '02', icon: 'planned',     tag: 'Planning',    title: 'Planning Activities', desc: 'Create and manage pre-filled report templates for your team.' },
   { href: '/employees',      num: '03', icon: 'employees',   tag: 'Management',  title: 'Employees List',     desc: 'Browse workers, track roles, view personnel records.' },
   { href: '/equipment',      num: '04', icon: 'equipment',   tag: 'Assets',      title: 'Equipment Details',  desc: 'Add machines and assign equipment to site personnel.' },
   { href: '/reports',        num: '05', icon: 'submissions', tag: 'Records',     title: 'Submissions',        desc: 'Browse all submitted activity reports.' },

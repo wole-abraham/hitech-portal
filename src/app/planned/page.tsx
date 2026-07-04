@@ -248,8 +248,34 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
 }
 
 function Row2({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{children}</div>
+  return <div className="pa-row2">{children}</div>
 }
+
+const PSTYLES = `
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pa-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 540px) {
+    .pa-row2 { grid-template-columns: 1fr; }
+    .pa-card-body { flex-wrap: wrap !important; }
+    .pa-card-actions {
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      flex: 0 0 100% !important;
+      width: 100% !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      border-top: 1px solid rgba(0,0,0,0.07);
+      padding-top: 10px;
+      margin-top: 4px;
+      gap: 6px !important;
+    }
+    .pa-card-actions a, .pa-card-actions > div {
+      flex-shrink: 0;
+    }
+    .pa-submit-row { flex-wrap: wrap !important; }
+    .pa-submit-row button:first-child { flex: 0 0 auto !important; }
+  }
+`
 
 function YesNo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -368,8 +394,8 @@ export default function PlannedPage() {
   const [allSubtypes, setAllSubtypes] = useState<{ id: number; name: string; activity_type_id: number }[]>([])
   const [projects, setProjects] = useState<{ id: number; name: string }[]>([])
   const [allSections, setAllSections] = useState<{ id: number; name: string; project_name: string }[]>([])
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [equipmentList, setEquipmentList] = useState<{ id: number; fleet_number: string; machine_type: string; machine_belonging: string }[]>([])
+  const [employees, setEmployees] = useState<(Employee & { project_name?: string; section_name?: string })[]>([])
+  const [equipmentList, setEquipmentList] = useState<{ id: number; fleet_number: string; machine_type: string; machine_belonging: string; project_name?: string; section_name?: string }[]>([])
 
   // Sub-record rows for the create form
   const [employeeRows, setEmployeeRows] = useState<PersonRow[]>([emptyPerson()])
@@ -384,14 +410,24 @@ export default function PlannedPage() {
   const editFilteredSubtypes = allSubtypes.filter(s => allTypes.find(t => t.name === editVals.activity_type)?.id === s.activity_type_id)
   const editFilteredSections = allSections.filter(s => !editVals.project_name || s.project_name === editVals.project_name)
 
+  const filterByProjectSection = <T extends { project_name?: string; section_name?: string }>(list: T[]) =>
+    list.filter(e => {
+      if (form.project_name && e.project_name && e.project_name !== form.project_name) return false
+      if (form.section_name && e.section_name && e.section_name !== form.section_name) return false
+      return true
+    })
+
+  const filteredEmployees   = filterByProjectSection(employees)
+  const filteredEquipment   = filterByProjectSection(equipmentList)
+
   const employeeNameOptions = [
-    ...employees.map(e => ({ value: e.name, label: e.name })),
+    ...filteredEmployees.map(e => ({ value: e.name, label: e.name })),
     { value: 'Zenith', label: 'Zenith' },
     { value: 'SPG', label: 'SPG' },
     { value: 'Multi road', label: 'Multi road' },
   ]
   const supervisorNameOptions = [
-    ...employees.filter(e => e.role === 'Supervisor').map(e => ({ value: e.name, label: e.name })),
+    ...filteredEmployees.filter(e => e.role === 'Supervisor').map(e => ({ value: e.name, label: e.name })),
     { value: 'Zenith', label: 'Zenith' },
     { value: 'SPG', label: 'SPG' },
     { value: 'Multi road', label: 'Multi road' },
@@ -412,8 +448,8 @@ export default function PlannedPage() {
     q('hitech_report_activitycategory', 'select=id,name&order=order').then(d => { if (Array.isArray(d)) setCategories(d) })
     q('hitech_report_activitytype', 'select=id,name,category_id&order=sort_order').then(d => { if (Array.isArray(d)) setAllTypes(d) })
     q('hitech_report_activitysubtype', 'select=id,name,activity_type_id&order=sort_order').then(d => { if (Array.isArray(d)) setAllSubtypes(d) })
-    q('surveycollection_employee', 'select=id,name,role&status=eq.Active&order=name').then(d => { if (Array.isArray(d)) setEmployees(d) })
-    q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging&order=fleet_number').then(d => { if (Array.isArray(d)) setEquipmentList(d) })
+    q('surveycollection_employee', 'select=id,name,role,project_name,section_name&status=eq.Active&order=name').then(d => { if (Array.isArray(d)) setEmployees(d) })
+    q('surveycollection_planningtable', 'select=id,fleet_number,machine_type,machine_belonging,project_name,section_name&order=fleet_number').then(d => { if (Array.isArray(d)) setEquipmentList(d) })
     fetch('/api/projects').then(r => r.json()).then(d => { if (Array.isArray(d)) setProjects(d) }).catch(() => {})
     fetch('/api/sections').then(r => r.json()).then(d => { if (Array.isArray(d)) setAllSections(d) }).catch(() => {})
 
@@ -497,7 +533,7 @@ export default function PlannedPage() {
     return (
       <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', color: C.text }}>
         <AmbientBackground />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <style>{PSTYLES}</style>
 
         <header style={{
           background: 'rgba(248,247,245,0.93)', backdropFilter: 'blur(20px)',
@@ -590,10 +626,6 @@ export default function PlannedPage() {
                 <Select value={form.activity_status} onChange={setF('activity_status')} placeholder="Select" options={['Ongoing','Completed','Suspended','Planned'].map(s => ({ value: s, label: s }))} />
               </div>
             </Row2>
-            <div>
-              <Label>Weather</Label>
-              <Select value={form.weather} onChange={setF('weather')} placeholder="Select" options={['Sunny','Cloudy','Rainy','Windy','Overcast','Foggy'].map(w => ({ value: w, label: w }))} />
-            </div>
           </Card>
 
           {/* 4. Chainage */}
@@ -723,7 +755,7 @@ export default function PlannedPage() {
                           value={row.machine_belonging}
                           onChange={v => setMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_belonging: v, fleet_number: '', machine_name: '', equipment_id: null }; return n })}
                           placeholder="Select owner"
-                          options={[...new Set(equipmentList.map(e => e.machine_belonging).filter(Boolean))].map(o => ({ value: o, label: o }))}
+                          options={[...new Set(filteredEquipment.map(e => e.machine_belonging).filter(Boolean))].map(o => ({ value: o, label: o }))}
                         />
                       </div>
                       <div>
@@ -736,7 +768,7 @@ export default function PlannedPage() {
                           }}
                           placeholder={row.machine_belonging ? 'Select machine' : 'Pick owner first'}
                           disabled={!row.machine_belonging} searchable
-                          options={equipmentList.filter(e => e.machine_belonging === row.machine_belonging).map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}` }))}
+                          options={filteredEquipment.filter(e => e.machine_belonging === row.machine_belonging).map(e => ({ value: e.fleet_number, label: `${e.machine_type} — ${e.fleet_number}` }))}
                         />
                       </div>
                     </Row2>
@@ -762,7 +794,7 @@ export default function PlannedPage() {
           )}
 
           {/* Submit row */}
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="pa-submit-row" style={{ display: 'flex', gap: 10 }}>
             <button onClick={() => { setShowForm(false); resetForm() }} style={{
               flex: '0 0 auto', padding: '14px 22px',
               background: 'transparent', color: C.muted,
@@ -800,6 +832,7 @@ export default function PlannedPage() {
   // ── List view ──────────────────────────────────────────────────────────
   return (
     <div style={{ background: C.bg, minHeight: '100vh', position: 'relative', color: C.text }}>
+      <style>{PSTYLES}</style>
       <AmbientBackground />
 
       <header style={{
@@ -824,7 +857,7 @@ export default function PlannedPage() {
             Portal
           </a>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>Planned Activities</div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: C.text, fontFamily: 'var(--font-display)' }}>Planning Activities</div>
             <div style={{ fontSize: '0.68rem', color: C.muted, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
               {role === 'admin' ? 'Create & manage pre-filled report templates' : 'Select a plan to start your report'}
             </div>
@@ -870,12 +903,12 @@ export default function PlannedPage() {
           <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 16, padding: '40px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: '2rem', marginBottom: 12 }}>📋</div>
             <div style={{ fontWeight: 700, fontSize: '0.95rem', color: C.text, fontFamily: 'var(--font-display)', marginBottom: 8 }}>
-              {role === 'admin' ? 'No planned activities yet' : 'Nothing planned yet'}
+              {role === 'admin' ? 'No planning activities yet' : 'Nothing planned yet'}
             </div>
             <div style={{ fontSize: '0.76rem', color: C.sub, lineHeight: 1.55 }}>
               {role === 'admin'
                 ? 'Click "New Plan" above to create a pre-filled report template for your team.'
-                : 'An admin will set up planned activities for you to select.'}
+                : 'An admin will set up planning activities for you to select.'}
             </div>
           </div>
         ) : (
@@ -1085,13 +1118,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
                 {['Left','Right','Median'].map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
-            <div style={{ flex: '0 1 120px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Weather</div>
-              <select value={editVals.weather ?? ''} onChange={e => setE('weather')(e.target.value)} style={{ ...eInp, cursor: 'pointer' }}>
-                <option value="">—</option>
-                {['Sunny','Cloudy','Rainy','Windy','Overcast','Foggy'].map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
             <div style={{ flex: '0 1 160px' }}>
               <EditChainagePicker
                 label="Start Chainage"
@@ -1135,7 +1161,7 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
     }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: C.orange, transform: hov ? 'scaleY(1)' : 'scaleY(0)', transformOrigin: 'bottom', transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }} />
 
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+      <div className="pa-card-body" style={{ padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: hov ? C.orangeLight : 'rgba(0,0,0,0.04)', border: `1px solid ${hov ? C.orangeBorder : C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.18s, border-color 0.18s' }}>
           <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={hov ? C.orange : C.sub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'stroke 0.18s' }}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
@@ -1153,7 +1179,7 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
             {item.activity_subtype && <Pill>{item.activity_subtype}</Pill>}
             {item.section_name && <Pill>{item.section_name}</Pill>}
             {item.side && <Pill>{item.side}</Pill>}
-            {item.weather && <Pill>{item.weather}</Pill>}
+
             {item.start_chainage && <Pill color={C.orange}>{item.start_chainage}{item.end_chainage ? ` → ${item.end_chainage}` : ''}</Pill>}
             {item.party_for_activity && <Pill>{item.party_for_activity}</Pill>}
             {item.activity_status && <Pill color="#60a5fa">{item.activity_status}</Pill>}
@@ -1181,7 +1207,7 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
+        <div className="pa-card-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
           {item.is_active && (
             <a href={`/reports/submit?from=${item.id}`} style={{
               padding: '8px 16px', background: C.orange, color: '#1a1610',
