@@ -385,6 +385,9 @@ export default function PlannedPage() {
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editVals, setEditVals] = useState<Partial<PA>>({})
+  const [editEmployeeRows, setEditEmployeeRows] = useState<PersonRow[]>([emptyPerson()])
+  const [editSupervisorRows, setEditSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
+  const [editMachineRows, setEditMachineRows] = useState<MachineRow[]>([emptyMachine()])
   const [err, setErr] = useState('')
   const [vis, setVis] = useState(false)
 
@@ -409,6 +412,24 @@ export default function PlannedPage() {
   const editFilteredTypes    = allTypes.filter(t => categories.find(c => c.name === editVals.activity_category)?.id === t.category_id)
   const editFilteredSubtypes = allSubtypes.filter(s => allTypes.find(t => t.name === editVals.activity_type)?.id === s.activity_type_id)
   const editFilteredSections = allSections.filter(s => !editVals.project_name || s.project_name === editVals.project_name)
+
+  const editFilteredEmployees = employees.filter(e => {
+    if (editVals.project_name && e.project_name && e.project_name !== editVals.project_name) return false
+    if (editVals.section_name && e.section_name && e.section_name !== editVals.section_name) return false
+    return true
+  })
+  const editEmployeeNameOptions = [
+    ...editFilteredEmployees.map(e => ({ value: e.name, label: e.name })),
+    { value: 'Zenith', label: 'Zenith' },
+    { value: 'SPG', label: 'SPG' },
+    { value: 'Multi road', label: 'Multi road' },
+  ]
+  const editSupervisorNameOptions = [
+    ...editFilteredEmployees.filter(e => e.role === 'Supervisor').map(e => ({ value: e.name, label: e.name })),
+    { value: 'Zenith', label: 'Zenith' },
+    { value: 'SPG', label: 'SPG' },
+    { value: 'Multi road', label: 'Multi road' },
+  ]
 
   const filterByProjectSection = <T extends { project_name?: string; section_name?: string }>(list: T[]) =>
     list.filter(e => {
@@ -492,11 +513,38 @@ export default function PlannedPage() {
     setSaving(false)
   }
 
+  async function startEdit(item: PA) {
+    setEditId(item.id)
+    setEditVals({ ...item })
+    try {
+      const r = await fetch(`/api/planned/${item.id}`)
+      const d = await r.json()
+      setEditEmployeeRows(d.employees?.length
+        ? d.employees.map((e: any) => ({ name: e.employee_name || '', role: e.employee_role || '', party: e.party || 'Employee', subcontractor_name: e.subcontractor_name || '', missing_name: e.employee_missing_name || '' }))
+        : [emptyPerson()])
+      setEditSupervisorRows(d.supervisors?.length
+        ? d.supervisors.map((s: any) => ({ name: s.supervisor_name || '', role: '', party: s.party || '', subcontractor_name: s.subcontractor_name || '', missing_name: s.supervisor_missing_name || '' }))
+        : [emptyPerson()])
+      setEditMachineRows(d.machines?.length
+        ? d.machines.map((m: any) => ({ equipment_id: null, fleet_number: m.fleet_number || '', machine_name: m.machine_name || '', machine_belonging: m.machine_belonging || '', driver_name: m.driver_name || '' }))
+        : [emptyMachine()])
+    } catch {
+      setEditEmployeeRows([emptyPerson()])
+      setEditSupervisorRows([emptyPerson()])
+      setEditMachineRows([emptyMachine()])
+    }
+  }
+
   async function saveEdit() {
     setSaving(true); setErr('')
     const r = await fetch('/api/planned', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editVals),
+      body: JSON.stringify({
+        ...editVals,
+        employees:   editEmployeeRows,
+        supervisors: editSupervisorRows,
+        machines:    editMachineRows,
+      }),
     })
     const d = await r.json()
     if (!r.ok) { setErr(d.error || 'Save failed'); setSaving(false); return }
@@ -920,11 +968,17 @@ export default function PlannedPage() {
                 editFilteredTypes={editFilteredTypes} editFilteredSubtypes={editFilteredSubtypes}
                 editFilteredSections={editFilteredSections}
                 categories={categories} projects={projects} saving={saving}
-                onEdit={() => { setEditId(item.id); setEditVals({ ...item }) }}
+                onEdit={() => startEdit(item)}
                 onCancelEdit={() => setEditId(null)}
                 onSaveEdit={saveEdit} onToggle={() => toggleActive(item)} onDelete={() => del(item.id)}
                 setE={setE} setEditVals={setEditVals}
                 allTypes={allTypes} allSubtypes={allSubtypes} allSections={allSections}
+                editEmployeeRows={editEmployeeRows} setEditEmployeeRows={setEditEmployeeRows}
+                editSupervisorRows={editSupervisorRows} setEditSupervisorRows={setEditSupervisorRows}
+                editMachineRows={editMachineRows} setEditMachineRows={setEditMachineRows}
+                editEmployeeNameOptions={editEmployeeNameOptions}
+                editSupervisorNameOptions={editSupervisorNameOptions}
+                equipmentList={equipmentList}
               />
             ))}
           </div>
@@ -1021,7 +1075,7 @@ function EditChainagePicker({ label, project, section, value, onChange }: {
   )
 }
 
-function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, editFilteredSubtypes, editFilteredSections, categories, projects, saving, onEdit, onCancelEdit, onSaveEdit, onToggle, onDelete, setE, setEditVals, allTypes, allSubtypes, allSections }: {
+function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, editFilteredSubtypes, editFilteredSections, categories, projects, saving, onEdit, onCancelEdit, onSaveEdit, onToggle, onDelete, setE, setEditVals, allTypes, allSubtypes, allSections, editEmployeeRows, setEditEmployeeRows, editSupervisorRows, setEditSupervisorRows, editMachineRows, setEditMachineRows, editEmployeeNameOptions, editSupervisorNameOptions, equipmentList }: {
   item: PA; delay: number; role: string
   isEditing: boolean; editVals: Partial<PA>
   editFilteredTypes: any[]; editFilteredSubtypes: any[]; editFilteredSections: any[]
@@ -1031,6 +1085,12 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
   setE: (k: keyof PA) => (v: string) => void
   setEditVals: React.Dispatch<React.SetStateAction<Partial<PA>>>
   allTypes: any[]; allSubtypes: any[]; allSections: any[]
+  editEmployeeRows: PersonRow[]; setEditEmployeeRows: React.Dispatch<React.SetStateAction<PersonRow[]>>
+  editSupervisorRows: PersonRow[]; setEditSupervisorRows: React.Dispatch<React.SetStateAction<PersonRow[]>>
+  editMachineRows: MachineRow[]; setEditMachineRows: React.Dispatch<React.SetStateAction<MachineRow[]>>
+  editEmployeeNameOptions: { value: string; label: string }[]
+  editSupervisorNameOptions: { value: string; label: string }[]
+  equipmentList: { id: number; fleet_number: string; machine_type: string; machine_belonging: string; project_name?: string; section_name?: string }[]
 }) {
   const [vis, setVis] = useState(false)
   const [hov, setHov] = useState(false)
@@ -1118,6 +1178,20 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
                 {['Left','Right','Median'].map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
+            <div style={{ flex: '0 1 130px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Status</div>
+              <select value={editVals.activity_status ?? ''} onChange={e => setE('activity_status')(e.target.value)} style={{ ...eInp, cursor: 'pointer' }}>
+                <option value="">—</option>
+                {['Planned','Ongoing','Completed','Suspended'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: '0 1 120px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Weather</div>
+              <select value={editVals.weather ?? ''} onChange={e => setE('weather')(e.target.value)} style={{ ...eInp, cursor: 'pointer' }}>
+                <option value="">—</option>
+                {['Sunny','Cloudy','Rainy','Windy','Foggy'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
             <div style={{ flex: '0 1 160px' }}>
               <EditChainagePicker
                 label="Start Chainage"
@@ -1137,7 +1211,122 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
               />
             </div>
           </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: '2 1 180px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Party for Activity</div>
+              <select value={editVals.party_for_activity ?? ''} onChange={e => setEditVals(v => ({ ...v, party_for_activity: e.target.value, subcontractor_name_activity: e.target.value !== 'Sub-contractor' ? '' : v.subcontractor_name_activity }))} style={{ ...eInp, cursor: 'pointer' }}>
+                <option value="">—</option>
+                {[process.env.NEXT_PUBLIC_APP_NAME || 'Company', 'Sub-contractor'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            {editVals.party_for_activity === 'Sub-contractor' && (
+              <div style={{ flex: '2 1 180px' }}>
+                <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Subcontractor Name</div>
+                <input type="text" value={editVals.subcontractor_name_activity ?? ''} onChange={e => setE('subcontractor_name_activity')(e.target.value)} style={eInp} placeholder="e.g. Zenith Construction" />
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Comment</div>
+            <textarea value={editVals.comment_activity ?? ''} onChange={e => setE('comment_activity')(e.target.value)} style={{ ...eInp, resize: 'vertical', minHeight: 64 }} placeholder="Instructions or notes for workers…" />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 160px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Non-conformance?</div>
+              <select value={editVals.not_conforming ?? 'No'} onChange={e => setEditVals(v => ({ ...v, not_conforming: e.target.value, not_conforming_issue: e.target.value !== 'Yes' ? '' : v.not_conforming_issue, not_conforming_correction: e.target.value !== 'Yes' ? '' : v.not_conforming_correction }))} style={{ ...eInp, cursor: 'pointer' }}>
+                {['No','Yes'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: '1 1 100px' }}>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Car Used?</div>
+              <select value={editVals.car_used ?? 'No'} onChange={e => setEditVals(v => ({ ...v, car_used: e.target.value, team_car: e.target.value !== 'Yes' ? '' : v.team_car }))} style={{ ...eInp, cursor: 'pointer' }}>
+                {['No','Yes'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            {editVals.car_used === 'Yes' && (
+              <div style={{ flex: '2 1 180px' }}>
+                <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Team Car</div>
+                <input type="text" value={editVals.team_car ?? ''} onChange={e => setE('team_car')(e.target.value)} style={eInp} placeholder="e.g. Toyota Hilux — ABJ 123 XX" />
+              </div>
+            )}
+          </div>
+          {editVals.not_conforming === 'Yes' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>NC Issue</div>
+                <textarea value={editVals.not_conforming_issue ?? ''} onChange={e => setE('not_conforming_issue')(e.target.value)} style={{ ...eInp, resize: 'vertical', minHeight: 56 }} placeholder="Describe the non-conformance…" />
+              </div>
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>NC Correction</div>
+                <textarea value={editVals.not_conforming_correction ?? ''} onChange={e => setE('not_conforming_correction')(e.target.value)} style={{ ...eInp, resize: 'vertical', minHeight: 56 }} placeholder="Correction taken…" />
+              </div>
+            </div>
+          )}
         </div>
+          {/* Employees */}
+          <PersonGroup
+            label="Employees" icon="👷"
+            rows={editEmployeeRows} setRows={setEditEmployeeRows}
+            nameOptions={editEmployeeNameOptions}
+            partyOptions={['Employee','Sub-contractor']}
+            showRole={p => p === 'Employee'}
+          />
+
+          {/* Supervisors */}
+          <PersonGroup
+            label="Supervisors" icon="🦺"
+            rows={editSupervisorRows} setRows={setEditSupervisorRows}
+            nameOptions={editSupervisorNameOptions}
+            partyOptions={[`${process.env.NEXT_PUBLIC_APP_NAME || 'Company'} employees`,'Sub-contractor']}
+          />
+
+          {/* Machines */}
+          <div style={{ background: '#f2efe9', border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>🚜 Machinery</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {editMachineRows.map((row, i) => (
+                <div key={i} style={{ background: '#fff', border: `1px solid rgba(0,0,0,0.07)`, borderRadius: 10, padding: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>Machine {i + 1}</span>
+                    {editMachineRows.length > 1 && (
+                      <button type="button" onClick={() => setEditMachineRows(r => r.filter((_, j) => j !== i))}
+                        style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, color: C.error, padding: '2px 8px', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 130px' }}>
+                      <div style={{ fontSize: '0.56rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 3, textTransform: 'uppercase' }}>Owner</div>
+                      <select value={row.machine_belonging} onChange={e => setEditMachineRows(r => { const n = [...r]; n[i] = { ...n[i], machine_belonging: e.target.value, fleet_number: '', machine_name: '', equipment_id: null }; return n })} style={{ ...eInp, cursor: 'pointer' }}>
+                        <option value="">— select —</option>
+                        {[...new Set(equipmentList.map(e => e.machine_belonging).filter(Boolean))].map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ flex: '1 1 160px' }}>
+                      <div style={{ fontSize: '0.56rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 3, textTransform: 'uppercase' }}>Machine</div>
+                      <select value={row.fleet_number} disabled={!row.machine_belonging} onChange={e => {
+                        const eq = equipmentList.find(x => x.fleet_number === e.target.value)
+                        setEditMachineRows(r => { const n = [...r]; n[i] = { ...n[i], equipment_id: eq?.id ?? null, fleet_number: e.target.value, machine_name: eq?.machine_type ?? '' }; return n })
+                      }} style={{ ...eInp, cursor: row.machine_belonging ? 'pointer' : 'not-allowed', opacity: row.machine_belonging ? 1 : 0.5 }}>
+                        <option value="">— select —</option>
+                        {equipmentList.filter(e => e.machine_belonging === row.machine_belonging).map(e => <option key={e.id} value={e.fleet_number}>{e.machine_type} — {e.fleet_number}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ flex: '1 1 130px' }}>
+                      <div style={{ fontSize: '0.56rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 3, textTransform: 'uppercase' }}>Driver</div>
+                      <input style={eInp} value={row.driver_name} onChange={e => setEditMachineRows(r => { const n = [...r]; n[i] = { ...n[i], driver_name: e.target.value }; return n })} placeholder="Driver name" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => setEditMachineRows(r => [...r, emptyMachine()])}
+              style={{ width: '100%', marginTop: 8, padding: '8px', background: 'rgba(59,130,246,0.06)', border: `1px dashed rgba(59,130,246,0.3)`, borderRadius: 8, color: '#60a5fa', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+              + Add Machine
+            </button>
+          </div>
+
         <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onCancelEdit} style={{ padding: '7px 16px', background: 'transparent', color: C.sub, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-display)' }}>Cancel</button>
           <button onClick={onSaveEdit} disabled={saving} style={{ padding: '7px 18px', background: C.orange, color: '#1a1610', border: 'none', borderRadius: 8, fontSize: '0.8rem', fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'var(--font-display)' }}>
