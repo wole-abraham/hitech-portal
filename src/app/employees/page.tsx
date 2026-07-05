@@ -487,10 +487,10 @@ export default function EmployeesPage() {
               opacity: 0, animation: `tileIn 0.35s ease ${i * 0.04}s forwards`,
               boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
             }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0, overflow: 'hidden' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: T.input, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                 {emp.profile_picture
                   ? <img src={emp.profile_picture} alt={emp.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : '👷'}
+                  : <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={T.sub} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -510,9 +510,9 @@ export default function EmployeesPage() {
                 {/* Document / fingerprint indicators */}
                 {(emp.passport_document || emp.passport_photo || emp.fingerprint_id) && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
-                    {emp.passport_photo    && <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(96,165,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📷 Passport photo</span>}
-                    {emp.passport_document && <span style={{ fontSize: '0.65rem', color: '#a78bfa', background: 'rgba(167,139,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📄 Document</span>}
-                    {emp.fingerprint_id    && <span style={{ fontSize: '0.65rem', color: '#34d399', background: 'rgba(52,211,153,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>🫆 {emp.fingerprint_id}</span>}
+                    {emp.passport_photo    && <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(96,165,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Passport photo</span>}
+                    {emp.passport_document && <span style={{ fontSize: '0.65rem', color: '#a78bfa', background: 'rgba(167,139,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Document</span>}
+                    {emp.fingerprint_id    && <span style={{ fontSize: '0.65rem', color: '#34d399', background: 'rgba(52,211,153,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10"/><path d="M12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6"/><path d="M12 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2"/></svg>{emp.fingerprint_id}</span>}
                   </div>
                 )}
               </div>
@@ -538,37 +538,58 @@ export default function EmployeesPage() {
 
             {editing ? (
               /* ── Edit mode: personal info is read-only ── */
-              <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: T.amber, fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
+              <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: T.amber, fontFamily: 'var(--font-mono)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   Personal Info — read only
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(242,237,227,0.15)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {editing.profile_picture
                       ? <img src={editing.profile_picture} alt={editing.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : '👷'}
+                      : <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="rgba(242,237,227,0.45)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: T.text }}>{editing.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: 2 }}>{editing.role}{editing.email ? ` · ${editing.email}` : ''}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ede8de' }}>{editing.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'rgba(242,237,227,0.55)', marginTop: 2 }}>{editing.role}{editing.email ? ` · ${editing.email}` : ''}</div>
                   </div>
                 </div>
                 {(editing.phone_number || editing.nationality || editing.gender || editing.date_of_birth) && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
-                    {editing.phone_number  && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.phone_number}</span>}
-                    {editing.nationality   && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.nationality}</span>}
-                    {editing.gender        && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.gender}</span>}
-                    {editing.date_of_birth && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.date_of_birth}</span>}
+                    {editing.phone_number  && (
+                      <span style={{ fontSize: '0.72rem', color: 'rgba(242,237,227,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(242,237,227,0.12)', borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.9 2 2 0 0 1 3.59 2.72h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 10a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.73 17z"/></svg>
+                        {editing.phone_number}
+                      </span>
+                    )}
+                    {editing.nationality   && <span style={{ fontSize: '0.72rem', color: 'rgba(242,237,227,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(242,237,227,0.12)', borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.nationality}</span>}
+                    {editing.gender        && <span style={{ fontSize: '0.72rem', color: 'rgba(242,237,227,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(242,237,227,0.12)', borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.gender}</span>}
+                    {editing.date_of_birth && <span style={{ fontSize: '0.72rem', color: 'rgba(242,237,227,0.7)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(242,237,227,0.12)', borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.date_of_birth}</span>}
                   </div>
                 )}
                 {(editing.passport_photo || editing.passport_document || editing.fingerprint_id) && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                    {editing.passport_photo    && <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(96,165,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📷 Passport photo</span>}
-                    {editing.passport_document && <span style={{ fontSize: '0.65rem', color: '#a78bfa', background: 'rgba(167,139,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📄 Document</span>}
-                    {editing.fingerprint_id    && <span style={{ fontSize: '0.65rem', color: '#34d399', background: 'rgba(52,211,153,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>🫆 {editing.fingerprint_id}</span>}
+                    {editing.passport_photo && (
+                      <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(96,165,250,0.10)', padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Passport photo
+                      </span>
+                    )}
+                    {editing.passport_document && (
+                      <span style={{ fontSize: '0.65rem', color: '#a78bfa', background: 'rgba(167,139,250,0.10)', padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Document
+                      </span>
+                    )}
+                    {editing.fingerprint_id && (
+                      <span style={{ fontSize: '0.65rem', color: '#34d399', background: 'rgba(52,211,153,0.10)', padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10"/><path d="M12 18c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6"/><path d="M12 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2"/></svg>
+                        {editing.fingerprint_id}
+                      </span>
+                    )}
                   </div>
                 )}
-                {editing.notes && <div style={{ fontSize: '0.78rem', color: T.sub, fontStyle: 'italic', marginTop: 2 }}>{editing.notes}</div>}
+                {editing.notes && <div style={{ fontSize: '0.78rem', color: 'rgba(242,237,227,0.45)', fontStyle: 'italic', marginTop: 2 }}>{editing.notes}</div>}
               </div>
             ) : (
               /* ── Add mode: all personal fields are editable ── */
