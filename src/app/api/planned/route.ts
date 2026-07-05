@@ -179,6 +179,13 @@ export async function PATCH(req: NextRequest) {
   const { id, employees, supervisors, machines, ...rest } = body
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
+  // Snapshot current state before update
+  const { data: before } = await supabase
+    .from('hitech_report_plannedactivity')
+    .select('title, project_name, section_name, activity_category, activity_type, activity_subtype, side, activity_status, start_chainage, end_chainage, weather, party_for_activity, not_conforming, car_used')
+    .eq('id', id)
+    .single()
+
   const { data, error } = await supabase
     .from('hitech_report_plannedactivity')
     .update(rest)
@@ -187,6 +194,29 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Write history snapshot
+  if (before) {
+    const changedBy = session.user.username || `${session.user.first_name} ${session.user.last_name}`.trim()
+    await supabase.from('hitech_plan_activity_history').insert({
+      plan_id:            id,
+      plan_title:         before.title,
+      project_name:       before.project_name,
+      section_name:       before.section_name,
+      activity_category:  before.activity_category,
+      activity_type:      before.activity_type,
+      activity_subtype:   before.activity_subtype,
+      side:               before.side,
+      activity_status:    before.activity_status,
+      start_chainage:     before.start_chainage,
+      end_chainage:       before.end_chainage,
+      weather:            before.weather,
+      party_for_activity: before.party_for_activity,
+      not_conforming:     before.not_conforming,
+      car_used:           before.car_used,
+      changed_by:         changedBy,
+    })
+  }
 
   // Only replace sub-records if they were sent in the request
   if (employees !== undefined || supervisors !== undefined || machines !== undefined) {

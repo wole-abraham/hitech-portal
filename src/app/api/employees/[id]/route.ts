@@ -24,10 +24,10 @@ export async function PATCH(
   const body = await req.json()
   const { name, role, phone_number, project_name, section_name, status, email, notes, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, nationality, gender } = body
 
-  // Fetch current record so we can detect status changes for the audit trail
+  // Fetch current record so we can diff all field changes
   const { data: current } = await supabase
     .from('surveycollection_employee')
-    .select('status, name')
+    .select('name, role, phone_number, project_name, section_name, status, email, notes, nationality, gender, date_of_birth')
     .eq('id', id)
     .single()
 
@@ -49,17 +49,50 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Record audit entry whenever status changes
-  if (status !== undefined && current && current.status !== status) {
-    await supabase
-      .from('surveycollection_employee_status_history')
-      .insert({
+  if (current) {
+    const changedBy = session.user.username || `${session.user.first_name} ${session.user.last_name}`.trim()
+    const empName   = name ?? current.name
+
+    // Status-specific audit trail
+    if (status !== undefined && current.status !== status) {
+      await supabase.from('surveycollection_employee_status_history').insert({
         employee_id:     id,
-        employee_name:   current.name,
+        employee_name:   empName,
         previous_status: current.status ?? null,
         new_status:      status,
-        changed_by:      session.user.username,
+        changed_by:      changedBy,
       })
+    }
+
+    // Full field-level history
+    const TRACKED: Array<[string, unknown]> = [
+      ['name',         name],
+      ['role',         role],
+      ['phone_number', phone_number],
+      ['project_name', project_name],
+      ['section_name', section_name],
+      ['status',       status],
+      ['email',        email],
+      ['notes',        notes],
+      ['nationality',  nationality],
+      ['gender',       gender],
+      ['date_of_birth', date_of_birth],
+    ]
+
+    const historyRows = TRACKED
+      .filter(([field, newVal]) => newVal !== undefined && String(newVal ?? '') !== String((current as any)[field] ?? ''))
+      .map(([field, newVal]) => ({
+        employee_id:   id,
+        employee_name: empName,
+        field_name:    field,
+        old_value:     String((current as any)[field] ?? ''),
+        new_value:     String(newVal ?? ''),
+        changed_by:    changedBy,
+      }))
+
+    if (historyRows.length > 0) {
+      await supabase.from('surveycollection_employee_history').insert(historyRows)
+    }
   }
 
   return NextResponse.json(data)
