@@ -18,6 +18,7 @@ type PlannedActivity = {
   start_chainage: string | null
   end_chainage: string | null
   created_at: string
+  report_count: number
 }
 
 const C = {
@@ -306,6 +307,18 @@ function PlannedCard({ item, delay }: { item: PlannedActivity; delay: number }) 
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+          {item.report_count > 0 && (
+            <span style={{
+              fontSize: '0.62rem', fontFamily: 'var(--font-mono)', fontWeight: 700,
+              color: '#f59e0b', background: 'rgba(245,158,11,0.10)',
+              border: '1px solid rgba(245,158,11,0.20)',
+              borderRadius: 5, padding: '2px 7px',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              {item.report_count} {item.report_count === 1 ? 'report' : 'reports'}
+            </span>
+          )}
           <svg style={{ opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-4px)', transition: 'opacity 0.2s, transform 0.25s' }}
             width={14} height={14} viewBox="0 0 24 24" fill="none"
             stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">

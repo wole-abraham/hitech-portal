@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       subcontractor_name_activity: body.subcontractor_name_activity || '',
       activity_status: body.activity_status || '',
       custom_data: body.custom_data && typeof body.custom_data === 'object' ? body.custom_data : {},
+      ...(body.planned_activity_id ? { planned_activity_id: Number(body.planned_activity_id) } : {}),
     })
     .select('id')
     .single()

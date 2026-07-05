@@ -654,6 +654,7 @@ function SubmitPageInner() {
         employees: employeeRows,
         supervisors: supervisorRows,
         machines: machineRows,
+        ...(fromId ? { planned_activity_id: fromId } : {}),
         custom_data: {
           ...customData,
           // Planned date and chainages from the plan template (read-only reference)

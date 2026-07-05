@@ -145,7 +145,22 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ items })
+  // Fetch report counts for each plan
+  const ids = items.map((i: any) => i.id)
+  let countMap: Record<number, number> = {}
+  if (ids.length > 0) {
+    const { data: counts } = await supabase
+      .from('hitech_report_hitechreport')
+      .select('planned_activity_id')
+      .in('planned_activity_id', ids)
+    ;(counts ?? []).forEach((r: any) => {
+      countMap[r.planned_activity_id] = (countMap[r.planned_activity_id] ?? 0) + 1
+    })
+  }
+
+  const itemsWithCounts = items.map((i: any) => ({ ...i, report_count: countMap[i.id] ?? 0 }))
+
+  return NextResponse.json({ items: itemsWithCounts })
 }
 
 export async function POST(req: NextRequest) {
