@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getIronSession } from 'iron-session'
 import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
+import { r2Delete, r2KeyFromUrl } from '@/lib/r2'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,13 +29,12 @@ export async function DELETE(
     .eq('report_id', id)
 
   if (photos && photos.length > 0) {
-    const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/survey-media/`
-    const paths = photos
-      .map(p => (p.file as string)?.replace(baseUrl, ''))
-      .filter(Boolean)
-    if (paths.length > 0) {
-      await supabase.storage.from('survey-media').remove(paths)
-    }
+    await Promise.allSettled(
+      photos
+        .map(p => r2KeyFromUrl(p.file as string))
+        .filter((k): k is string => k !== null)
+        .map(key => r2Delete(key))
+    )
   }
 
   // Delete all child rows, then the report itself
