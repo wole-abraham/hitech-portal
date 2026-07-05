@@ -194,6 +194,17 @@ export default function ReportStartPage() {
 function PlannedCard({ item, delay }: { item: PlannedActivity; delay: number }) {
   const [vis, setVis] = useState(false)
   const [hov, setHov] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function copyLink(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    const url = `${window.location.origin}/reports/submit?from=${item.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setVis(true), delay)
@@ -294,11 +305,26 @@ function PlannedCard({ item, delay }: { item: PlannedActivity; delay: number }) 
           )}
         </div>
 
-        <svg style={{ flexShrink: 0, marginTop: 2, opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-4px)', transition: 'opacity 0.2s, transform 0.25s' }}
-          width={14} height={14} viewBox="0 0 24 24" fill="none"
-          stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+          <svg style={{ opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-4px)', transition: 'opacity 0.2s, transform 0.25s' }}
+            width={14} height={14} viewBox="0 0 24 24" fill="none"
+            stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <button onClick={copyLink} style={{
+            padding: '4px 9px', borderRadius: 6, border: `1px solid ${copied ? 'rgba(52,211,153,0.4)' : 'rgba(0,0,0,0.1)'}`,
+            background: copied ? 'rgba(52,211,153,0.08)' : 'rgba(0,0,0,0.04)',
+            color: copied ? '#16a34a' : '#8c8480',
+            fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4,
+            transition: 'all 0.18s',
+          }}>
+            {copied
+              ? <><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
+              : <><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share</>
+            }
+          </button>
+        </div>
       </div>
     </a>
   )
