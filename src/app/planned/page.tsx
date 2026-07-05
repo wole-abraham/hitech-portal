@@ -1094,6 +1094,15 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
 }) {
   const [vis, setVis] = useState(false)
   const [hov, setHov] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function copyLink() {
+    const url = `${window.location.origin}/reports/submit?from=${item.id}`
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setVis(true), delay)
@@ -1398,16 +1407,31 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
 
         <div className="pa-card-actions" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
           {item.is_active && (
-            <a href={`/reports/submit?from=${item.id}`} style={{
-              padding: '8px 16px', background: C.orange, color: '#1a1610',
-              border: 'none', borderRadius: 9, fontSize: '0.8rem', fontWeight: 800,
-              cursor: 'pointer', fontFamily: 'var(--font-display)',
-              textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
-              boxShadow: hov ? `0 2px 12px ${C.orangeBorder}` : 'none', transition: 'box-shadow 0.18s',
-            }}>
-              Fill Report
-              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-            </a>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button onClick={copyLink} title="Copy link to share" style={{
+                padding: '8px 10px', background: copied ? 'rgba(52,211,153,0.12)' : 'transparent',
+                color: copied ? '#34d399' : C.muted,
+                border: `1px solid ${copied ? 'rgba(52,211,153,0.35)' : C.border}`,
+                borderRadius: 9, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: '0.72rem', fontWeight: 600, fontFamily: 'var(--font-mono)',
+                transition: 'all 0.18s',
+              }}>
+                {copied
+                  ? <><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
+                  : <><svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share</>
+                }
+              </button>
+              <a href={`/reports/submit?from=${item.id}`} style={{
+                padding: '8px 16px', background: C.orange, color: '#1a1610',
+                border: 'none', borderRadius: 9, fontSize: '0.8rem', fontWeight: 800,
+                cursor: 'pointer', fontFamily: 'var(--font-display)',
+                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
+                boxShadow: hov ? `0 2px 12px ${C.orangeBorder}` : 'none', transition: 'box-shadow 0.18s',
+              }}>
+                Fill Report
+                <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+              </a>
+            </div>
           )}
           {role === 'admin' && (
             <div style={{ display: 'flex', gap: 6 }}>
