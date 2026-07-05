@@ -1371,10 +1371,17 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
             <div style={{ fontWeight: 700, fontSize: '0.92rem', color: C.text, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>{item.title}</div>
             {!item.is_active && <span style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.06)', padding: '2px 7px', borderRadius: 4 }}>inactive</span>}
-            <span style={{ fontSize: '0.6rem', color: C.orange, fontFamily: 'var(--font-mono)', fontWeight: 700, background: `${C.orangeLight}`, border: `1px solid ${C.orangeBorder}`, padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              {item.report_count} {item.report_count === 1 ? 'report' : 'reports'}
-            </span>
+            {item.report_count > 0 ? (
+              <span style={{ fontSize: '0.6rem', color: C.orange, fontFamily: 'var(--font-mono)', fontWeight: 700, background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                {item.report_count} {item.report_count === 1 ? 'reported' : 'reported'}
+              </span>
+            ) : (
+              <span style={{ fontSize: '0.6rem', color: '#9ca3af', fontFamily: 'var(--font-mono)', fontWeight: 700, background: 'rgba(156,163,175,0.10)', border: '1px solid rgba(156,163,175,0.25)', padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                pending
+              </span>
+            )}
           </div>
           {item.description && <div style={{ fontSize: '0.74rem', color: C.muted, marginBottom: 6, lineHeight: 1.45 }}>{item.description}</div>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
