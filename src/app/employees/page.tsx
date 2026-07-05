@@ -536,139 +536,144 @@ export default function EmployeesPage() {
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* ── Profile photo ── */}
-            <div>
-              <FieldLabel>Profile Photo</FieldLabel>
-              <label style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                background: T.input, border: `1px solid ${T.border}`,
-                borderRadius: 12, padding: '12px 14px', cursor: 'pointer',
-                transition: 'border-color 0.2s',
-              }}>
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
-                <div style={{
-                  width: 52, height: 52, borderRadius: 10, flexShrink: 0,
-                  background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`,
-                  overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem',
-                }}>
-                  {photoPreview
-                    ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : '👷'}
+            {editing ? (
+              /* ── Edit mode: personal info is read-only ── */
+              <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: T.amber, fontFamily: 'var(--font-mono)', marginBottom: 2 }}>
+                  Personal Info — read only
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
+                    {editing.profile_picture
+                      ? <img src={editing.profile_picture} alt={editing.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : '👷'}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: T.text }}>{editing.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: T.muted, marginTop: 2 }}>{editing.role}{editing.email ? ` · ${editing.email}` : ''}</div>
+                  </div>
+                </div>
+                {(editing.phone_number || editing.nationality || editing.gender || editing.date_of_birth) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                    {editing.phone_number  && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.phone_number}</span>}
+                    {editing.nationality   && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.nationality}</span>}
+                    {editing.gender        && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.gender}</span>}
+                    {editing.date_of_birth && <span style={{ fontSize: '0.72rem', color: T.muted, background: 'rgba(255,255,255,0.05)', border: `1px solid ${T.border}`, borderRadius: 5, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>{editing.date_of_birth}</span>}
+                  </div>
+                )}
+                {(editing.passport_photo || editing.passport_document || editing.fingerprint_id) && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                    {editing.passport_photo    && <span style={{ fontSize: '0.65rem', color: '#60a5fa', background: 'rgba(96,165,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📷 Passport photo</span>}
+                    {editing.passport_document && <span style={{ fontSize: '0.65rem', color: '#a78bfa', background: 'rgba(167,139,250,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>📄 Document</span>}
+                    {editing.fingerprint_id    && <span style={{ fontSize: '0.65rem', color: '#34d399', background: 'rgba(52,211,153,0.10)', padding: '2px 7px', borderRadius: 4, fontFamily: 'var(--font-mono)' }}>🫆 {editing.fingerprint_id}</span>}
+                  </div>
+                )}
+                {editing.notes && <div style={{ fontSize: '0.78rem', color: T.sub, fontStyle: 'italic', marginTop: 2 }}>{editing.notes}</div>}
+              </div>
+            ) : (
+              /* ── Add mode: all personal fields are editable ── */
+              <>
+                <div>
+                  <FieldLabel>Profile Photo</FieldLabel>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 14, background: T.input, border: `1px solid ${T.border}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', transition: 'border-color 0.2s' }}>
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
+                    <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                      {photoPreview ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👷'}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: photoFile ? T.amber : T.muted }}>{photoFile ? photoFile.name : 'Tap to upload profile photo'}</div>
+                      <div style={{ fontSize: '0.72rem', color: T.sub, marginTop: 2 }}>JPG, PNG — optional</div>
+                    </div>
+                  </label>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: photoFile ? T.amber : T.muted }}>
-                    {photoFile ? photoFile.name : 'Tap to upload profile photo'}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: T.sub, marginTop: 2 }}>JPG, PNG — optional</div>
+                  <FieldLabel required>Full Name</FieldLabel>
+                  <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} required
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
                 </div>
-              </label>
-            </div>
+                <div>
+                  <FieldLabel required>Role</FieldLabel>
+                  <Select value={form.role} onChange={v => set('role', v)} placeholder="Select role" options={ROLES.map(r => ({ value: r, label: r }))} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <FieldLabel>Phone</FieldLabel>
+                    <input style={inp} value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="+234…"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                  <div>
+                    <FieldLabel>Status</FieldLabel>
+                    <Select value={form.status} onChange={v => set('status', v)} options={STATUSES.map(s => ({ value: s, label: s }))} />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Email</FieldLabel>
+                  <input type="email" style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@example.com"
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <FieldLabel>Date of Birth</FieldLabel>
+                    <input type="date" style={inp} value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)}
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                  <div>
+                    <FieldLabel>Gender</FieldLabel>
+                    <Select value={form.gender} onChange={v => set('gender', v)} placeholder="Select" options={['Male','Female','Other'].map(g => ({ value: g, label: g }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <FieldLabel>Nationality</FieldLabel>
+                    <input style={inp} value={form.nationality} onChange={e => set('nationality', e.target.value)} placeholder="e.g. Nigerian"
+                      onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                      onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Notes</FieldLabel>
+                  <textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.notes} onChange={e => set('notes', e.target.value)}
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                </div>
+                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.sub, fontFamily: 'var(--font-mono)' }}>Documents</div>
+                  <FileAttach label="Passport Photo" accept="image/*" hint="JPG, PNG — passport / ID photo" icon="📷" file={passportPhotoFile} existingUrl={null} onChange={setPassportPhotoFile} />
+                  <FileAttach label="Passport / ID Document" accept="image/*,application/pdf" hint="PDF, JPG, PNG — scanned document" icon="📄" file={passportDocFile} existingUrl={null} onChange={setPassportDocFile} />
+                </div>
+                <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.sub, fontFamily: 'var(--font-mono)' }}>Biometrics</div>
+                  <FingerprintScanner value={fingerprintId} onChange={setFingerprintId} />
+                </div>
+              </>
+            )}
 
-            {/* ── Core fields ── */}
-            <div>
-              <FieldLabel required>Full Name</FieldLabel>
-              <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} required
-                onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-            </div>
-            <div>
-              <FieldLabel required>Role</FieldLabel>
-              <Select value={form.role} onChange={v => set('role', v)} placeholder="Select role"
-                options={ROLES.map(r => ({ value: r, label: r }))} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <FieldLabel>Phone</FieldLabel>
-                <input style={inp} value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="+234…"
-                  onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-              </div>
-              <div>
-                <FieldLabel>Status</FieldLabel>
-                <Select value={form.status} onChange={v => set('status', v)}
-                  options={STATUSES.map(s => ({ value: s, label: s }))} />
-              </div>
-            </div>
-            <div>
-              <FieldLabel>Email</FieldLabel>
-              <input type="email" style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@example.com"
-                onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <FieldLabel>Date of Birth</FieldLabel>
-                <input type="date" style={inp} value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)}
-                  onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-              </div>
-              <div>
-                <FieldLabel>Gender</FieldLabel>
-                <Select value={form.gender} onChange={v => set('gender', v)} placeholder="Select"
-                  options={['Male','Female','Other'].map(g => ({ value: g, label: g }))} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <FieldLabel>Nationality</FieldLabel>
-                <input style={inp} value={form.nationality} onChange={e => set('nationality', e.target.value)} placeholder="e.g. Nigerian"
-                  onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                  onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div>
-                <FieldLabel>Project</FieldLabel>
-                <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
-                  placeholder="Select project" searchable options={projects.map(p => ({ value: p.name, label: p.name }))} />
-              </div>
-              <div>
-                <FieldLabel>Section</FieldLabel>
-                <Select value={form.section_name} onChange={v => set('section_name', v)}
-                  placeholder="Select section" disabled={!form.project_name}
-                  options={filteredSections.map(s => ({ value: s.name, label: s.name }))} />
-              </div>
-            </div>
-            <div>
-              <FieldLabel>Notes</FieldLabel>
-              <textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={form.notes} onChange={e => set('notes', e.target.value)}
-                onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
-            </div>
-
-            {/* ── Documents section ── */}
+            {/* ── Assignment fields — always editable ── */}
             <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.sub, fontFamily: 'var(--font-mono)' }}>
-                Documents
+              {editing && <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: T.sub, fontFamily: 'var(--font-mono)' }}>Assignment & Status</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <FieldLabel>Project</FieldLabel>
+                  <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
+                    placeholder="Select project" searchable options={projects.map(p => ({ value: p.name, label: p.name }))} />
+                </div>
+                <div>
+                  <FieldLabel>Section</FieldLabel>
+                  <Select value={form.section_name} onChange={v => set('section_name', v)}
+                    placeholder="Select section" disabled={!form.project_name}
+                    options={filteredSections.map(s => ({ value: s.name, label: s.name }))} />
+                </div>
               </div>
-
-              <FileAttach
-                label="Passport Photo"
-                accept="image/*"
-                hint="JPG, PNG — passport / ID photo"
-                icon="📷"
-                file={passportPhotoFile}
-                existingUrl={editing?.passport_photo || null}
-                onChange={setPassportPhotoFile}
-              />
-
-              <FileAttach
-                label="Passport / ID Document"
-                accept="image/*,application/pdf"
-                hint="PDF, JPG, PNG — scanned document"
-                icon="📄"
-                file={passportDocFile}
-                existingUrl={editing?.passport_document || null}
-                onChange={setPassportDocFile}
-              />
-            </div>
-
-            {/* ── Biometrics section ── */}
-            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: T.sub, fontFamily: 'var(--font-mono)' }}>
-                Biometrics
-              </div>
-              <FingerprintScanner value={fingerprintId} onChange={setFingerprintId} />
+              {editing && (
+                <div>
+                  <FieldLabel>Status</FieldLabel>
+                  <Select value={form.status} onChange={v => set('status', v)} options={STATUSES.map(s => ({ value: s, label: s }))} />
+                </div>
+              )}
             </div>
 
             <SaveBtn loading={saving} label={editing ? 'Save Changes' : 'Add Employee'} />
