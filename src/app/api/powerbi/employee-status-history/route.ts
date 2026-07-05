@@ -47,7 +47,18 @@ export async function GET(req: NextRequest) {
   if (dateFrom) q = (q as any).gte('changed_at', dateFrom)
   if (dateTo)   q = (q as any).lte('changed_at', dateTo)
 
-  const { data, error } = await fetchAll(q)
+  const [{ data: history, error }, { data: employees }] = await Promise.all([
+    fetchAll(q),
+    supabase.from('surveycollection_employee').select('id, status'),
+  ])
   if (error) return err(error.message)
+
+  const statusMap = new Map((employees ?? []).map((e: any) => [e.id, e.status]))
+
+  const data = (history ?? []).map((row: any) => ({
+    ...row,
+    current_status: statusMap.get(row.employee_id) ?? null,
+  }))
+
   return respond(req, data)
 }
