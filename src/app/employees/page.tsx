@@ -599,7 +599,7 @@ export default function EmployeesPage() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 14, background: T.input, border: `1px solid ${T.border}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', transition: 'border-color 0.2s' }}>
                     <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
                     <div style={{ width: 52, height: 52, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
-                      {photoPreview ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👷'}
+                      {photoPreview ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="rgba(242,237,227,0.35)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
                     </div>
                     <div>
                       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: photoFile ? T.amber : T.muted }}>{photoFile ? photoFile.name : 'Tap to upload profile photo'}</div>
@@ -617,10 +617,17 @@ export default function EmployeesPage() {
                   <FieldLabel required>Role</FieldLabel>
                   <Select value={form.role} onChange={v => set('role', v)} placeholder="Select role" options={ROLES.map(r => ({ value: r, label: r }))} />
                 </div>
+                <div>
+                  <FieldLabel required>Email</FieldLabel>
+                  <input type="email" style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@example.com" required
+                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
+                  <div style={{ fontSize: '0.68rem', color: T.sub, marginTop: 4, fontFamily: 'var(--font-mono)' }}>Employee uses this to log in via forgot password</div>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <FieldLabel>Phone</FieldLabel>
-                    <input style={inp} value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="+234…"
+                    <FieldLabel required>Phone</FieldLabel>
+                    <input style={inp} value={form.phone_number} onChange={e => set('phone_number', e.target.value)} placeholder="+234…" required
                       onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
                       onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
                   </div>
@@ -628,12 +635,6 @@ export default function EmployeesPage() {
                     <FieldLabel>Status</FieldLabel>
                     <Select value={form.status} onChange={v => set('status', v)} options={STATUSES.map(s => ({ value: s, label: s }))} />
                   </div>
-                </div>
-                <div>
-                  <FieldLabel>Email</FieldLabel>
-                  <input type="email" style={inp} value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@example.com"
-                    onFocus={e => { e.target.style.borderColor = T.amber; e.target.style.boxShadow = `0 0 0 3px ${T.amber}20` }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(242,237,227,0.18)'; e.target.style.boxShadow = 'none' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
@@ -678,7 +679,7 @@ export default function EmployeesPage() {
               {editing && <div style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: T.sub, fontFamily: 'var(--font-mono)' }}>Assignment & Status</div>}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <FieldLabel>Project</FieldLabel>
+                  <FieldLabel required>Project</FieldLabel>
                   <Select value={form.project_name} onChange={v => { set('project_name', v); set('section_name', '') }}
                     placeholder="Select project" searchable options={projects.map(p => ({ value: p.name, label: p.name }))} />
                 </div>
