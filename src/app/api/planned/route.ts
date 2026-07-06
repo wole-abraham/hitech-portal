@@ -135,11 +135,11 @@ export async function GET(req: NextRequest) {
       const scheduled = item.custom_data?.scheduled_date
       if (scheduled && scheduled > today) return false
 
-      // Must match worker's project (if the plan has one set)
-      if (item.project_name && item.project_name !== workerProject) return false
+      // Filter by project only if both the worker and plan have one set
+      if (workerProject && item.project_name && item.project_name !== workerProject) return false
 
-      // Must match worker's section (if the plan has one set)
-      if (item.section_name && item.section_name !== workerSection) return false
+      // Filter by section only if both the worker and plan have one set
+      if (workerSection && item.section_name && item.section_name !== workerSection) return false
 
       return true
     })
