@@ -943,7 +943,7 @@ function SubmitPageInner() {
                 value={form.activity_status}
                 onChange={v => set('activity_status', v)}
                 placeholder="Status"
-                options={['Ongoing','Completed','Suspended','Planned'].map(s => ({ value: s, label: s }))}
+                options={['Ongoing','Completed','Rectified','Canceled','Postponed'].map(s => ({ value: s, label: s }))}
               />
             </div>
           </Row2>

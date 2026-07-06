@@ -671,8 +671,8 @@ export default function PlannedPage() {
                 <Select value={form.side} onChange={setF('side')} placeholder="Select" options={['Left','Right','Median'].map(s => ({ value: s, label: s }))} />
               </div>
               <div>
-                <Label>Status</Label>
-                <Select value={form.activity_status} onChange={setF('activity_status')} placeholder="Select" options={['Ongoing','Completed','Suspended','Planned'].map(s => ({ value: s, label: s }))} />
+                <Label>Planning Status</Label>
+                <Select value={form.activity_status} onChange={setF('activity_status')} placeholder="Select" options={['Planned','Ongoing','Completed','Suspended'].map(s => ({ value: s, label: s }))} />
               </div>
             </Row2>
           </Card>
@@ -1189,7 +1189,7 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
               </select>
             </div>
             <div style={{ flex: '0 1 130px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Status</div>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Planning Status</div>
               <select value={editVals.activity_status ?? ''} onChange={e => setE('activity_status')(e.target.value)} style={{ ...eInp, cursor: 'pointer' }}>
                 <option value="">—</option>
                 {['Planned','Ongoing','Completed','Suspended'].map(o => <option key={o} value={o}>{o}</option>)}
