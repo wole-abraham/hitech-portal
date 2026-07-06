@@ -39,10 +39,11 @@ const C = {
 
 export default function ReportStartPage() {
   const router = useRouter()
-  const [planned, setPlanned]   = useState<PlannedActivity[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [vis, setVis]           = useState(false)
-  const [role, setRole]         = useState<'admin' | 'worker'>('worker')
+  const [planned, setPlanned]     = useState<PlannedActivity[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [vis, setVis]             = useState(false)
+  const [role, setRole]           = useState<'admin' | 'worker'>('worker')
+  const [unassigned, setUnassigned] = useState(false)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -52,6 +53,7 @@ export default function ReportStartPage() {
 
     fetch('/api/planned').then(r => r.json()).then(d => {
       setPlanned(d.items ?? [])
+      if (d.unassigned) setUnassigned(true)
     }).catch(() => {}).finally(() => {
       setLoading(false)
       setTimeout(() => setVis(true), 40)
@@ -198,14 +200,16 @@ export default function ReportStartPage() {
               background: C.card, border: `1px solid ${C.border}`, borderRadius: 14,
               padding: '28px 20px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '1.6rem', marginBottom: 10 }}>📋</div>
+              <div style={{ fontSize: '1.6rem', marginBottom: 10 }}>{unassigned ? '⚠️' : '📋'}</div>
               <div style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text, fontFamily: 'var(--font-display)', marginBottom: 6 }}>
-                No planning activities yet
+                {unassigned ? 'No project assigned' : 'No planning activities yet'}
               </div>
               <div style={{ fontSize: '0.74rem', color: C.sub, lineHeight: 1.5 }}>
-                {role === 'admin'
-                  ? 'Create planning activities in Config → Planning Activities.'
-                  : 'An admin will set up planning activities for you to pick from.'}
+                {unassigned
+                  ? 'You have not been assigned to a project or section. Contact your admin to update your profile.'
+                  : role === 'admin'
+                    ? 'Create planning activities in Config → Planning Activities.'
+                    : 'An admin will set up planning activities for you to pick from.'}
               </div>
             </div>
           ) : (
