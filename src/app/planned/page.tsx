@@ -499,12 +499,13 @@ export default function PlannedPage() {
   }
 
   async function create() {
-    if (!form.title.trim()) { setErr('Title is required'); return }
+    if (!form.scheduled_date) { setErr('Scheduled date is required'); return }
     setSaving(true); setErr('')
     const { scheduled_date, ...rest } = form
+    const autoTitle = [form.activity_category || form.activity_type || 'Activity', scheduled_date].filter(Boolean).join(' — ')
     const r = await fetch('/api/planned', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...rest, custom_data: { scheduled_date: scheduled_date || null }, employees: employeeRows, supervisors: supervisorRows, machines: machineRows }),
+      body: JSON.stringify({ ...rest, title: autoTitle, custom_data: { scheduled_date: scheduled_date || null }, employees: employeeRows, supervisors: supervisorRows, machines: machineRows }),
     })
     const d = await r.json()
     if (!r.ok && r.status !== 207) { setErr(d.error || 'Save failed'); setSaving(false); return }
@@ -619,19 +620,8 @@ export default function PlannedPage() {
           {/* 1. Plan Info */}
           <Card icon="📋" title="Plan Info" cardBg={CARD_COLORS[0]}>
             <div>
-              <Label required>Title</Label>
-              <input type="text" style={inp} value={form.title} onChange={e => setF('title')(e.target.value)} placeholder="e.g. Morning Paving — Km 12" />
-            </div>
-            <div>
-              <Label>Scheduled Date</Label>
+              <Label required>Scheduled Date</Label>
               <input type="date" style={inp} value={form.scheduled_date} onChange={e => setF('scheduled_date')(e.target.value)} />
-              <div style={{ fontSize: '0.68rem', color: C.sub, marginTop: 5, fontFamily: 'var(--font-mono)' }}>
-                Workers will not see this plan until this date. Leave blank to show immediately.
-              </div>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <textarea style={{ ...inp, resize: 'vertical', minHeight: 72 }} value={form.description} onChange={e => setF('description')(e.target.value)} placeholder="Brief note for workers (optional)" />
             </div>
           </Card>
 
@@ -1128,17 +1118,9 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
         <div style={{ fontWeight: 700, fontSize: '0.82rem', color: C.orange, fontFamily: 'var(--font-mono)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Editing Plan</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ flex: '2 1 180px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Title *</div>
-              <input type="text" value={editVals.title ?? ''} onChange={e => setE('title')(e.target.value)} style={eInp} />
-            </div>
             <div style={{ flex: '1 1 140px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Scheduled Date</div>
+              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Scheduled Date *</div>
               <input type="date" value={editVals.custom_data?.scheduled_date ?? ''} onChange={e => setEditVals(v => ({ ...v, custom_data: { ...v.custom_data, scheduled_date: e.target.value || null } }))} style={eInp} />
-            </div>
-            <div style={{ flex: '3 1 220px' }}>
-              <div style={{ fontSize: '0.58rem', color: C.sub, fontFamily: 'var(--font-mono)', marginBottom: 4, textTransform: 'uppercase' }}>Description</div>
-              <input type="text" value={editVals.description ?? ''} onChange={e => setE('description')(e.target.value)} style={eInp} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

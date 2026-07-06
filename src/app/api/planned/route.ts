@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  if (!body.title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+  if (!body.title?.trim() && !body.custom_data?.scheduled_date) return NextResponse.json({ error: 'Scheduled date is required' }, { status: 400 })
 
   const createdBy = session.user.username || `${session.user.first_name} ${session.user.last_name}`.trim()
   const { data, error } = await supabase
