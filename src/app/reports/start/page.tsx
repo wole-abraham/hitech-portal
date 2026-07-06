@@ -17,6 +17,8 @@ type PlannedActivity = {
   weather: string | null
   start_chainage: string | null
   end_chainage: string | null
+  activity_status: string | null
+  custom_data: { scheduled_date?: string | null } | null
   created_at: string
   report_count: number
 }
@@ -158,6 +160,34 @@ export default function ReportStartPage() {
               {role === 'admin' ? 'Manage ›' : 'View all ›'}
             </a>
           </div>
+
+          {/* Stat tiles */}
+          {!loading && planned.length > 0 && (() => {
+            const pendingCount  = planned.filter(p => p.report_count === 0).length
+            const reportedCount = planned.filter(p => p.report_count > 0).length
+            return (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1, background: C.card, border: `1px solid rgba(156,163,175,0.25)`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(156,163,175,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: C.text, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{pendingCount}</div>
+                    <div style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pending report</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, background: C.card, border: `1px solid rgba(245,158,11,0.25)`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245,158,11,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: C.text, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{reportedCount}</div>
+                    <div style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reported</div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {loading ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: C.sub, fontSize: '0.84rem', fontFamily: 'var(--font-mono)' }}>
@@ -307,17 +337,31 @@ function PlannedCard({ item, delay }: { item: PlannedActivity; delay: number }) 
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-          {item.report_count > 0 ? (
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.20)', borderRadius: 5, padding: '2px 7px', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-              {item.report_count} reported
-            </span>
-          ) : (
-            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#9ca3af', background: 'rgba(156,163,175,0.10)', border: '1px solid rgba(156,163,175,0.25)', borderRadius: 5, padding: '2px 7px', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              pending
-            </span>
-          )}
+          {(() => {
+            const s = item.activity_status || 'Planned'
+            const map: Record<string, { bg: string; border: string; color: string }> = {
+              Planned:   { bg: 'rgba(156,163,175,0.10)', border: 'rgba(156,163,175,0.25)', color: '#6b7280' },
+              Ongoing:   { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.25)',  color: '#3b82f6' },
+              Completed: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.25)',   color: '#16a34a' },
+              Canceled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.25)',   color: '#dc2626' },
+              Suspended: { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)',  color: '#d97706' },
+            }
+            const st = map[s] ?? map.Planned
+            return (
+              <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: st.color, background: st.bg, border: `1px solid ${st.border}`, borderRadius: 5, padding: '2px 7px' }}>
+                {s}
+              </span>
+            )
+          })()}
+          {item.custom_data?.scheduled_date && (() => {
+            const [y, m, d] = item.custom_data!.scheduled_date!.split('-').map(Number)
+            const dt = new Date(y, m - 1, d)
+            const day = dt.toLocaleDateString('en-GB', { weekday: 'long' })
+            const formatted = `${day}, ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`
+            return (
+              <span style={{ fontSize: '0.58rem', color: '#8c8480', fontFamily: 'var(--font-mono)' }}>{formatted}</span>
+            )
+          })()}
           <svg style={{ opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-4px)', transition: 'opacity 0.2s, transform 0.25s' }}
             width={14} height={14} viewBox="0 0 24 24" fill="none"
             stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
