@@ -1353,6 +1353,18 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
             <div style={{ fontWeight: 700, fontSize: '0.92rem', color: C.text, fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>{item.title}</div>
             {!item.is_active && <span style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.06)', padding: '2px 7px', borderRadius: 4 }}>inactive</span>}
+            {(() => {
+              const s = item.activity_status || 'Planned'
+              const map: Record<string, { bg: string; border: string; color: string }> = {
+                Planned:   { bg: 'rgba(156,163,175,0.10)', border: 'rgba(156,163,175,0.25)', color: '#6b7280' },
+                Ongoing:   { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.25)',  color: '#3b82f6' },
+                Completed: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.25)',   color: '#16a34a' },
+                Canceled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.25)',   color: '#dc2626' },
+                Suspended: { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)',  color: '#d97706' },
+              }
+              const st = map[s] ?? map.Planned
+              return <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: st.color, background: st.bg, border: `1px solid ${st.border}`, padding: '2px 7px', borderRadius: 4 }}>{s}</span>
+            })()}
             {item.report_count > 0 ? (
               <span style={{ fontSize: '0.6rem', color: C.orange, fontFamily: 'var(--font-mono)', fontWeight: 700, background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -1374,7 +1386,6 @@ function PlanCard({ item, delay, role, isEditing, editVals, editFilteredTypes, e
 
             {item.start_chainage && <Pill color={C.orange}>{item.start_chainage}{item.end_chainage ? ` → ${item.end_chainage}` : ''}</Pill>}
             {item.party_for_activity && <Pill>{item.party_for_activity}</Pill>}
-            {item.activity_status && <Pill color="#60a5fa">{item.activity_status}</Pill>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
             {item.created_by && <span style={{ fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)' }}>by {item.created_by} · {new Date(item.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</span>}
