@@ -195,7 +195,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
-  const { id, employees, supervisors, machines, ...rest } = body
+  const { id, employees, supervisors, machines, report_count, ...rest } = body
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   // Snapshot current state before update
