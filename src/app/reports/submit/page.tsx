@@ -437,7 +437,7 @@ function SubmitPageInner() {
     activity_category: '', activity_type: '', activity_subtype: '', side: '',
     start_chainage: '', start_chainage_lat: '', start_chainage_long: '',
     end_chainage: '', end_chainage_lat: '', end_chainage_long: '',
-    activity_status: 'Ongoing',
+    activity_status: fromId ? 'Planned' : 'Ongoing',
     party_for_activity: '', subcontractor_name_activity: '',
     comment_activity: '',
     not_conforming: 'No', not_conforming_issue: '', not_conforming_correction: '',
@@ -958,13 +958,19 @@ function SubmitPageInner() {
               )}
             </div>
             <div>
-              <Label>Status</Label>
-              <Select
-                value={form.activity_status}
-                onChange={v => set('activity_status', v)}
-                placeholder="Status"
-                options={['Ongoing','Completed','Rectified','Canceled','Postponed'].map(s => ({ value: s, label: s }))}
-              />
+              {fromId ? (
+                <LockedField label="Status" value="Planned" />
+              ) : (
+                <>
+                  <Label>Status</Label>
+                  <Select
+                    value={form.activity_status}
+                    onChange={v => set('activity_status', v)}
+                    placeholder="Status"
+                    options={['Ongoing','Completed','Rectified','Canceled','Postponed'].map(s => ({ value: s, label: s }))}
+                  />
+                </>
+              )}
             </div>
           </Row2>
 
