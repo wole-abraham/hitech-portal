@@ -476,6 +476,10 @@ function SubmitPageInner() {
   const [component, setComponent]         = useState<ComponentData | null>(null)
   const [componentLoading, setComponentLoading] = useState(false)
 
+  type DrainageRow = { chainage: string; type: string; measurement: string; cells: string | null; length: number | null; status: string }
+  const [drainageRows, setDrainageRows]     = useState<DrainageRow[]>([])
+  const [drainageLoading, setDrainageLoading] = useState(false)
+
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
   const [video, setVideo] = useState<File | null>(null)
 
@@ -489,6 +493,9 @@ function SubmitPageInner() {
   const filteredSections = allSections.filter(s => s.project_name === form.project_name)
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  const isDrainage = form.activity_category === 'Drainage Channels - Utilities'
+  const sideToDb: Record<string, string> = { Left: 'LHS', Right: 'RHS', Median: 'Median' }
 
   // Auto-fill component data when project + section + chainage + activity_type + side are all set
   useEffect(() => {
@@ -511,6 +518,32 @@ function SubmitPageInner() {
       .catch(() => setComponent(null))
       .finally(() => setComponentLoading(false))
   }, [form.project_name, form.section_name, form.start_chainage, form.activity_type, form.side])
+
+  // Fetch drainage chainages when category is Drainage Channels - Utilities
+  useEffect(() => {
+    if (!isDrainage || !form.project_name || !form.side) {
+      setDrainageRows([])
+      return
+    }
+    setDrainageLoading(true)
+    const dbSide = sideToDb[form.side] ?? form.side
+    const params = new URLSearchParams({ project: form.project_name, section: form.section_name, side: dbSide })
+    fetch(`/api/drainage-components?${params}`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const seen = new Set<string>()
+        const rows: DrainageRow[] = []
+        for (const d of data) {
+          if (!seen.has(d.chainage)) {
+            seen.add(d.chainage)
+            rows.push({ chainage: d.chainage, type: d.type, measurement: d.measurement, cells: d.cells, length: d.length, status: d.status })
+          }
+        }
+        setDrainageRows(rows)
+      })
+      .catch(() => setDrainageRows([]))
+      .finally(() => setDrainageLoading(false))
+  }, [isDrainage, form.project_name, form.section_name, form.side])
 
   // XP bar — counts filled required checkpoints (0–10)
   const xpChecks = [
@@ -631,8 +664,8 @@ function SubmitPageInner() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (!form.start_chainage) return setError('Please provide a starting chainage.')
-    if (!form.end_chainage) return setError('Please provide an ending chainage.')
+    if (!form.start_chainage) return setError(isDrainage ? 'Please select a chainage.' : 'Please provide a starting chainage.')
+    if (!isDrainage && !form.end_chainage) return setError('Please provide an ending chainage.')
     if (employeeRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one employee.')
     if (supervisorRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one supervisor.')
     if (machineRows.every(r => !r.machine_name)) return setError('Please add at least one machine.')
@@ -1149,21 +1182,62 @@ function SubmitPageInner() {
               </div>
             </div>
           )}
-          <ChainageInput
-            label={plannedChainages ? 'Actual Start Chainage' : 'Start Chainage'} required
-            project={form.project_name} section={form.section_name}
-            value={form.start_chainage}
-            onChange={v => set('start_chainage', v)}
-            onCoords={(lat, lng) => setStartCoords({ lat, lng })}
-          />
-          <div style={{ marginTop: 12 }} />
-          <ChainageInput
-            label={plannedChainages ? 'Actual End Chainage' : 'End Chainage'} required
-            project={form.project_name} section={form.section_name}
-            value={form.end_chainage}
-            onChange={v => set('end_chainage', v)}
-            onCoords={(lat, lng) => setEndCoords({ lat, lng })}
-          />
+
+          {isDrainage ? (
+            /* Drainage Channels: single chainage picker from component reference DB */
+            <div>
+              <Label required>Chainage</Label>
+              {drainageLoading ? (
+                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                  Loading chainages…
+                </div>
+              ) : !form.side ? (
+                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                  Select a side first
+                </div>
+              ) : !form.project_name ? (
+                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                  Select a project first
+                </div>
+              ) : drainageRows.length === 0 ? (
+                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                  No chainages found for this project / section / side
+                </div>
+              ) : (
+                <Select
+                  value={form.start_chainage}
+                  onChange={v => {
+                    const row = drainageRows.find(r => r.chainage === v)
+                    set('start_chainage', v)
+                    set('end_chainage', v)
+                    if (row && !planData?.activity_type) set('activity_type', row.type)
+                  }}
+                  placeholder="Select chainage"
+                  searchable
+                  options={drainageRows.map(r => ({ value: r.chainage, label: `${r.chainage}  —  ${r.type}` }))}
+                />
+              )}
+            </div>
+          ) : (
+            <>
+              <ChainageInput
+                label={plannedChainages ? 'Actual Start Chainage' : 'Start Chainage'} required
+                project={form.project_name} section={form.section_name}
+                value={form.start_chainage}
+                onChange={v => set('start_chainage', v)}
+                onCoords={(lat, lng) => setStartCoords({ lat, lng })}
+              />
+              <div style={{ marginTop: 12 }} />
+              <ChainageInput
+                label={plannedChainages ? 'Actual End Chainage' : 'End Chainage'} required
+                project={form.project_name} section={form.section_name}
+                value={form.end_chainage}
+                onChange={v => set('end_chainage', v)}
+                onCoords={(lat, lng) => setEndCoords({ lat, lng })}
+              />
+            </>
+          )}
+
           <ChainageMap
             startLat={startCoords.lat} startLng={startCoords.lng}
             endLat={endCoords.lat}     endLng={endCoords.lng}
