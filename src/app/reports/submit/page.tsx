@@ -664,8 +664,9 @@ function SubmitPageInner() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (!form.start_chainage) return setError(isDrainage ? 'Please select a chainage.' : 'Please provide a starting chainage.')
-    if (!isDrainage && !form.end_chainage) return setError('Please provide an ending chainage.')
+    const usingDrainagePicker = isDrainage && drainageRows.length > 0
+    if (!form.start_chainage) return setError(usingDrainagePicker ? 'Please select a chainage.' : 'Please provide a starting chainage.')
+    if (!usingDrainagePicker && !form.end_chainage) return setError('Please provide an ending chainage.')
     if (employeeRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one employee.')
     if (supervisorRows.every(r => !r.name && !r.missing_name)) return setError('Please add at least one supervisor.')
     if (machineRows.every(r => !r.machine_name)) return setError('Please add at least one machine.')
@@ -1183,25 +1184,13 @@ function SubmitPageInner() {
             </div>
           )}
 
-          {isDrainage ? (
+          {isDrainage && drainageRows.length > 0 ? (
             /* Drainage Channels: single chainage picker from component reference DB */
             <div>
               <Label required>Chainage</Label>
               {drainageLoading ? (
                 <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
                   Loading chainages…
-                </div>
-              ) : !form.side ? (
-                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-                  Select a side first
-                </div>
-              ) : !form.project_name ? (
-                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-                  Select a project first
-                </div>
-              ) : drainageRows.length === 0 ? (
-                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-                  No chainages found for this project / section / side
                 </div>
               ) : (
                 <Select
