@@ -476,9 +476,15 @@ function SubmitPageInner() {
   const [component, setComponent]         = useState<ComponentData | null>(null)
   const [componentLoading, setComponentLoading] = useState(false)
 
-  type DrainageRow = { chainage: string; type: string; measurement: string; cells: string | null; length: number | null; status: string }
-  const [drainageRows, setDrainageRows]     = useState<DrainageRow[]>([])
+  type DrainageRow = {
+    chainage: string; type: string; measurement: string
+    cells: string | null; length: string | null; status: string
+    total_length: string | null; consideration_status: string | null
+    comment: string | null; low_point_elevation: string | null
+  }
+  const [drainageRows, setDrainageRows]       = useState<DrainageRow[]>([])
   const [drainageLoading, setDrainageLoading] = useState(false)
+  const [selectedDrainageRow, setSelectedDrainageRow] = useState<DrainageRow | null>(null)
 
   const [photos, setPhotos] = useState<(File | null)[]>([null, null, null, null, null])
   const [video, setVideo] = useState<File | null>(null)
@@ -523,9 +529,11 @@ function SubmitPageInner() {
   useEffect(() => {
     if (!isDrainage || !form.project_name || !form.side) {
       setDrainageRows([])
+      setSelectedDrainageRow(null)
       return
     }
     setDrainageLoading(true)
+    setSelectedDrainageRow(null)
     const dbSide = sideToDb[form.side] ?? form.side
     const params = new URLSearchParams({ project: form.project_name, section: form.section_name, side: dbSide })
     fetch(`/api/drainage-components?${params}`)
@@ -536,7 +544,12 @@ function SubmitPageInner() {
         for (const d of data) {
           if (!seen.has(d.chainage)) {
             seen.add(d.chainage)
-            rows.push({ chainage: d.chainage, type: d.type, measurement: d.measurement, cells: d.cells, length: d.length, status: d.status })
+            rows.push({
+              chainage: d.chainage, type: d.type, measurement: d.measurement,
+              cells: d.cells, length: d.length, status: d.status,
+              total_length: d.total_length, consideration_status: d.consideration_status,
+              comment: d.comment, low_point_elevation: d.low_point_elevation,
+            })
           }
         }
         setDrainageRows(rows)
@@ -1186,26 +1199,58 @@ function SubmitPageInner() {
 
           {isDrainage && drainageRows.length > 0 ? (
             /* Drainage Channels: single chainage picker from component reference DB */
-            <div>
-              <Label required>Chainage</Label>
-              {drainageLoading ? (
-                <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-                  Loading chainages…
-                </div>
-              ) : (
-                <Select
-                  value={form.start_chainage}
-                  onChange={v => {
-                    const row = drainageRows.find(r => r.chainage === v)
-                    set('start_chainage', v)
-                    set('end_chainage', v)
-                    if (row && !planData?.activity_type) set('activity_type', row.type)
-                  }}
-                  placeholder="Select chainage"
-                  searchable
-                  options={drainageRows.map(r => ({ value: r.chainage, label: `${r.chainage}  —  ${r.type}` }))}
-                />
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <Label required>Chainage</Label>
+                {drainageLoading ? (
+                  <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+                    Loading chainages…
+                  </div>
+                ) : (
+                  <Select
+                    value={form.start_chainage}
+                    onChange={v => {
+                      const row = drainageRows.find(r => r.chainage === v) ?? null
+                      set('start_chainage', v)
+                      set('end_chainage', v)
+                      if (row && !planData?.activity_type) set('activity_type', row.type)
+                      setSelectedDrainageRow(row)
+                    }}
+                    placeholder="Select chainage"
+                    searchable
+                    options={drainageRows.map(r => ({ value: r.chainage, label: `${r.chainage}  —  ${r.type}` }))}
+                  />
+                )}
+              </div>
+              {selectedDrainageRow && (() => {
+                const dr = selectedDrainageRow
+                const fields: [string, string | null][] = [
+                  ['Type',                  dr.type],
+                  ['Measurement',           dr.measurement],
+                  ['No. of Cells',          dr.cells],
+                  ['Length (m)',            dr.length],
+                  ['Total Length to Order', dr.total_length],
+                  ['Status',               dr.status],
+                  ['Consideration Status', dr.consideration_status],
+                  ['Comment',              dr.comment],
+                  ['Low Point Elevation',  dr.low_point_elevation],
+                ].filter(([, v]) => v) as [string, string][]
+                return (
+                  <div style={{
+                    background: 'rgba(245,158,11,0.06)',
+                    border: '1px solid rgba(245,158,11,0.22)',
+                    borderRadius: 12, padding: '12px 14px',
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px',
+                  }}>
+                    {fields.map(([label, val]) => (
+                      <div key={label}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: 'var(--font-mono)', marginBottom: 1 }}>{label}</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: C.text, fontFamily: 'var(--font-mono)' }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           ) : (
             <>
