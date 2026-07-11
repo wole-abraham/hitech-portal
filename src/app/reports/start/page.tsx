@@ -45,6 +45,7 @@ export default function ReportStartPage() {
   const [role, setRole]             = useState<'admin' | 'worker'>('worker')
   const [unassigned, setUnassigned] = useState(false)
   const [filter, setFilter]         = useState<'all' | 'pending'>('all')
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -229,15 +230,85 @@ export default function ReportStartPage() {
                     : 'An admin will set up planning activities for you to pick from.'}
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {planned
-                .filter(p => filter === 'all' || p.report_count === 0)
-                .map((p, i) => (
-                  <PlannedCard key={p.id} item={p} delay={i * 40} />
-                ))}
-            </div>
-          )}
+          ) : (() => {
+            const filtered = planned.filter(p => filter === 'all' || p.report_count === 0)
+            // Group by scheduled date
+            const groups = new Map<string, PlannedActivity[]>()
+            for (const p of filtered) {
+              const d = p.custom_data?.scheduled_date || 'No date'
+              if (!groups.has(d)) groups.set(d, [])
+              groups.get(d)!.push(p)
+            }
+            const sortedDates = [...groups.keys()].sort((a, b) => {
+              if (a === 'No date') return 1
+              if (b === 'No date') return -1
+              return a.localeCompare(b)
+            })
+            let cardIndex = 0
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sortedDates.map(date => {
+                  const groupItems = groups.get(date)!
+                  const isOpen = expandedDates.has(date)
+                  const toggle = () => setExpandedDates(prev => {
+                    const next = new Set(prev)
+                    isOpen ? next.delete(date) : next.add(date)
+                    return next
+                  })
+                  const label = date === 'No date'
+                    ? 'No date set'
+                    : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                  return (
+                    <div key={date}>
+                      <button
+                        type="button"
+                        onClick={toggle}
+                        style={{
+                          width: '100%', padding: '12px 16px',
+                          background: isOpen ? '#fdf8ef' : C.card,
+                          border: `1px solid ${isOpen ? C.orangeBorder : C.border}`,
+                          borderRadius: isOpen ? '12px 12px 0 0' : 12,
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          cursor: 'pointer', textAlign: 'left',
+                          transition: 'all 0.18s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: C.text, fontFamily: 'var(--font-display)' }}>{label}</span>
+                          <span style={{
+                            fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600,
+                            background: isOpen ? C.orangeLight : 'rgba(0,0,0,0.06)',
+                            color: isOpen ? C.orange : C.sub,
+                            padding: '2px 8px', borderRadius: 20,
+                          }}>
+                            {groupItems.length} {groupItems.length === 1 ? 'task' : 'tasks'}
+                          </span>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke={isOpen ? C.orange : C.muted} strokeWidth="2.5"
+                          style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      {isOpen && (
+                        <div style={{
+                          border: `1px solid ${C.orangeBorder}`, borderTop: 'none',
+                          borderRadius: '0 0 12px 12px', overflow: 'hidden',
+                          display: 'flex', flexDirection: 'column', gap: 1,
+                          background: '#f8f6f2',
+                        }}>
+                          {groupItems.map(p => {
+                            const idx = cardIndex++
+                            return <PlannedCard key={p.id} item={p} delay={idx * 40} />
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
 
       </div>
