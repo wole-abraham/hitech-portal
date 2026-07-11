@@ -406,6 +406,13 @@ export default function PlannedPage() {
   const [supervisorRows, setSupervisorRows] = useState<PersonRow[]>([emptyPerson()])
   const [machineRows, setMachineRows] = useState<MachineRow[]>([emptyMachine()])
 
+  // Drainage component picker state
+  const [drainageRows, setDrainageRows] = useState<{ chainage: string; type: string }[]>([])
+  const [drainageLoading, setDrainageLoading] = useState(false)
+
+  // Date-group accordion state (set of expanded date strings)
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set())
+
   const filteredTypes    = allTypes.filter(t => categories.find(c => c.name === form.activity_category)?.id === t.category_id)
   const filteredSubtypes = allSubtypes.filter(s => allTypes.find(t => t.name === form.activity_type)?.id === s.activity_type_id)
   const filteredSections = allSections.filter(s => !form.project_name || s.project_name === form.project_name)
@@ -572,6 +579,28 @@ export default function PlannedPage() {
   const setF = (k: keyof ReturnType<typeof emptyForm>) => (v: string) => setForm(f => ({ ...f, [k]: v }))
   const setE = (k: keyof PA) => (v: string) => setEditVals(f => ({ ...f, [k]: v }))
 
+  const isDrainage = form.activity_category === 'Drainage Channels - Utilities'
+  const sideToDb: Record<string, string> = { Left: 'LHS', Right: 'RHS', Median: 'Median' }
+
+  useEffect(() => {
+    if (!isDrainage || !form.project_name || !form.side) { setDrainageRows([]); return }
+    setDrainageLoading(true)
+    const dbSide = sideToDb[form.side] ?? form.side
+    const params = new URLSearchParams({ project: form.project_name, section: form.section_name, side: dbSide })
+    fetch(`/api/drainage-components?${params}`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const seen = new Set<string>()
+        const rows: { chainage: string; type: string }[] = []
+        for (const d of data) {
+          if (!seen.has(d.chainage)) { seen.add(d.chainage); rows.push({ chainage: d.chainage, type: d.type }) }
+        }
+        setDrainageRows(rows)
+      })
+      .catch(() => setDrainageRows([]))
+      .finally(() => setDrainageLoading(false))
+  }, [isDrainage, form.project_name, form.section_name, form.side])
+
   const visible = role === 'admin'
     ? (showInactive ? items : items.filter(i => i.is_active))
     : items.filter(i => i.is_active)
@@ -669,27 +698,51 @@ export default function PlannedPage() {
 
           {/* 4. Chainage */}
           <Card icon="📍" title="Chainage" cardBg={CARD_COLORS[1]}>
-            {!form.project_name && (
-              <div style={{ fontSize: '0.72rem', color: C.sub, fontFamily: 'var(--font-mono)', padding: '4px 2px' }}>
-                Select a project above to pick chainages from the database.
+            {isDrainage && drainageRows.length > 0 ? (
+              <div>
+                <Label>Chainage</Label>
+                {drainageLoading ? (
+                  <div style={{ padding: '12px 14px', background: C.inputBg, borderRadius: 11, color: C.muted, fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>Loading chainages…</div>
+                ) : (
+                  <Select
+                    value={form.start_chainage}
+                    onChange={v => {
+                      setF('start_chainage')(v)
+                      setF('end_chainage')(v)
+                      const row = drainageRows.find(r => r.chainage === v)
+                      if (row && !form.activity_type) setF('activity_type')(row.type)
+                    }}
+                    placeholder="Select chainage"
+                    searchable
+                    options={drainageRows.map(r => ({ value: r.chainage, label: `${r.chainage}  —  ${r.type}` }))}
+                  />
+                )}
               </div>
+            ) : (
+              <>
+                {!form.project_name && (
+                  <div style={{ fontSize: '0.72rem', color: C.sub, fontFamily: 'var(--font-mono)', padding: '4px 2px' }}>
+                    Select a project above to pick chainages from the database.
+                  </div>
+                )}
+                <Row2>
+                  <ChainageInput
+                    label="Start Chainage"
+                    project={form.project_name}
+                    section={form.section_name}
+                    value={form.start_chainage}
+                    onChange={setF('start_chainage')}
+                  />
+                  <ChainageInput
+                    label="End Chainage"
+                    project={form.project_name}
+                    section={form.section_name}
+                    value={form.end_chainage}
+                    onChange={setF('end_chainage')}
+                  />
+                </Row2>
+              </>
             )}
-            <Row2>
-              <ChainageInput
-                label="Start Chainage"
-                project={form.project_name}
-                section={form.section_name}
-                value={form.start_chainage}
-                onChange={setF('start_chainage')}
-              />
-              <ChainageInput
-                label="End Chainage"
-                project={form.project_name}
-                section={form.section_name}
-                value={form.end_chainage}
-                onChange={setF('end_chainage')}
-              />
-            </Row2>
           </Card>
 
           {/* 5. Party */}
@@ -950,30 +1003,89 @@ export default function PlannedPage() {
                 : 'An admin will set up planning activities for you to select.'}
             </div>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {visible.map((item, i) => (
-              <PlanCard
-                key={item.id} item={item} delay={i * 35} role={role}
-                isEditing={editId === item.id} editVals={editVals}
-                editFilteredTypes={editFilteredTypes} editFilteredSubtypes={editFilteredSubtypes}
-                editFilteredSections={editFilteredSections}
-                categories={categories} projects={projects} saving={saving}
-                onEdit={() => startEdit(item)}
-                onCancelEdit={() => setEditId(null)}
-                onSaveEdit={saveEdit} onToggle={() => toggleActive(item)} onDelete={() => del(item.id)}
-                setE={setE} setEditVals={setEditVals}
-                allTypes={allTypes} allSubtypes={allSubtypes} allSections={allSections}
-                editEmployeeRows={editEmployeeRows} setEditEmployeeRows={setEditEmployeeRows}
-                editSupervisorRows={editSupervisorRows} setEditSupervisorRows={setEditSupervisorRows}
-                editMachineRows={editMachineRows} setEditMachineRows={setEditMachineRows}
-                editEmployeeNameOptions={editEmployeeNameOptions}
-                editSupervisorNameOptions={editSupervisorNameOptions}
-                equipmentList={equipmentList}
-              />
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          // Group by scheduled date, sorted ascending (undated last)
+          const groups = new Map<string, PA[]>()
+          for (const item of visible) {
+            const d = item.custom_data?.scheduled_date || 'No date'
+            if (!groups.has(d)) groups.set(d, [])
+            groups.get(d)!.push(item)
+          }
+          const sortedDates = [...groups.keys()].sort((a, b) => {
+            if (a === 'No date') return 1
+            if (b === 'No date') return -1
+            return a.localeCompare(b)
+          })
+          let cardIndex = 0
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {sortedDates.map(date => {
+                const groupItems = groups.get(date)!
+                const isOpen = expandedDates.has(date)
+                const toggle = () => setExpandedDates(prev => {
+                  const next = new Set(prev)
+                  isOpen ? next.delete(date) : next.add(date)
+                  return next
+                })
+                const label = date === 'No date' ? 'No date set' : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+                return (
+                  <div key={date}>
+                    <button
+                      type="button"
+                      onClick={toggle}
+                      style={{
+                        width: '100%', padding: '12px 16px',
+                        background: isOpen ? C.cardAlt : '#fff',
+                        border: `1px solid ${isOpen ? C.orangeBorder : C.border}`,
+                        borderRadius: isOpen ? '12px 12px 0 0' : 12,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        cursor: 'pointer', textAlign: 'left',
+                        transition: 'all 0.18s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: C.text, fontFamily: 'var(--font-display)' }}>{label}</span>
+                        <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', background: isOpen ? C.orangeLight : 'rgba(0,0,0,0.06)', color: isOpen ? C.orange : C.sub, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
+                          {groupItems.length} {groupItems.length === 1 ? 'activity' : 'activities'}
+                        </span>
+                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isOpen ? C.orange : C.muted} strokeWidth="2.5" style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div style={{ border: `1px solid ${C.orangeBorder}`, borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1, background: '#f8f6f2' }}>
+                        {groupItems.map(item => {
+                          const idx = cardIndex++
+                          return (
+                            <PlanCard
+                              key={item.id} item={item} delay={idx * 35} role={role}
+                              isEditing={editId === item.id} editVals={editVals}
+                              editFilteredTypes={editFilteredTypes} editFilteredSubtypes={editFilteredSubtypes}
+                              editFilteredSections={editFilteredSections}
+                              categories={categories} projects={projects} saving={saving}
+                              onEdit={() => startEdit(item)}
+                              onCancelEdit={() => setEditId(null)}
+                              onSaveEdit={saveEdit} onToggle={() => toggleActive(item)} onDelete={() => del(item.id)}
+                              setE={setE} setEditVals={setEditVals}
+                              allTypes={allTypes} allSubtypes={allSubtypes} allSections={allSections}
+                              editEmployeeRows={editEmployeeRows} setEditEmployeeRows={setEditEmployeeRows}
+                              editSupervisorRows={editSupervisorRows} setEditSupervisorRows={setEditSupervisorRows}
+                              editMachineRows={editMachineRows} setEditMachineRows={setEditMachineRows}
+                              editEmployeeNameOptions={editEmployeeNameOptions}
+                              editSupervisorNameOptions={editSupervisorNameOptions}
+                              equipmentList={equipmentList}
+                            />
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

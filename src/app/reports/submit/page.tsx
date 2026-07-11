@@ -481,6 +481,7 @@ function SubmitPageInner() {
     cells: string | null; length: string | null; status: string
     total_length: string | null; consideration_status: string | null
     comment: string | null; low_point_elevation: string | null
+    lat: number | null; lng: number | null
   }
   const [drainageRows, setDrainageRows]       = useState<DrainageRow[]>([])
   const [drainageLoading, setDrainageLoading] = useState(false)
@@ -549,6 +550,7 @@ function SubmitPageInner() {
               cells: d.cells, length: d.length, status: d.status,
               total_length: d.total_length, consideration_status: d.consideration_status,
               comment: d.comment, low_point_elevation: d.low_point_elevation,
+              lat: d.lat ?? null, lng: d.lng ?? null,
             })
           }
         }
@@ -1215,6 +1217,8 @@ function SubmitPageInner() {
                       set('end_chainage', v)
                       if (row && !planData?.activity_type) set('activity_type', row.type)
                       setSelectedDrainageRow(row)
+                      setStartCoords({ lat: row?.lat ?? null, lng: row?.lng ?? null })
+                      setEndCoords({ lat: row?.lat ?? null, lng: row?.lng ?? null })
                     }}
                     placeholder="Select chainage"
                     searchable
