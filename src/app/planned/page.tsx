@@ -1004,85 +1004,128 @@ export default function PlannedPage() {
             </div>
           </div>
         ) : (() => {
-          // Group by scheduled date, sorted ascending (undated last)
-          const groups = new Map<string, PA[]>()
-          for (const item of visible) {
-            const d = item.custom_data?.scheduled_date || 'No date'
-            if (!groups.has(d)) groups.set(d, [])
-            groups.get(d)!.push(item)
-          }
-          const sortedDates = [...groups.keys()].sort((a, b) => {
-            if (a === 'No date') return 1
-            if (b === 'No date') return -1
-            return a.localeCompare(b)
-          })
+          const pending  = visible.filter(i => i.report_count === 0)
+          const reported = visible.filter(i => i.report_count > 0)
+
           let cardIndex = 0
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {sortedDates.map(date => {
-                const groupItems = groups.get(date)!
-                const isOpen = expandedDates.has(date)
-                const toggle = () => setExpandedDates(prev => {
-                  const next = new Set(prev)
-                  isOpen ? next.delete(date) : next.add(date)
-                  return next
-                })
-                const label = date === 'No date' ? 'No date set' : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
-                return (
-                  <div key={date}>
-                    <button
-                      type="button"
-                      onClick={toggle}
-                      style={{
-                        width: '100%', padding: '12px 16px',
-                        background: isOpen ? C.cardAlt : '#fff',
-                        border: `1px solid ${isOpen ? C.orangeBorder : C.border}`,
-                        borderRadius: isOpen ? '12px 12px 0 0' : 12,
+
+          function DateAccordion({ items, keyPrefix, emptyText, accent }: {
+            items: PA[]; keyPrefix: string; emptyText: string; accent: boolean
+          }) {
+            if (items.length === 0) return (
+              <div style={{ padding: '20px 16px', color: C.sub, fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                {emptyText}
+              </div>
+            )
+            const groups = new Map<string, PA[]>()
+            for (const item of items) {
+              const d = item.custom_data?.scheduled_date || 'No date'
+              if (!groups.has(d)) groups.set(d, [])
+              groups.get(d)!.push(item)
+            }
+            const sortedDates = [...groups.keys()].sort((a, b) => {
+              if (a === 'No date') return 1
+              if (b === 'No date') return -1
+              return a.localeCompare(b)
+            })
+            return (
+              <>
+                {sortedDates.map(date => {
+                  const groupItems = groups.get(date)!
+                  const key = keyPrefix + date
+                  const isOpen = expandedDates.has(key)
+                  const toggle = () => setExpandedDates(prev => {
+                    const next = new Set(prev)
+                    isOpen ? next.delete(key) : next.add(key)
+                    return next
+                  })
+                  const label = date === 'No date'
+                    ? 'No date set'
+                    : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                  return (
+                    <div key={key}>
+                      <button type="button" onClick={toggle} style={{
+                        width: '100%', padding: '10px 16px',
+                        background: isOpen ? (accent ? 'rgba(245,158,11,0.05)' : 'rgba(0,0,0,0.03)') : 'transparent',
+                        border: 'none', borderTop: `1px solid ${C.border}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         cursor: 'pointer', textAlign: 'left',
-                        transition: 'all 0.18s',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: C.text, fontFamily: 'var(--font-display)' }}>{label}</span>
-                        <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', background: isOpen ? C.orangeLight : 'rgba(0,0,0,0.06)', color: isOpen ? C.orange : C.sub, padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
-                          {groupItems.length} {groupItems.length === 1 ? 'activity' : 'activities'}
-                        </span>
-                      </div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isOpen ? C.orange : C.muted} strokeWidth="2.5" style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </button>
-                    {isOpen && (
-                      <div style={{ border: `1px solid ${C.orangeBorder}`, borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 1, background: '#f8f6f2' }}>
-                        {groupItems.map(item => {
-                          const idx = cardIndex++
-                          return (
-                            <PlanCard
-                              key={item.id} item={item} delay={idx * 35} role={role}
-                              isEditing={editId === item.id} editVals={editVals}
-                              editFilteredTypes={editFilteredTypes} editFilteredSubtypes={editFilteredSubtypes}
-                              editFilteredSections={editFilteredSections}
-                              categories={categories} projects={projects} saving={saving}
-                              onEdit={() => startEdit(item)}
-                              onCancelEdit={() => setEditId(null)}
-                              onSaveEdit={saveEdit} onToggle={() => toggleActive(item)} onDelete={() => del(item.id)}
-                              setE={setE} setEditVals={setEditVals}
-                              allTypes={allTypes} allSubtypes={allSubtypes} allSections={allSections}
-                              editEmployeeRows={editEmployeeRows} setEditEmployeeRows={setEditEmployeeRows}
-                              editSupervisorRows={editSupervisorRows} setEditSupervisorRows={setEditSupervisorRows}
-                              editMachineRows={editMachineRows} setEditMachineRows={setEditMachineRows}
-                              editEmployeeNameOptions={editEmployeeNameOptions}
-                              editSupervisorNameOptions={editSupervisorNameOptions}
-                              equipmentList={equipmentList}
-                            />
-                          )
-                        })}
-                      </div>
-                    )}
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isOpen ? (accent ? C.orange : C.text) : C.muted, fontFamily: 'var(--font-mono)' }}>
+                            {label}
+                          </span>
+                          <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', fontWeight: 600, background: isOpen ? (accent ? C.orangeLight : 'rgba(0,0,0,0.07)') : 'rgba(0,0,0,0.05)', color: isOpen ? (accent ? C.orange : C.text) : C.sub, padding: '1px 7px', borderRadius: 10 }}>
+                            {groupItems.length}
+                          </span>
+                        </div>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isOpen ? (accent ? C.orange : C.muted) : C.sub} strokeWidth="2.5"
+                          style={{ transition: 'transform 0.18s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      {isOpen && groupItems.map(item => {
+                        const idx = cardIndex++
+                        return (
+                          <PlanCard
+                            key={item.id} item={item} delay={idx * 35} role={role}
+                            isEditing={editId === item.id} editVals={editVals}
+                            editFilteredTypes={editFilteredTypes} editFilteredSubtypes={editFilteredSubtypes}
+                            editFilteredSections={editFilteredSections}
+                            categories={categories} projects={projects} saving={saving}
+                            onEdit={() => startEdit(item)}
+                            onCancelEdit={() => setEditId(null)}
+                            onSaveEdit={saveEdit} onToggle={() => toggleActive(item)} onDelete={() => del(item.id)}
+                            setE={setE} setEditVals={setEditVals}
+                            allTypes={allTypes} allSubtypes={allSubtypes} allSections={allSections}
+                            editEmployeeRows={editEmployeeRows} setEditEmployeeRows={setEditEmployeeRows}
+                            editSupervisorRows={editSupervisorRows} setEditSupervisorRows={setEditSupervisorRows}
+                            editMachineRows={editMachineRows} setEditMachineRows={setEditMachineRows}
+                            editEmployeeNameOptions={editEmployeeNameOptions}
+                            editSupervisorNameOptions={editSupervisorNameOptions}
+                            equipmentList={equipmentList}
+                          />
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </>
+            )
+          }
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Pending section */}
+              <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(156,163,175,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
                   </div>
-                )
-              })}
+                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: C.text, fontFamily: 'var(--font-display)' }}>Pending</span>
+                  <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(156,163,175,0.12)', color: '#6b7280', padding: '2px 8px', borderRadius: 20 }}>{pending.length}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)' }}>upcoming · editable</span>
+                </div>
+                <DateAccordion items={pending} keyPrefix="pend:" emptyText="No pending activities" accent={false} />
+              </div>
+
+              {/* Reported section */}
+              <div style={{ background: '#fff', border: `1px solid ${C.orangeBorder}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: C.orangeLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.orange} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: C.text, fontFamily: 'var(--font-display)' }}>Reported</span>
+                  <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600, background: C.orangeLight, color: C.orange, padding: '2px 8px', borderRadius: 20 }}>{reported.length}</span>
+                  <a href="/reports" style={{ marginLeft: 'auto', fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)', textDecoration: 'none', letterSpacing: '0.05em' }}>View submissions ›</a>
+                </div>
+                <DateAccordion items={reported} keyPrefix="rep:" emptyText="No reported activities yet" accent={true} />
+              </div>
             </div>
           )
         })()}
