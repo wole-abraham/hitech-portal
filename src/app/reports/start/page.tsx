@@ -44,7 +44,7 @@ export default function ReportStartPage() {
   const [vis, setVis]               = useState(false)
   const [role, setRole]             = useState<'admin' | 'worker'>('worker')
   const [unassigned, setUnassigned] = useState(false)
-  const [filter, setFilter]         = useState<'all' | 'pending' | 'reported'>('all')
+  const [filter, setFilter]         = useState<'all' | 'pending'>('all')
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -186,22 +186,24 @@ export default function ReportStartPage() {
                     </div>
                   </div>
                 </button>
-                <button onClick={() => setFilter(f => f === 'reported' ? 'all' : 'reported')} style={{
-                  flex: 1, background: filter === 'reported' ? 'rgba(245,158,11,0.12)' : C.card,
-                  border: `1.5px solid ${filter === 'reported' ? 'rgba(245,158,11,0.45)' : 'rgba(245,158,11,0.25)'}`,
+                <a href="/reports" style={{
+                  flex: 1, background: C.card,
+                  border: `1.5px solid rgba(245,158,11,0.25)`,
                   borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10,
-                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s',
-                }}>
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', textDecoration: 'none',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(245,158,11,0.08)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(245,158,11,0.45)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = C.card; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(245,158,11,0.25)' }}
+                >
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245,158,11,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '1.2rem', fontWeight: 800, color: C.text, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{reportedCount}</div>
-                    <div style={{ fontSize: '0.6rem', color: filter === 'reported' ? '#d97706' : C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {filter === 'reported' ? '✕ Reported' : 'Reported'}
-                    </div>
+                    <div style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reported</div>
                   </div>
-                </button>
+                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
               </div>
             )
           })()}
@@ -230,7 +232,7 @@ export default function ReportStartPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {planned
-                .filter(p => filter === 'all' || (filter === 'pending' ? p.report_count === 0 : p.report_count > 0))
+                .filter(p => filter === 'all' || p.report_count === 0)
                 .map((p, i) => (
                   <PlannedCard key={p.id} item={p} delay={i * 40} />
                 ))}
