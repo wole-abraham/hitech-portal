@@ -1004,8 +1004,12 @@ export default function PlannedPage() {
             </div>
           </div>
         ) : (() => {
-          const pending  = visible.filter(i => i.report_count === 0)
-          const reported = visible.filter(i => i.report_count > 0)
+          const todayStr = new Date().toISOString().slice(0, 10)
+          const isReported = (i: PA) =>
+            i.report_count > 0 ||
+            (!!i.custom_data?.scheduled_date && i.custom_data.scheduled_date < todayStr)
+          const pending  = visible.filter(i => !isReported(i))
+          const reported = visible.filter(i => isReported(i))
 
           let cardIndex = 0
 
