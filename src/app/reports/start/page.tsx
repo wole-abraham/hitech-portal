@@ -44,7 +44,6 @@ export default function ReportStartPage() {
   const [vis, setVis]               = useState(false)
   const [role, setRole]             = useState<'admin' | 'worker'>('worker')
   const [unassigned, setUnassigned] = useState(false)
-  const [filter, setFilter]         = useState<'all' | 'pending'>('all')
   const [expandedDates, setExpandedDates] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
@@ -165,50 +164,6 @@ export default function ReportStartPage() {
             </a>
           </div>
 
-          {/* Stat tiles */}
-          {!loading && planned.length > 0 && (() => {
-            const pendingCount  = planned.filter(p => p.report_count === 0).length
-            const reportedCount = planned.filter(p => p.report_count > 0).length
-            return (
-              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                <button onClick={() => setFilter(f => f === 'pending' ? 'all' : 'pending')} style={{
-                  flex: 1, background: filter === 'pending' ? 'rgba(156,163,175,0.15)' : C.card,
-                  border: `1.5px solid ${filter === 'pending' ? 'rgba(156,163,175,0.55)' : 'rgba(156,163,175,0.25)'}`,
-                  borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10,
-                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s',
-                }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(156,163,175,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: C.text, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{pendingCount}</div>
-                    <div style={{ fontSize: '0.6rem', color: filter === 'pending' ? '#6b7280' : C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {filter === 'pending' ? '✕ Pending report' : 'Pending report'}
-                    </div>
-                  </div>
-                </button>
-                <a href="/reports" style={{
-                  flex: 1, background: C.card,
-                  border: `1.5px solid rgba(245,158,11,0.25)`,
-                  borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10,
-                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.18s', textDecoration: 'none',
-                }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(245,158,11,0.08)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(245,158,11,0.45)' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = C.card; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(245,158,11,0.25)' }}
-                >
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245,158,11,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: C.text, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{reportedCount}</div>
-                    <div style={{ fontSize: '0.6rem', color: C.sub, fontFamily: 'var(--font-mono)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reported</div>
-                  </div>
-                  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </a>
-              </div>
-            )
-          })()}
-
           {loading ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: C.sub, fontSize: '0.84rem', fontFamily: 'var(--font-mono)' }}>
               Loading…
@@ -231,81 +186,130 @@ export default function ReportStartPage() {
               </div>
             </div>
           ) : (() => {
-            const filtered = planned.filter(p => filter === 'all' || p.report_count === 0)
-            // Group by scheduled date
-            const groups = new Map<string, PlannedActivity[]>()
-            for (const p of filtered) {
-              const d = p.custom_data?.scheduled_date || 'No date'
-              if (!groups.has(d)) groups.set(d, [])
-              groups.get(d)!.push(p)
-            }
-            const sortedDates = [...groups.keys()].sort((a, b) => {
-              if (a === 'No date') return 1
-              if (b === 'No date') return -1
-              return a.localeCompare(b)
-            })
-            let cardIndex = 0
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sortedDates.map(date => {
-                  const groupItems = groups.get(date)!
-                  const isOpen = expandedDates.has(date)
-                  const toggle = () => setExpandedDates(prev => {
-                    const next = new Set(prev)
-                    isOpen ? next.delete(date) : next.add(date)
-                    return next
-                  })
-                  const label = date === 'No date'
-                    ? 'No date set'
-                    : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                  return (
-                    <div key={date}>
-                      <button
-                        type="button"
-                        onClick={toggle}
-                        style={{
-                          width: '100%', padding: '12px 16px',
-                          background: isOpen ? '#fdf8ef' : C.card,
-                          border: `1px solid ${isOpen ? C.orangeBorder : C.border}`,
-                          borderRadius: isOpen ? '12px 12px 0 0' : 12,
+            const pending  = planned.filter(p => p.report_count === 0)
+            const reported = planned.filter(p => p.report_count > 0)
+
+            function DateGroup({ items, keyPrefix, emptyText }: { items: PlannedActivity[]; keyPrefix: string; emptyText: string }) {
+              if (items.length === 0) return (
+                <div style={{ padding: '18px 16px', color: C.sub, fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>{emptyText}</div>
+              )
+              const groups = new Map<string, PlannedActivity[]>()
+              for (const p of items) {
+                const d = p.custom_data?.scheduled_date || 'No date'
+                if (!groups.has(d)) groups.set(d, [])
+                groups.get(d)!.push(p)
+              }
+              const sortedDates = [...groups.keys()].sort((a, b) => {
+                if (a === 'No date') return 1
+                if (b === 'No date') return -1
+                return a.localeCompare(b)
+              })
+              return (
+                <>
+                  {sortedDates.map(date => {
+                    const groupItems = groups.get(date)!
+                    const key = keyPrefix + date
+                    const isOpen = expandedDates.has(key)
+                    const toggle = () => setExpandedDates(prev => {
+                      const next = new Set(prev)
+                      isOpen ? next.delete(key) : next.add(key)
+                      return next
+                    })
+                    const label = date === 'No date'
+                      ? 'No date set'
+                      : new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+                    return (
+                      <div key={key}>
+                        {/* Date row */}
+                        <button type="button" onClick={toggle} style={{
+                          width: '100%', padding: '9px 14px',
+                          background: isOpen ? 'rgba(245,158,11,0.05)' : 'rgba(0,0,0,0.02)',
+                          border: 'none', borderTop: `1px solid ${C.border}`,
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                           cursor: 'pointer', textAlign: 'left',
-                          transition: 'all 0.18s',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: C.text, fontFamily: 'var(--font-display)' }}>{label}</span>
-                          <span style={{
-                            fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600,
-                            background: isOpen ? C.orangeLight : 'rgba(0,0,0,0.06)',
-                            color: isOpen ? C.orange : C.sub,
-                            padding: '2px 8px', borderRadius: 20,
-                          }}>
-                            {groupItems.length} {groupItems.length === 1 ? 'task' : 'tasks'}
-                          </span>
-                        </div>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke={isOpen ? C.orange : C.muted} strokeWidth="2.5"
-                          style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </button>
-                      {isOpen && (
-                        <div style={{
-                          border: `1px solid ${C.orangeBorder}`, borderTop: 'none',
-                          borderRadius: '0 0 12px 12px', overflow: 'hidden',
-                          display: 'flex', flexDirection: 'column', gap: 1,
-                          background: '#f8f6f2',
                         }}>
-                          {groupItems.map(p => {
-                            const idx = cardIndex++
-                            return <PlannedCard key={p.id} item={p} delay={idx * 40} />
-                          })}
-                        </div>
-                      )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isOpen ? C.orange : C.muted, fontFamily: 'var(--font-mono)' }}>{label}</span>
+                            <span style={{ fontSize: '0.62rem', color: isOpen ? C.orange : C.sub, fontFamily: 'var(--font-mono)', background: isOpen ? C.orangeLight : 'rgba(0,0,0,0.05)', padding: '1px 6px', borderRadius: 10 }}>
+                              {groupItems.length}
+                            </span>
+                          </div>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isOpen ? C.orange : C.sub} strokeWidth="2.5"
+                            style={{ transition: 'transform 0.18s', transform: isOpen ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </button>
+                        {/* Task rows */}
+                        {isOpen && groupItems.map((p, i) => {
+                          const chainages = p.start_chainage && p.end_chainage
+                            ? `${p.start_chainage} → ${p.end_chainage}`
+                            : p.start_chainage || null
+                          return (
+                            <div key={p.id} style={{
+                              display: 'grid', gridTemplateColumns: '1fr auto',
+                              alignItems: 'center', gap: 10,
+                              padding: '10px 14px',
+                              background: i % 2 === 0 ? '#ffffff' : '#fafaf9',
+                              borderTop: `1px solid rgba(0,0,0,0.04)`,
+                            }}>
+                              <div style={{ minWidth: 0 }}>
+                                <a href={`/reports/submit?from=${p.id}`} style={{ textDecoration: 'none' }}>
+                                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: C.text, fontFamily: 'var(--font-display)', marginBottom: 3 }}>{p.title}</div>
+                                </a>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                  {[p.activity_category, p.activity_type, p.project_name, p.section_name].filter(Boolean).map((tag, ti) => (
+                                    <span key={ti} style={{ fontSize: '0.58rem', color: C.muted, background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 3, padding: '1px 5px', fontFamily: 'var(--font-mono)' }}>{tag}</span>
+                                  ))}
+                                  {chainages && (
+                                    <span style={{ fontSize: '0.58rem', color: C.orange, background: C.orangeLight, border: `1px solid ${C.orangeBorder}`, borderRadius: 3, padding: '1px 5px', fontFamily: 'var(--font-mono)' }}>{chainages}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <a href={`/reports/submit?from=${p.id}`} style={{
+                                padding: '6px 12px', borderRadius: 7,
+                                background: C.orange, color: '#1a1410',
+                                fontSize: '0.68rem', fontWeight: 700,
+                                fontFamily: 'var(--font-display)', textDecoration: 'none',
+                                letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
+                              }}>
+                                Report →
+                              </a>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </>
+              )
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Pending table */}
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(156,163,175,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     </div>
-                  )
-                })}
+                    <span style={{ fontWeight: 700, fontSize: '0.82rem', color: C.text, fontFamily: 'var(--font-display)' }}>Pending</span>
+                    <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600, background: 'rgba(156,163,175,0.12)', color: '#6b7280', padding: '2px 8px', borderRadius: 20 }}>{pending.length}</span>
+                  </div>
+                  <DateGroup items={pending} keyPrefix="p:" emptyText="No pending activities" />
+                </div>
+
+                {/* Reported table */}
+                <div style={{ background: C.card, border: `1px solid ${C.orangeBorder}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 7, background: C.orangeLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.orange} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: '0.82rem', color: C.text, fontFamily: 'var(--font-display)' }}>Reported</span>
+                    <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600, background: C.orangeLight, color: C.orange, padding: '2px 8px', borderRadius: 20 }}>{reported.length}</span>
+                    <a href="/reports" style={{ marginLeft: 'auto', fontSize: '0.62rem', color: C.sub, fontFamily: 'var(--font-mono)', textDecoration: 'none', letterSpacing: '0.06em' }}>View all ›</a>
+                  </div>
+                  <DateGroup items={reported} keyPrefix="r:" emptyText="No reported activities yet" />
+                </div>
               </div>
             )
           })()}
@@ -316,166 +320,3 @@ export default function ReportStartPage() {
   )
 }
 
-function PlannedCard({ item, delay }: { item: PlannedActivity; delay: number }) {
-  const [vis, setVis] = useState(false)
-  const [hov, setHov] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  function copyLink(e: React.MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
-    const url = `${window.location.origin}/reports/submit?from=${item.id}`
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  useEffect(() => {
-    const t = setTimeout(() => setVis(true), delay)
-    return () => clearTimeout(t)
-  }, [delay])
-
-  const meta = [
-    item.activity_category,
-    item.activity_type,
-    item.project_name,
-    item.section_name && item.project_name ? item.section_name : null,
-  ].filter(Boolean)
-
-  const chainages = item.start_chainage && item.end_chainage
-    ? `${item.start_chainage} → ${item.end_chainage}`
-    : item.start_chainage || null
-
-  return (
-    <a
-      href={`/reports/submit?from=${item.id}`}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'block', textDecoration: 'none',
-        background: hov ? '#fdf8ef' : '#ffffff',
-        border: `1px solid ${hov ? 'rgba(245,158,11,0.35)' : 'rgba(0,0,0,0.09)'}`,
-        borderRadius: 14, padding: '14px 16px',
-        boxShadow: hov ? '0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(245,158,11,0.06)' : '0 2px 8px rgba(0,0,0,0.05)',
-        opacity: vis ? 1 : 0,
-        transform: vis ? 'translateY(0)' : 'translateY(10px)',
-        transition: 'opacity 0.3s ease, transform 0.3s ease, background 0.18s, border-color 0.18s, box-shadow 0.18s',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Amber left accent */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0, width: 2,
-        background: '#f59e0b', borderRadius: '14px 0 0 14px',
-        transform: hov ? 'scaleY(1)' : 'scaleY(0)',
-        transformOrigin: 'bottom',
-        transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-      }} />
-
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <div style={{
-          width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-          background: hov ? 'rgba(245,158,11,0.10)' : 'rgba(0,0,0,0.04)',
-          border: `1px solid ${hov ? 'rgba(245,158,11,0.25)' : 'rgba(0,0,0,0.08)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.18s, border-color 0.18s',
-        }}>
-          <svg width={17} height={17} viewBox="0 0 24 24" fill="none"
-            stroke={hov ? '#f59e0b' : '#8c8480'} strokeWidth={1.8}
-            strokeLinecap="round" strokeLinejoin="round"
-            style={{ transition: 'stroke 0.18s' }}>
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontWeight: 700, fontSize: '0.9rem', color: '#1a1610',
-            fontFamily: 'var(--font-display)', marginBottom: 4,
-            letterSpacing: '-0.01em',
-          }}>
-            {item.title}
-          </div>
-
-          {item.description && (
-            <div style={{ fontSize: '0.74rem', color: '#6b6055', marginBottom: 5, lineHeight: 1.45 }}>
-              {item.description}
-            </div>
-          )}
-
-          {meta.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {meta.map((tag, i) => (
-                <span key={i} style={{
-                  fontSize: '0.62rem', color: '#6b6055',
-                  background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.07)',
-                  borderRadius: 4, padding: '2px 7px',
-                  fontFamily: 'var(--font-mono)',
-                }}>{tag}</span>
-              ))}
-              {chainages && (
-                <span style={{
-                  fontSize: '0.62rem', color: '#f59e0b',
-                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)',
-                  borderRadius: 4, padding: '2px 7px',
-                  fontFamily: 'var(--font-mono)',
-                }}>{chainages}</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-          {(() => {
-            const s = item.activity_status || 'Planned'
-            const map: Record<string, { bg: string; border: string; color: string }> = {
-              Planned:   { bg: 'rgba(156,163,175,0.10)', border: 'rgba(156,163,175,0.25)', color: '#6b7280' },
-              Ongoing:   { bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.25)',  color: '#3b82f6' },
-              Completed: { bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.25)',   color: '#16a34a' },
-              Canceled:  { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.25)',   color: '#dc2626' },
-              Suspended: { bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)',  color: '#d97706' },
-            }
-            const st = map[s] ?? map.Planned
-            return (
-              <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: st.color, background: st.bg, border: `1px solid ${st.border}`, borderRadius: 5, padding: '2px 7px' }}>
-                {s}
-              </span>
-            )
-          })()}
-          {item.custom_data?.scheduled_date && (() => {
-            const [y, m, d] = item.custom_data!.scheduled_date!.split('-').map(Number)
-            const dt = new Date(y, m - 1, d)
-            const day = dt.toLocaleDateString('en-GB', { weekday: 'long' })
-            const formatted = `${day}, ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`
-            return (
-              <span style={{ fontSize: '0.58rem', color: '#8c8480', fontFamily: 'var(--font-mono)' }}>{formatted}</span>
-            )
-          })()}
-          <svg style={{ opacity: hov ? 1 : 0, transform: hov ? 'translateX(0)' : 'translateX(-4px)', transition: 'opacity 0.2s, transform 0.25s' }}
-            width={14} height={14} viewBox="0 0 24 24" fill="none"
-            stroke="#f59e0b" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-          <button onClick={copyLink} style={{
-            padding: '4px 9px', borderRadius: 6, border: `1px solid ${copied ? 'rgba(52,211,153,0.4)' : 'rgba(0,0,0,0.1)'}`,
-            background: copied ? 'rgba(52,211,153,0.08)' : 'rgba(0,0,0,0.04)',
-            color: copied ? '#16a34a' : '#8c8480',
-            fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4,
-            transition: 'all 0.18s',
-          }}>
-            {copied
-              ? <><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
-              : <><svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Share</>
-            }
-          </button>
-        </div>
-      </div>
-    </a>
-  )
-}
