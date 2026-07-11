@@ -4,6 +4,12 @@ import { createClient } from '@supabase/supabase-js'
 import { sessionOptions, AppSession } from '@/lib/session'
 import { pbkdf2, randomBytes } from 'crypto'
 import { promisify } from 'util'
+import { Resend } from 'resend'
+
+const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL    || 'https://hitech.datatodecisions.org'
+const APP_NAME    = process.env.NEXT_PUBLIC_APP_NAME    || 'PORTAL'
+const APP_COMPANY = process.env.NEXT_PUBLIC_APP_COMPANY || 'Hitech Construction Ltd'
+const EMAIL_FROM  = process.env.RESEND_FROM_EMAIL       || 'noreply@hitech.datatodecisions.org'
 
 const pbkdf2Async = promisify(pbkdf2)
 
@@ -145,6 +151,43 @@ export async function POST(req: NextRequest) {
     // Roll back the auth user if employee insert fails
     await supabase.from('auth_user').delete().eq('id', newUser.id)
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Send welcome email — employee sets their own password via forgot-password
+  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_your_api_key_here') {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const forgotLink = `${SITE_URL}/forgot-password`
+      await resend.emails.send({
+        from: `${APP_NAME} Portal <${EMAIL_FROM}>`,
+        to: email.trim(),
+        subject: `Your ${APP_NAME} Portal account is ready`,
+        html: `
+          <div style="font-family:monospace;max-width:480px;margin:0 auto;padding:32px;background:#1a1208;color:#f2ede3;border-radius:12px;">
+            <div style="font-size:1.4rem;font-weight:800;color:#f2b950;margin-bottom:4px;letter-spacing:-0.02em;">${APP_NAME}</div>
+            <div style="font-size:0.65rem;letter-spacing:0.18em;color:#8c7a58;text-transform:uppercase;margin-bottom:28px;">${APP_COMPANY} — Field Operations Portal</div>
+            <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:8px;">Hi ${firstName},</p>
+            <p style="color:#f2ede3;font-size:0.92rem;margin-bottom:24px;">
+              Your account has been created on the <strong style="color:#f2b950;">${APP_NAME} Portal</strong>.
+              To log in for the first time, you need to set your password using the link below.
+            </p>
+            <div style="background:rgba(242,185,80,0.08);border:1px solid rgba(242,185,80,0.20);border-radius:9px;padding:16px;margin-bottom:24px;">
+              <div style="font-size:0.7rem;color:#8c7a58;text-transform:uppercase;letter-spacing:0.10em;margin-bottom:6px;">Your login email</div>
+              <div style="font-size:0.95rem;font-weight:700;color:#f2b950;">${email.trim()}</div>
+            </div>
+            <a href="${forgotLink}" style="display:inline-block;padding:13px 28px;background:#f2b950;color:#1a1208;font-weight:800;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;border-radius:9px;text-decoration:none;">Set My Password →</a>
+            <p style="color:#8c7a58;font-size:0.75rem;margin-top:28px;line-height:1.55;">
+              Click the button above, enter your email address, and follow the link in the reset email to create your password. Then log in at <a href="${SITE_URL}/login" style="color:#f2b950;">${SITE_URL}/login</a>.
+            </p>
+            <hr style="border:none;border-top:1px solid rgba(242,185,80,0.15);margin:24px 0;" />
+            <p style="color:#8c7a58;font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;">${APP_COMPANY}</p>
+          </div>
+        `,
+      })
+    } catch (emailErr) {
+      console.error('Welcome email failed:', emailErr)
+      // Don't fail the whole request if email fails
+    }
   }
 
   return NextResponse.json(data, { status: 201 })

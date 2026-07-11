@@ -23,7 +23,14 @@ async function makeDjangoPassword(password: string): Promise<string> {
   return `pbkdf2_sha256$${iterations}$${salt}$${hash.toString('base64')}`
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
+  return NextResponse.json(
+    { error: 'Self-registration is disabled. Contact your administrator to create an account.' },
+    { status: 403 }
+  )
+}
+
+export async function POST_DISABLED(req: NextRequest) {
   const { first_name, last_name, email, phone, password, jobRole, dob, gender, nationality } = await req.json()
 
   const ALLOWED_ROLES = ['Engineer','Supervisor','Operator','Technician','Labourer','Driver','Surveyor','Site Manager','Other']

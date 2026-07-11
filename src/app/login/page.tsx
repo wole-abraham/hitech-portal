@@ -484,17 +484,9 @@ export default function LoginPage() {
             transition: 'opacity 0.5s ease 1.4s',
           }}>
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', color: '#6b6055', fontSize: '0.82rem' }}>
-                No account?{' '}
+              <span style={{ fontFamily: 'var(--font-mono)', color: '#6b6055', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                Account access is managed by your administrator.
               </span>
-              <a href="/signup" style={{
-                fontFamily: 'var(--font-mono)', fontSize: '0.82rem',
-                color: '#1a1610', textDecoration: 'underline', fontWeight: 700,
-                letterSpacing: '0.04em',
-                textUnderlineOffset: '3px',
-              }}>
-                Sign up →
-              </a>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <p style={{
