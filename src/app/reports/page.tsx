@@ -150,7 +150,17 @@ export default function ReportsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
-    <PageShell title="Submissions" subtitle={`${total} reports`}>
+    <PageShell title="Submissions" subtitle={`${total} reports`}
+      action={<a href="/reports/import" style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', borderRadius: 9,
+        background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.30)',
+        color: '#f59e0b', fontSize: '0.7rem', fontWeight: 700,
+        textDecoration: 'none', letterSpacing: '0.06em', textTransform: 'uppercase',
+      }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import Excel
+      </a>}>
 
       {/* Search */}
       <SearchBar value={search} onChange={v => setSearch(v)} placeholder="Search by reporter, project, activity…" />
