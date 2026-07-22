@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  return NextResponse.json({ ...data, auth_role: session.user.role })
 }
 
 export async function PATCH(req: NextRequest) {
