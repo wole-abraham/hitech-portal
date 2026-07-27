@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   let q = supabase
     .from('surveycollection_employee')
-    .select('id, name, role, status, phone_number, project_name, section_name, email, notes, user_id, profile_picture, passport_photo, passport_document, fingerprint_id, date_of_birth, marital_status, nationality, gender')
+    .select('id, name, role, status, phone_number, project_name, section_name, email, notes, user_id, profile_picture, passport_photo, passport_document, fingerprint_id, fingerprint_template, date_of_birth, marital_status, nationality, gender')
     .order('name')
 
   if (status) q = (q as any).eq('status', status)

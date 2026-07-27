@@ -16,16 +16,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const { employee_id, fingerprint_device_id } = await req.json()
-  if (!employee_id || fingerprint_device_id === undefined) {
-    return NextResponse.json({ error: 'employee_id and fingerprint_device_id required' }, { status: 400 })
+  const { employee_id, template } = await req.json()
+  if (!employee_id || !template) {
+    return NextResponse.json({ error: 'employee_id and template required' }, { status: 400 })
   }
 
   const { data, error } = await supabase
     .from('surveycollection_employee')
-    .update({ fingerprint_id: String(fingerprint_device_id) })
+    .update({ fingerprint_template: template })
     .eq('id', employee_id)
-    .select('id, name, fingerprint_id')
+    .select('id, name, fingerprint_template')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
